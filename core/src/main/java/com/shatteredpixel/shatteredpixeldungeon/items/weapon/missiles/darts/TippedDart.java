@@ -152,7 +152,9 @@ public abstract class TippedDart extends Dart {
 	@Override
 	public float durabilityPerUse() {
 		float use = super.durabilityPerUse(false);
-		
+
+		// 判空
+		if (Dungeon.hero != null)
 		use /= (1 + Dungeon.hero.pointsInTalent(Talent.DURABLE_TIPS));
 
 		//checks both destination and source position
@@ -168,6 +170,8 @@ public abstract class TippedDart extends Dart {
 			}
 			targetPos = -1;
 		}
+		// 判空
+		if (curUser != null || Dungeon.hero != null) {
 		int p = curUser == null ? Dungeon.hero.pos : curUser.pos;
 		for (Char ch : Actor.chars()){
 			if (ch instanceof WandOfRegrowth.Lotus){
@@ -178,11 +182,13 @@ public abstract class TippedDart extends Dart {
 			}
 		}
 		use *= (1f - lotusPreserve);
+		}
 
 		float usages = Math.round(MAX_DURABILITY/use);
 
+		// 判空
 		//grants 4 extra uses with charged shot
-		if (Dungeon.hero.buff(Crossbow.ChargedShot.class) != null){
+		if (Dungeon.hero != null && Dungeon.hero.buff(Crossbow.ChargedShot.class) != null){
 			usages += 4;
 		}
 
