@@ -183,7 +183,7 @@ public class NetRankingsScene extends PixelScene {
 			title.label("当前显示: " + playerName + " 的排行榜");
 		}
 		title.setPos(
-				(w - title.width()) / 2f,
+				(w - title.reqWidth()) / 2f,
 				(20 - title.height()) / 2f
 		);
 		ArrayList<String> selects = new ArrayList<>();

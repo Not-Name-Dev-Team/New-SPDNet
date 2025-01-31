@@ -54,7 +54,7 @@ import java.util.Locale;
 public class NetWndPlayerInfo extends WndTabbed {
 
 	private static final int WIDTH		= 120;
-	private static final int HEIGHT		= 120;
+	private static final int HEIGHT		= 160;
 
 	private StatsTab stats;
 	private NetTalentsTab talents;
