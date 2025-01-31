@@ -33,6 +33,7 @@ import com.shatteredpixel.shatteredpixeldungeon.Statistics;
 import com.shatteredpixel.shatteredpixeldungeon.actors.hero.Belongings;
 import com.shatteredpixel.shatteredpixeldungeon.actors.hero.HeroSubClass;
 import com.shatteredpixel.shatteredpixeldungeon.items.Item;
+import com.shatteredpixel.shatteredpixeldungeon.items.trinkets.Trinket;
 import com.shatteredpixel.shatteredpixeldungeon.messages.Messages;
 import com.shatteredpixel.shatteredpixeldungeon.scenes.PixelScene;
 import com.shatteredpixel.shatteredpixeldungeon.sprites.HeroSprite;
@@ -61,17 +62,17 @@ import java.text.NumberFormat;
 import java.util.Locale;
 
 public class WndRanking extends WndTabbed {
-	
+
 	private static final int WIDTH			= 115;
 	private static final int HEIGHT			= 144;
-	
+
 	private static WndRanking INSTANCE;
-	
+
 	private String gameID;
 	private Rankings.Record record;
-	
+
 	public WndRanking( final Rankings.Record rec ) {
-		
+
 		super();
 		resize( WIDTH, HEIGHT );
 
@@ -106,7 +107,7 @@ public class WndRanking extends WndTabbed {
 
 		if (Dungeon.hero != null) {
 			Icons[] icons =
-					{Icons.RANKINGS, Icons.TALENT, Icons.BACKPACK_LRG, Icons.BADGES, Icons.CHALLENGE_ON};
+					{Icons.RANKINGS, Icons.TALENT, Icons.BACKPACK_LRG, Icons.BADGES, Icons.CHALLENGE_COLOR};
 			Group[] pages =
 					{new StatsTab(), new TalentsTab(), new ItemsTab(), new BadgesTab(), null};
 
@@ -159,7 +160,7 @@ public class WndRanking extends WndTabbed {
 		
 		public StatsTab() {
 			super();
-			
+
 			String heroClass = record.heroClass.name();
 			if (Dungeon.hero != null){
 				heroClass = Dungeon.hero.className();
@@ -190,7 +191,7 @@ public class WndRanking extends WndTabbed {
 
 			pos = date.bottom()+5;
 
-			NumberFormat num = NumberFormat.getInstance(Locale.US);
+			NumberFormat num = NumberFormat.getInstance(Messages.locale());
 
 			if (Dungeon.hero == null){
 				pos = statSlot( this, Messages.get(this, "score"), num.format( record.score ), pos );
@@ -368,11 +369,22 @@ public class WndRanking extends WndTabbed {
 				}
 			}
 
+			Trinket trinket = stuff.getItem(Trinket.class);
+			if (trinket != null){
+				slotsActive++;
+			}
+
 			float slotWidth = Math.min(28, ((WIDTH - slotsActive + 1) / (float)slotsActive));
 
-			for (int i = 0; i < QuickSlot.SIZE; i++){
-				if (Dungeon.quickslot.isNonePlaceholder(i)){
-					QuickSlotButton slot = new QuickSlotButton(Dungeon.quickslot.getItem(i));
+			for (int i = -1; i < QuickSlot.SIZE; i++){
+				Item item = null;
+				if (i == -1){
+					item = trinket;
+				} else if (Dungeon.quickslot.isNonePlaceholder(i)) {
+					item = Dungeon.quickslot.getItem(i);
+				}
+				if (item != null){
+					QuickSlotButton slot = new QuickSlotButton(item);
 
 					slot.setRect( pos, 120, slotWidth, 23 );
 					PixelScene.align(slot);
@@ -398,7 +410,7 @@ public class WndRanking extends WndTabbed {
 		
 		public BadgesTab() {
 			super();
-			
+
 			camera = WndRanking.this.camera;
 
 			Component badges;

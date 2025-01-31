@@ -3,11 +3,15 @@ buildscript {
         gradlePluginPortal()
         google()
         mavenCentral()
+        maven {
+            url = uri("https://storage.googleapis.com/r8-releases/raw")
+        }
     }
     dependencies {
-        //the R8 version bundled with AGP 8.1.0+ causes crashes on very old Android versions
-        //This affects ICS and Lollipop at least, maybe also KitKat
-        classpath 'com.android.tools.build:gradle:8.0.2'
+        //gradle version packaged with AGP 8.5 causes crashes on Android 4.4-
+        //this won't be needed once the bundled R8 version is 8.7.11+ (should happen with AGP 8.6)
+        classpath 'com.android.tools:r8:8.7.11'
+        classpath 'com.android.tools.build:gradle:8.5.2'
 
         // 添加获取调试信息用的Firebase
         classpath 'com.google.gms:google-services:4.4.1'
@@ -21,10 +25,10 @@ allprojects {
         appName = 'SPDNet'
         appPackageName = 'me.nonamedev.spdnet'
 
-        appVersionCode = 768
-        appVersionName = '2.3.2'
+        appVersionCode = 802
+        appVersionName = '2.5.4'
         // Net的版本号
-        appNetVersionName = '0.0.3'
+        appNetVersionName = '0.0.1'
 
         appJavaCompatibility = JavaVersion.VERSION_1_8
 
@@ -35,7 +39,7 @@ allprojects {
 
         gdxVersion = '1.12.1'
         gdxControllersVersion = '2.2.4-SNAPSHOT'
-        robovmVersion = '2.3.20'
+        robovmVersion = '2.3.21'
     }
     // 添加Net版本号
     version = appVersionName + '}' + appNetVersionName

@@ -53,6 +53,8 @@ import com.shatteredpixel.shatteredpixeldungeon.windows.WndKeyBindings;
 import com.shatteredpixel.shatteredpixeldungeon.windows.WndMessage;
 import com.shatteredpixel.shatteredpixeldungeon.windows.WndOptions;
 import com.shatteredpixel.shatteredpixeldungeon.windows.WndTextInput;
+import com.shatteredpixel.shatteredpixeldungeon.windows.WndTitledMessage;
+import com.shatteredpixel.shatteredpixeldungeon.windows.WndVictoryCongrats;
 import com.watabou.gltextures.TextureCache;
 import com.watabou.input.PointerEvent;
 import com.watabou.noosa.Camera;
@@ -63,6 +65,7 @@ import com.watabou.noosa.NinePatch;
 import com.watabou.noosa.PointerArea;
 import com.watabou.noosa.tweeners.Tweener;
 import com.watabou.noosa.ui.Component;
+import com.watabou.utils.DeviceCompat;
 import com.watabou.utils.GameMath;
 import com.watabou.utils.PointF;
 
@@ -109,7 +112,7 @@ public class HeroSelectScene extends PixelScene {
 		Badges.loadGlobal();
 		Journal.loadGlobal();
 
-		background = new Image(HeroClass.WARRIOR.splashArt()){
+		background = new Image(TextureCache.createSolid(0xFF2d2f31), 0, 0, 800, 450){
 			@Override
 			public void update() {
 				if (GamesInProgress.selectedClass != null) {
@@ -123,7 +126,6 @@ public class HeroSelectScene extends PixelScene {
 			}
 		};
 		background.scale.set(Camera.main.height/background.height);
-		background.tint(0x2d2f31, 1f);
 
 		background.x = (Camera.main.width - background.width())/2f;
 		background.y = (Camera.main.height - background.height())/2f;
@@ -160,6 +162,7 @@ public class HeroSelectScene extends PixelScene {
 
 				Dungeon.hero = null;
 				Dungeon.daily = Dungeon.dailyReplay = false;
+				Dungeon.initSeed();
 				ActionIndicator.clearAction();
 				InterlevelScene.mode = InterlevelScene.Mode.DESCEND;
 
@@ -176,11 +179,14 @@ public class HeroSelectScene extends PixelScene {
 			@Override
 			protected void onClick() {
 				super.onClick();
-				Window w = new WndHeroInfo(GamesInProgress.selectedClass);
-				if (landscape()){
-					w.offset(Camera.main.width/6, 0);
+				HeroClass cls = GamesInProgress.selectedClass;
+				if (cls != null) {
+					Window w = new WndHeroInfo(GamesInProgress.selectedClass);
+					if (landscape()) {
+						w.offset(Camera.main.width / 6, 0);
+					}
+					ShatteredPixelDungeon.scene().addToFront(w);
 				}
-				ShatteredPixelDungeon.scene().addToFront(w);
 			}
 
 			@Override
@@ -233,15 +239,17 @@ public class HeroSelectScene extends PixelScene {
 //		};
 //		updateOptionsColor();
 //		btnOptions.visible = false;
-
-//		// 手动设置开始游戏时的种子、DR、挑战等设置可见
-//		if (true || Badges.isUnlocked(Badges.Badge.VICTORY)){
+//
+//		if(!SPDSettings.intro()){
 //			add(btnOptions);
-//		} else {
-//			Dungeon.challenges = 0;
-//			SPDSettings.challenges(0);
-//			SPDSettings.customSeed("");
 //		}
+
+		// 手动设置开始游戏时的种子、DR、挑战等设置可见
+		if (false && !Badges.isUnlocked(Badges.Badge.VICTORY) && !DeviceCompat.isDebug()){
+			Dungeon.challenges = 0;
+			SPDSettings.challenges(0);
+			SPDSettings.customSeed("");
+		}
 
 		if (landscape()){
 			float leftArea = Math.max(100, Camera.main.width/3f);
@@ -307,7 +315,7 @@ public class HeroSelectScene extends PixelScene {
 			startBtn.setPos((leftArea - startBtn.width())/2f, uiHeight - startBtn.height());
 			align(startBtn);
 
-			btnFade = new IconButton(Icons.COMPASS.get()){
+			btnFade = new IconButton(Icons.CHEVRON.get()){
 				@Override
 				protected void onClick() {
 					enable(false);
@@ -410,6 +418,11 @@ public class HeroSelectScene extends PixelScene {
 			setSelectedHero(GamesInProgress.selectedClass);
 		}
 
+		if (Badges.isUnlocked(Badges.Badge.VICTORY) && !SPDSettings.victoryNagged()) {
+			SPDSettings.victoryNagged(true);
+			add(new WndVictoryCongrats());
+		}
+
 		fadeIn();
 
 	}
@@ -428,7 +441,14 @@ public class HeroSelectScene extends PixelScene {
 	private void setSelectedHero(HeroClass cl){
 		GamesInProgress.selectedClass = cl;
 
-		background.texture( cl.splashArt() );
+		try {
+			//loading these big jpgs fails sometimes, so we have a catch for it
+			background.texture(cl.splashArt());
+		} catch (Exception e){
+			Game.reportException(e);
+			background.texture(TextureCache.createSolid(0xFF2d2f31));
+			background.frame(0, 0, 800, 450);
+		}
 		background.visible = true;
 		background.hardlight(1.5f,1.5f,1.5f);
 
@@ -445,6 +465,12 @@ public class HeroSelectScene extends PixelScene {
 			heroDesc.maxWidth(80);
 			heroDesc.setPos((leftPortion - heroDesc.width())/2f, heroName.bottom() + 5);
 			align(heroDesc);
+
+			while(startBtn.top() < heroDesc.bottom()){
+				heroDesc.maxWidth(heroDesc.maxWidth()+10);
+				heroDesc.setPos(Math.max(0, (leftPortion - heroDesc.width())/2f), heroName.bottom() + 5);
+				align(heroDesc);
+			}
 
 			btnFade.visible = btnFade.active = true;
 
@@ -533,6 +559,7 @@ public class HeroSelectScene extends PixelScene {
 		startBtn.alpha(alpha);
 		btnExit.enable(btnExit.visible && alpha != 0);
 		btnExit.icon().alpha(alpha);
+		// 删除选项按钮的相关配置, 因为重构UI
 		// 删除选项按钮的相关配置, 因为重构UI
 //		optionsPane.active = optionsPane.visible && alpha != 0;
 //		optionsPane.alpha(alpha);
@@ -650,167 +677,193 @@ public class HeroSelectScene extends PixelScene {
 
 			buttons = new ArrayList<>();
 			spacers = new ArrayList<>();
-			// 手动设置开始游戏时的种子、DR、挑战等设置可见
-			if (true || Badges.isUnlocked(Badges.Badge.VICTORY)){
-				StyledButton seedButton = new StyledButton(Chrome.Type.BLANK, Messages.get(HeroSelectScene.class, "custom_seed"), 6){
-					@Override
-					protected void onClick() {
-						String existingSeedtext = SPDSettings.customSeed();
-						ShatteredPixelDungeon.scene().addToFront( new WndTextInput(Messages.get(HeroSelectScene.class, "custom_seed_title"),
-								Messages.get(HeroSelectScene.class, "custom_seed_desc"),
-								existingSeedtext,
-								20,
-								false,
-								Messages.get(HeroSelectScene.class, "custom_seed_set"),
-								Messages.get(HeroSelectScene.class, "custom_seed_clear")){
-							@Override
-							public void onSelect(boolean positive, String text) {
-								text = DungeonSeed.formatText(text);
-								long seed = DungeonSeed.convertFromText(text);
-
-								if (positive && seed != -1){
-
-									for (GamesInProgress.Info info : GamesInProgress.checkAll()){
-										if (info.customSeed.isEmpty() && info.seed == seed){
-											SPDSettings.customSeed("");
-											icon.resetColor();
-											ShatteredPixelDungeon.scene().addToFront(new WndMessage(Messages.get(HeroSelectScene.class, "custom_seed_duplicate")));
-											return;
-										}
-									}
-
-									SPDSettings.customSeed(text);
-									icon.hardlight(1f, 1.5f, 0.67f);
-								} else {
-									SPDSettings.customSeed("");
-									icon.resetColor();
-								}
-								// 删除选项按钮的相关配置, 因为重构UI
-//								updateOptionsColor();
-							}
-						});
+			StyledButton seedButton = new StyledButton(Chrome.Type.BLANK, Messages.get(HeroSelectScene.class, "custom_seed"), 6){
+				@Override
+				protected void onClick() {
+					// 手动设置开始游戏时的种子、DR、挑战等设置可见
+					if (false && !Badges.isUnlocked(Badges.Badge.VICTORY) && !DeviceCompat.isDebug()){
+						ShatteredPixelDungeon.scene().addToFront( new WndTitledMessage(
+								Icons.get(Icons.SEED),
+								Messages.get(HeroSelectScene.class, "custom_seed"),
+								Messages.get(HeroSelectScene.class, "custom_seed_nowin"))
+						);
+						return;
 					}
-				};
-				seedButton.leftJustify = true;
-				seedButton.icon(Icons.get(Icons.SEED));
-				if (!SPDSettings.customSeed().isEmpty()) seedButton.icon().hardlight(1f, 1.5f, 0.67f);;
-				buttons.add(seedButton);
-				add(seedButton);
 
-				StyledButton dailyButton = new StyledButton(Chrome.Type.BLANK, Messages.get(HeroSelectScene.class, "daily"), 6){
+					String existingSeedtext = SPDSettings.customSeed();
+					ShatteredPixelDungeon.scene().addToFront( new WndTextInput(Messages.get(HeroSelectScene.class, "custom_seed_title"),
+							Messages.get(HeroSelectScene.class, "custom_seed_desc"),
+							existingSeedtext,
+							20,
+							false,
+							Messages.get(HeroSelectScene.class, "custom_seed_set"),
+							Messages.get(HeroSelectScene.class, "custom_seed_clear")){
+						@Override
+						public void onSelect(boolean positive, String text) {
+							text = DungeonSeed.formatText(text);
+							long seed = DungeonSeed.convertFromText(text);
 
-					private static final long SECOND = 1000;
-					private static final long MINUTE = 60 * SECOND;
-					private static final long HOUR = 60 * MINUTE;
-					private static final long DAY = 24 * HOUR;
+							if (positive && seed != -1){
 
-					@Override
-					protected void onClick() {
-						super.onClick();
+								for (GamesInProgress.Info info : GamesInProgress.checkAll()){
+									if (info.customSeed.isEmpty() && info.seed == seed){
+										SPDSettings.customSeed("");
+										icon.resetColor();
+										ShatteredPixelDungeon.scene().addToFront(new WndMessage(Messages.get(HeroSelectScene.class, "custom_seed_duplicate")));
+										return;
+									}
+								}
 
-						long diff = (SPDSettings.lastDaily() + DAY) - Game.realTime;
-						if (diff > 24*HOUR){
-							ShatteredPixelDungeon.scene().addToFront(new WndMessage(Messages.get(HeroSelectScene.class, "daily_unavailable_long", (diff / DAY)+1)));
+								SPDSettings.customSeed(text);
+								icon.hardlight(1f, 1.5f, 0.67f);
+							} else {
+								SPDSettings.customSeed("");
+								icon.resetColor();
+							}
+							// 删除选项按钮的相关配置, 因为重构UI
+//							updateOptionsColor();
+						}
+					});
+				}
+			};
+			seedButton.leftJustify = true;
+			seedButton.icon(Icons.get(Icons.SEED));
+			if (!SPDSettings.customSeed().isEmpty()) seedButton.icon().hardlight(1f, 1.5f, 0.67f);;
+			buttons.add(seedButton);
+			add(seedButton);
+
+			StyledButton dailyButton = new StyledButton(Chrome.Type.BLANK, Messages.get(HeroSelectScene.class, "daily"), 6){
+
+				private static final long SECOND = 1000;
+				private static final long MINUTE = 60 * SECOND;
+				private static final long HOUR = 60 * MINUTE;
+				private static final long DAY = 24 * HOUR;
+
+				@Override
+				protected void onClick() {
+					super.onClick();
+
+					if (!Badges.isUnlocked(Badges.Badge.VICTORY) && !DeviceCompat.isDebug()){
+						ShatteredPixelDungeon.scene().addToFront( new WndTitledMessage(
+								Icons.get(Icons.CALENDAR),
+								Messages.get(HeroSelectScene.class, "daily"),
+								Messages.get(HeroSelectScene.class, "daily_nowin"))
+						);
+						return;
+					}
+
+					long diff = (SPDSettings.lastDaily() + DAY) - Game.realTime;
+					if (diff > 24*HOUR){
+						ShatteredPixelDungeon.scene().addToFront(new WndMessage(Messages.get(HeroSelectScene.class, "daily_unavailable_long", (diff / DAY)+1)));
+						return;
+					}
+
+					for (GamesInProgress.Info game : GamesInProgress.checkAll()){
+						if (game.daily){
+							ShatteredPixelDungeon.scene().addToFront(new WndMessage(Messages.get(HeroSelectScene.class, "daily_existing")));
 							return;
 						}
-
-						for (GamesInProgress.Info game : GamesInProgress.checkAll()){
-							if (game.daily){
-								ShatteredPixelDungeon.scene().addToFront(new WndMessage(Messages.get(HeroSelectScene.class, "daily_existing")));
-								return;
-							}
-						}
-
-						Image icon = Icons.get(Icons.CALENDAR);
-						if (diff <= 0)  icon.hardlight(0.5f, 1f, 2f);
-						else            icon.hardlight(1f, 0.5f, 2f);
-						ShatteredPixelDungeon.scene().addToFront(new WndOptions(
-								icon,
-								Messages.get(HeroSelectScene.class, "daily"),
-								diff > 0 ?
-									Messages.get(HeroSelectScene.class, "daily_repeat") :
-									Messages.get(HeroSelectScene.class, "daily_desc"),
-								Messages.get(HeroSelectScene.class, "daily_yes"),
-								Messages.get(HeroSelectScene.class, "daily_no")){
-							@Override
-							protected void onSelect(int index) {
-								if (index == 0){
-									if (diff <= 0) {
-										long time = Game.realTime - (Game.realTime % DAY);
-
-										//earliest possible daily for v2.3.2 is Jan 30 2024
-										//which is 19,752 days after Jan 1 1970
-										time = Math.max(time, 19_752 * DAY);
-
-										SPDSettings.lastDaily(time);
-										Dungeon.dailyReplay = false;
-									} else {
-										Dungeon.dailyReplay = true;
-									}
-
-									Dungeon.hero = null;
-									Dungeon.daily = true;
-									ActionIndicator.clearAction();
-									InterlevelScene.mode = InterlevelScene.Mode.DESCEND;
-
-									Game.switchScene( InterlevelScene.class );
-								}
-							}
-						});
 					}
 
-					private long timeToUpdate = 0;
+					Image icon = Icons.get(Icons.CALENDAR);
+					if (diff <= 0)  icon.hardlight(0.5f, 1f, 2f);
+					else            icon.hardlight(1f, 0.5f, 2f);
+					ShatteredPixelDungeon.scene().addToFront(new WndOptions(
+							icon,
+							Messages.get(HeroSelectScene.class, "daily"),
+							diff > 0 ?
+								Messages.get(HeroSelectScene.class, "daily_repeat") :
+								Messages.get(HeroSelectScene.class, "daily_desc"),
+							Messages.get(HeroSelectScene.class, "daily_yes"),
+							Messages.get(HeroSelectScene.class, "daily_no")){
+						@Override
+						protected void onSelect(int index) {
+							if (index == 0){
+								if (diff <= 0) {
+									long time = Game.realTime - (Game.realTime % DAY);
 
-					private final SimpleDateFormat dateFormat = new SimpleDateFormat("HH:mm:ss", Locale.ROOT);
-					{
-						dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
-					}
+									//earliest possible daily for v2.3.2 is Jan 30 2024
+									//which is 19,752 days after Jan 1 1970
+									time = Math.max(time, 19_752 * DAY);
 
-					@Override
-					public void update() {
-						super.update();
-
-						if (Game.realTime > timeToUpdate && visible){
-							long diff = (SPDSettings.lastDaily() + DAY) - Game.realTime;
-
-							if (diff > 0){
-								if (diff > 30*HOUR){
-									text("30:00:00+");
+									SPDSettings.lastDaily(time);
+									Dungeon.dailyReplay = false;
 								} else {
-									text(dateFormat.format(new Date(diff)));
+									Dungeon.dailyReplay = true;
 								}
-								timeToUpdate = Game.realTime + SECOND;
-							} else {
-								text(Messages.get(HeroSelectScene.class, "daily"));
-								timeToUpdate = Long.MAX_VALUE;
+
+								Dungeon.hero = null;
+								Dungeon.daily = true;
+								Dungeon.initSeed();
+								ActionIndicator.clearAction();
+								InterlevelScene.mode = InterlevelScene.Mode.DESCEND;
+
+								Game.switchScene( InterlevelScene.class );
 							}
 						}
+					});
+				}
 
-					}
-				};
-				dailyButton.leftJustify = true;
-				dailyButton.icon(Icons.get(Icons.CALENDAR));
-				add(dailyButton);
-				buttons.add(dailyButton);
+				private long timeToUpdate = 0;
 
-				StyledButton challengeButton = new StyledButton(Chrome.Type.BLANK, Messages.get(WndChallenges.class, "title"), 6){
-					@Override
-					protected void onClick() {
-						ShatteredPixelDungeon.scene().addToFront(new WndChallenges(SPDSettings.challenges(), true) {
-							public void onBackPressed() {
-								super.onBackPressed();
-								icon(Icons.get(SPDSettings.challenges() > 0 ? Icons.CHALLENGE_ON : Icons.CHALLENGE_OFF));
-								// 删除选项按钮的相关配置, 因为重构UI
-//								updateOptionsColor();
+				private final SimpleDateFormat dateFormat = new SimpleDateFormat("HH:mm:ss", Locale.ROOT);
+				{
+					dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
+				}
+
+				@Override
+				public void update() {
+					super.update();
+
+					if (Game.realTime > timeToUpdate && visible){
+						long diff = (SPDSettings.lastDaily() + DAY) - Game.realTime;
+
+						if (diff > 0){
+							if (diff > 30*HOUR){
+								text("30:00:00+");
+							} else {
+								text(dateFormat.format(new Date(diff)));
 							}
-						} );
+							timeToUpdate = Game.realTime + SECOND;
+						} else {
+							text(Messages.get(HeroSelectScene.class, "daily"));
+							timeToUpdate = Long.MAX_VALUE;
+						}
 					}
-				};
-				challengeButton.leftJustify = true;
-				challengeButton.icon(Icons.get(SPDSettings.challenges() > 0 ? Icons.CHALLENGE_ON : Icons.CHALLENGE_OFF));
-				add(challengeButton);
-				buttons.add(challengeButton);
-			}
+
+				}
+			};
+			dailyButton.leftJustify = true;
+			dailyButton.icon(Icons.get(Icons.CALENDAR));
+			add(dailyButton);
+			buttons.add(dailyButton);
+
+			StyledButton challengeButton = new StyledButton(Chrome.Type.BLANK, Messages.get(WndChallenges.class, "title"), 6){
+				@Override
+				protected void onClick() {
+					if (!Badges.isUnlocked(Badges.Badge.VICTORY) && !DeviceCompat.isDebug()){
+						ShatteredPixelDungeon.scene().addToFront( new WndTitledMessage(
+								Icons.get(Icons.CHALLENGE_GREY),
+								Messages.get(WndChallenges.class, "title"),
+								Messages.get(HeroSelectScene.class, "challenges_nowin")
+						));
+						return;
+					}
+
+					ShatteredPixelDungeon.scene().addToFront(new WndChallenges(SPDSettings.challenges(), true) {
+						public void onBackPressed() {
+							super.onBackPressed();
+							icon(Icons.get(SPDSettings.challenges() > 0 ? Icons.CHALLENGE_COLOR : Icons.CHALLENGE_GREY));
+							// 删除选项按钮的相关配置, 因为重构UI
+//							updateOptionsColor();
+						}
+					} );
+				}
+			};
+			challengeButton.leftJustify = true;
+			challengeButton.icon(Icons.get(SPDSettings.challenges() > 0 ? Icons.CHALLENGE_COLOR : Icons.CHALLENGE_GREY));
+			add(challengeButton);
+			buttons.add(challengeButton);
 
 			for (int i = 1; i < buttons.size(); i++){
 				ColorBlock spc = new ColorBlock(1, 1, 0xFF000000);

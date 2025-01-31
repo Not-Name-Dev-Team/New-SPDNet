@@ -25,9 +25,7 @@ import com.shatteredpixel.shatteredpixeldungeon.Dungeon;
 import com.shatteredpixel.shatteredpixeldungeon.actors.Actor;
 import com.shatteredpixel.shatteredpixeldungeon.actors.Char;
 import com.shatteredpixel.shatteredpixeldungeon.actors.blobs.SacrificialFire;
-import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.AllyBuff;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Buff;
-import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.ChampionEnemy;
 import com.shatteredpixel.shatteredpixeldungeon.actors.hero.abilities.duelist.Challenge;
 import com.shatteredpixel.shatteredpixeldungeon.effects.FloatingText;
 import com.shatteredpixel.shatteredpixeldungeon.effects.Pushing;
@@ -136,8 +134,11 @@ public class Ghoul extends Mob {
 					Actor.add( new Pushing( child, pos, child.pos ) );
 				}
 
-				for (Buff b : buffs(ChampionEnemy.class)){
-					Buff.affect( child, b.getClass());
+				//champion buff, mainly
+				for (Buff b : buffs()){
+					if (b.revivePersists) {
+						Buff.affect(child, b.getClass());
+					}
 				}
 
 			}
@@ -183,9 +184,7 @@ public class Ghoul extends Mob {
 				if (buff instanceof SacrificialFire.Marked){
 					//don't remove and postpone so marked stays on
 					Buff.prolong(this, SacrificialFire.Marked.class, timesDowned*5);
-				} else if (buff instanceof AllyBuff
-						|| buff instanceof ChampionEnemy
-						|| buff instanceof DwarfKing.KingDamager) {
+				} else if (buff.revivePersists) {
 					//don't remove
 				} else {
 					buff.detach();

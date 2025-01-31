@@ -11,7 +11,7 @@ import com.shatteredpixel.shatteredpixeldungeon.windows.WndChallenges;
 public class ChallengeButton extends StyledButton {
 	public ChallengeButton() {
 		super(Chrome.Type.WINDOW, "挑战未开启", 9);
-		icon(Icons.get(Icons.CHALLENGE_OFF));
+		icon(Icons.get(Icons.CHALLENGE_GREY));
 		width = 120;
 		height = 20;
 	}
@@ -26,10 +26,10 @@ public class ChallengeButton extends StyledButton {
 		super.update();
 		if (SPDSettings.challenges() > 0) {
 			text("当前挑战数量: " + SPDUtils.activeChallenges(SPDSettings.challenges()));
-			icon(Icons.get(Icons.CHALLENGE_ON));
+			icon(Icons.get(Icons.CHALLENGE_COLOR));
 		} else {
 			text("挑战未开启");
-			icon(Icons.get(Icons.CHALLENGE_OFF));
+			icon(Icons.get(Icons.CHALLENGE_GREY));
 		}
 	}
 }

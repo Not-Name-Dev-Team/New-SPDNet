@@ -15,7 +15,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import io.socket.client.IO;
 import io.socket.client.Socket;
 import lombok.Getter;
-import lombok.Setter;
 
 /**
  * 此类用于处理网络连接
@@ -24,8 +23,7 @@ public class Net {
 	static private Socket socket;
 	// 服务器地址
 	@Getter
-	@Setter
-	private static String serverUrl = isDebug() ? "http://127.0.0.1:21687/spdnet" : "http://pz-2.zjiecloud.cc:25964/spdnet";
+	private static String serverUrl = isDebug() ? "http://127.0.0.1:21687/spdnet" : "http://36.151.65.115:25964/spdnet";
 	// 服务器的种子列表
 	public static ConcurrentHashMap<String, Long> seeds = new ConcurrentHashMap<>();
 	// 玩家名
@@ -120,5 +118,10 @@ public class Net {
 	public static void reset() {
 		seeds.clear();
 		name = "";
+	}
+
+	public static void setServerUrl(String serverUrl) {
+		if (isDebug()) return;
+		Net.serverUrl = serverUrl;
 	}
 }
