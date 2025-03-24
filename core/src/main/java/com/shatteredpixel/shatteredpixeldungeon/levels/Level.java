@@ -95,6 +95,11 @@ import com.shatteredpixel.shatteredpixeldungeon.plants.Plant;
 import com.shatteredpixel.shatteredpixeldungeon.plants.Swiftthistle;
 import com.shatteredpixel.shatteredpixeldungeon.scenes.GameScene;
 import com.shatteredpixel.shatteredpixeldungeon.scenes.InterlevelScene;
+import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.Sender;
+import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.actors.NetHero;
+import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.Player;
+import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.Status;
+import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.actions.CEnterDungeon;
 import com.shatteredpixel.shatteredpixeldungeon.sprites.ItemSprite;
 import com.shatteredpixel.shatteredpixeldungeon.tiles.CustomTilemap;
 import com.shatteredpixel.shatteredpixeldungeon.utils.GLog;
@@ -116,6 +121,8 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Vector;
+import java.util.concurrent.ConcurrentHashMap;
 
 public abstract class Level implements Bundlable {
 	
@@ -175,7 +182,9 @@ public abstract class Level implements Bundlable {
 
 	//when a boss level has become locked.
 	public boolean locked = false;
-	
+
+	// 玩家列表
+	public Vector<NetHero> players;
 	public HashSet<Mob> mobs;
 	public SparseArray<Heap> heaps;
 	public HashMap<Class<? extends Blob>,Blob> blobs;
@@ -294,6 +303,8 @@ public abstract class Level implements Bundlable {
 
 			transitions = new ArrayList<>();
 
+			// 初始化玩家列表
+			players = new Vector<>();
 			mobs = new HashSet<>();
 			heaps = new SparseArray<>();
 			blobs = new HashMap<>();
@@ -366,7 +377,9 @@ public abstract class Level implements Bundlable {
 		}
 
 		setSize( bundle.getInt(WIDTH), bundle.getInt(HEIGHT));
-		
+
+		// 初始化玩家列表
+		players = new Vector<>();
 		mobs = new HashSet<>();
 		heaps = new SparseArray<>();
 		blobs = new HashMap<>();

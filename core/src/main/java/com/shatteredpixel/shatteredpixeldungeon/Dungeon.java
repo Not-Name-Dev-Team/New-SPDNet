@@ -74,6 +74,8 @@ import com.shatteredpixel.shatteredpixeldungeon.levels.rooms.secret.SecretRoom;
 import com.shatteredpixel.shatteredpixeldungeon.levels.rooms.special.SpecialRoom;
 import com.shatteredpixel.shatteredpixeldungeon.messages.Messages;
 import com.shatteredpixel.shatteredpixeldungeon.scenes.GameScene;
+import com.shatteredpixel.shatteredpixeldungeon.spdnet.Mode;
+import com.shatteredpixel.shatteredpixeldungeon.spdnet.NetInProgress;
 import com.shatteredpixel.shatteredpixeldungeon.ui.QuickSlotButton;
 import com.shatteredpixel.shatteredpixeldungeon.ui.Toolbar;
 import com.shatteredpixel.shatteredpixeldungeon.utils.DungeonSeed;
@@ -172,7 +174,7 @@ public class Dungeon {
 				} else {
 					lim.count = 0;
 				}
-				
+
 			}
 		}
 
@@ -214,21 +216,29 @@ public class Dungeon {
 
 	//we initialize the seed separately so that things like interlevelscene can access it early
 	public static void initSeed(){
-		if (daily) {
-			//Ensures that daily seeds are not in the range of user-enterable seeds
-			seed = SPDSettings.lastDaily() + DungeonSeed.TOTAL_SEEDS;
-			DateFormat format = new SimpleDateFormat("yyyy-MM-dd", Locale.ROOT);
-			format.setTimeZone(TimeZone.getTimeZone("UTC"));
-			customSeedText = format.format(new Date(SPDSettings.lastDaily()));
-		} else if (!SPDSettings.customSeed().isEmpty()){
-			customSeedText = SPDSettings.customSeed();
-			seed = DungeonSeed.convertFromText(customSeedText);
-		} else {
-			customSeedText = "";
+		// 种子设置
+		// TODO 等GUI实现之后来这里更改种子逻辑 目前默认使用服务器给与的第一个种子
+		if (NetInProgress.mode == Mode.IRONMAN) {
 			seed = DungeonSeed.randomSeed();
+		} else {
+			customSeedText = NetInProgress.seedName;
+			seed = NetInProgress.seed;
 		}
+//		if (daily) {
+//			//Ensures that daily seeds are not in the range of user-enterable seeds
+//			seed = SPDSettings.lastDaily() + DungeonSeed.TOTAL_SEEDS;
+//			DateFormat format = new SimpleDateFormat("yyyy-MM-dd", Locale.ROOT);
+//			format.setTimeZone(TimeZone.getTimeZone("UTC"));
+//			customSeedText = format.format(new Date(SPDSettings.lastDaily()));
+//		} else if (!SPDSettings.customSeed().isEmpty()){
+//			customSeedText = SPDSettings.customSeed();
+//			seed = DungeonSeed.convertFromText(customSeedText);
+//		} else {
+//			customSeedText = "";
+//			seed = DungeonSeed.randomSeed();
+//		}
 	}
-	
+
 	public static void init() {
 
 		initialVersion = version = Game.versionCode;
@@ -613,7 +623,9 @@ public class Dungeon {
 	private static final String CHAPTERS	= "chapters";
 	private static final String QUESTS		= "quests";
 	private static final String BADGES		= "badges";
-	
+	// 模式
+	private static final String MODE		= "mode";
+
 	public static void saveGame( int save ) {
 		try {
 			Bundle bundle = new Bundle();
@@ -680,7 +692,10 @@ public class Dungeon {
 			Bundle badges = new Bundle();
 			Badges.saveLocal( badges );
 			bundle.put( BADGES, badges );
-			
+
+			// 模式
+			bundle.put(MODE, NetInProgress.mode);
+
 			FileUtils.bundleToFile( GamesInProgress.gameFile(save), bundle);
 			
 		} catch (IOException e) {
@@ -768,7 +783,10 @@ public class Dungeon {
 				Blacksmith.Quest.reset();
 				Imp.Quest.reset();
 			}
-			
+
+			// 模式
+			NetInProgress.mode = bundle.getEnum(MODE, Mode.class);
+
 			SpecialRoom.restoreRoomsFromBundle(bundle);
 			SecretRoom.restoreRoomsFromBundle(bundle);
 
@@ -857,6 +875,8 @@ public class Dungeon {
 		info.daily = bundle.getBoolean( DAILY );
 		info.dailyReplay = bundle.getBoolean( DAILY_REPLAY );
 		info.lastPlayed = bundle.getLong( LAST_PLAYED );
+		// 模式
+		info.mode = bundle.getEnum(MODE, Mode.class);
 
 		Hero.preview( info, bundle.getBundle( HERO ) );
 		Statistics.preview( info, bundle );
@@ -929,7 +949,7 @@ public class Dungeon {
 		for (int i : PathFinder.NEIGHBOURS9){
 			level.visited[hero.pos+i] = true;
 		}
-	
+
 		GameScene.updateFog(l, t, width, height);
 
 		if (hero.buff(MindVision.class) != null || hero.buff(DivineSense.DivineSenseTracker.class) != null){

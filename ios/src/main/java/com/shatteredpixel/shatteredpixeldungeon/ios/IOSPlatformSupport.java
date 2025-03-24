@@ -39,6 +39,7 @@ import org.robovm.apple.systemconfiguration.SCNetworkReachability;
 import org.robovm.apple.systemconfiguration.SCNetworkReachabilityFlags;
 import org.robovm.apple.uikit.UIApplication;
 
+import java.io.File;
 import java.util.HashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -192,5 +193,17 @@ public class IOSPlatformSupport extends PlatformSupport {
 		} else {
 			return regularsplitter.split(text);
 		}
+	}
+
+	@Override
+	public void updateGame(String url, UpdateCallback listener) {
+		// 不实现IOS下载 哈哈 :D
+		// 反正没法编译安装
+	}
+
+	@Override
+	public void install(File file) {
+		// 不实现IOS安装 哈哈 :D
+		// 反正没法编译安装
 	}
 }

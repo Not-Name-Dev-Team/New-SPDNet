@@ -171,7 +171,7 @@ abstract public class MissileWeapon extends Weapon {
 	public boolean isSimilar( Item item ) {
 		return level() == item.level() && getClass() == item.getClass();
 	}
-	
+
 	@Override
 	public int throwPos(Hero user, int dst) {
 
@@ -475,7 +475,8 @@ abstract public class MissileWeapon extends Weapon {
 			info += " " + Messages.get(enchantment, "desc");
 		}
 
-		if (cursed && isEquipped( Dungeon.hero )) {
+		// 判空
+		if (cursed && Dungeon.hero != null && isEquipped( Dungeon.hero )) {
 			info += "\n\n" + Messages.get(Weapon.class, "cursed_worn");
 		} else if (cursedKnown && cursed) {
 			info += "\n\n" + Messages.get(Weapon.class, "cursed");

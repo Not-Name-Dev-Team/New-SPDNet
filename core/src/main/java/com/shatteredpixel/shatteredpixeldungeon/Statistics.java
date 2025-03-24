@@ -21,11 +21,16 @@
 
 package com.shatteredpixel.shatteredpixeldungeon;
 
+import com.alibaba.fastjson.JSON;
+import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.GameRecord;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.SparseArray;
 
 import java.util.Arrays;
 import java.util.HashSet;
+
+import java.util.List;
+import java.util.Map;
 
 public class Statistics {
 
@@ -253,7 +258,51 @@ public class Statistics {
 		gameWon         = bundle.getBoolean( WON );
 		ascended        = bundle.getBoolean( ASCENDED );
 	}
-	
+
+	public static void restoreFromGameRecord(GameRecord gameRecord) {
+		goldCollected = gameRecord.getGold();
+		deepestFloor = gameRecord.getDepth();
+		highestAscent = gameRecord.getMaxAscent();
+		enemiesSlain = gameRecord.getEnemiesSlain();
+		foodEaten = gameRecord.getFoodEaten();
+		itemsCrafted = gameRecord.getPotionsCooked();
+		piranhasKilled = gameRecord.getPriranhas();
+		ankhsUsed = gameRecord.getAnkhsUsed();
+
+		progressScore = gameRecord.getProgScore();
+		heldItemValue = gameRecord.getItemVal();
+		treasureScore = gameRecord.getTresScore();
+			floorsExplored.clear();
+			Map<String, Boolean> flrExplMap = JSON.parseObject(gameRecord.getFlrExpl(), Map.class);
+			for (String key : flrExplMap.keySet()) {
+					floorsExplored.put(Integer.parseInt(key), flrExplMap.get(key));
+			}
+		exploreScore = gameRecord.getExplScore();
+		bossScores = gameRecord.getBossScores();
+		totalBossScore = gameRecord.getTotBoss();
+		questScores = gameRecord.getQuestScores();
+		totalQuestScore = gameRecord.getTotQuest();
+		winMultiplier = gameRecord.getWinMult();
+		chalMultiplier = gameRecord.getChalMult();
+		totalScore = gameRecord.getTotalScore();
+
+		upgradesUsed = gameRecord.getUpgradesUsed();
+		sneakAttacks = gameRecord.getSneakAttacks();
+		thrownAttacks = gameRecord.getThrownAssists();
+
+		spawnersAlive = gameRecord.getSpawnersAlive();
+
+		duration = gameRecord.getDuration();
+
+		qualifiedForNoKilling = gameRecord.isQualifiedForNoKilling();
+		qualifiedForBossRemainsBadge = gameRecord.isQualifiedForBossRemainsBadge();
+		qualifiedForBossChallengeBadge = gameRecord.isQualifiedForBossChallengeBadge();
+
+		amuletObtained = gameRecord.isAmuletObtained();
+		gameWon = gameRecord.isWon();
+		ascended = gameRecord.isAscended();
+	}
+
 	public static void preview( GamesInProgress.Info info, Bundle bundle ){
 		info.goldCollected  = bundle.getInt( GOLD );
 		info.maxDepth       = bundle.getInt( DEEPEST );

@@ -1,4 +1,12 @@
-apply plugin: 'com.android.application'
+// 把Evan的apply plugin换成使用更好的Plugins代码块
+plugins {
+    id 'com.android.application'
+
+    // 添加获取调试信息用的Firebase
+    id 'com.google.gms.google-services'
+    id 'com.google.firebase.crashlytics'
+}
+
 
 android {
     namespace 'com.shatteredpixel.shatteredpixeldungeon.android'
@@ -12,7 +20,11 @@ android {
         applicationId appPackageName
 
         versionCode appVersionCode
-        versionName appVersionName
+        // Net的版本号
+        versionName appVersionName + '}' + appNetVersionName
+
+        // 启用多dex以突破64k数量限制
+        multiDexEnabled true
 
         //noinspection MinSdkTooLow
         minSdkVersion appAndroidMinSDK
@@ -21,29 +33,14 @@ android {
 
     }
 
+    // 更改以不使用R8
+    // R8优化很好, 但是需要保存mapping文件才能debug
+    // 很烂 >:(
     buildTypes {
         debug {
-            applicationIdSuffix ".indev"
             versionNameSuffix '-INDEV'
-            dependencies {
-                debugImplementation project(':services:updates:debugUpdates')
-                debugImplementation project(':services:news:debugNews')
-            }
         }
         release {
-
-            //These lines enable R8, which is a code shrinker/optimizer/obfuscator.
-            //This makes release APKs smaller and more efficient, but also makes debugging trickier
-            //as the information produced in stack traces must be de-obfuscated.
-            //See here: https://developer.android.com/studio/build/shrink-code#decode-stack-trace
-            shrinkResources true
-            minifyEnabled true
-            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-
-            dependencies {
-                releaseImplementation project(':services:updates:githubUpdates')
-                releaseImplementation project(':services:news:shatteredNews')
-            }
         }
     }
 
@@ -52,6 +49,11 @@ android {
             jniLibs.srcDirs = ['libs']
         }
     }
+
+    // 添加这个防止依赖冲突
+    packagingOptions {
+        pickFirst 'META-INF/DEPENDENCIES'
+    }
 }
 
 configurations { natives }
@@ -59,20 +61,35 @@ configurations { natives }
 dependencies {
     implementation project(':core')
 
-    // We are using the natives from 1.11.0 to maintain compatibility with Android 4.0-4.3 for now
-    // The 1.12.0+ natives are compiled with a version of the NDK which drops 4.3- support
-    // YES, THIS IS VERY DANGEROUS! 1.11.0 natives may only incidentally work with later libGDX versions
+    // Evan为了保证安卓4.4以下的兼容性只能用LibGdx1.11.0
+    // 但是我们都用Firebase了 :D minSdkVersion早就是19了
+    // 直接上1.12!
     implementation "com.badlogicgames.gdx:gdx-backend-android:$gdxVersion"
-    natives "com.badlogicgames.gdx:gdx-platform:1.11.0:natives-armeabi-v7a"
-    natives "com.badlogicgames.gdx:gdx-platform:1.11.0:natives-arm64-v8a"
-    natives "com.badlogicgames.gdx:gdx-platform:1.11.0:natives-x86"
-    natives "com.badlogicgames.gdx:gdx-platform:1.11.0:natives-x86_64"
+    natives "com.badlogicgames.gdx:gdx-platform:1.12.1:natives-armeabi-v7a"
+    natives "com.badlogicgames.gdx:gdx-platform:1.12.1:natives-arm64-v8a"
+    natives "com.badlogicgames.gdx:gdx-platform:1.12.1:natives-x86"
+    natives "com.badlogicgames.gdx:gdx-platform:1.12.1:natives-x86_64"
     implementation "com.badlogicgames.gdx:gdx-freetype:$gdxVersion"
-    natives "com.badlogicgames.gdx:gdx-freetype-platform:1.11.0:natives-armeabi-v7a"
-    natives "com.badlogicgames.gdx:gdx-freetype-platform:1.11.0:natives-arm64-v8a"
-    natives "com.badlogicgames.gdx:gdx-freetype-platform:1.11.0:natives-x86"
-    natives "com.badlogicgames.gdx:gdx-freetype-platform:1.11.0:natives-x86_64"
+    natives "com.badlogicgames.gdx:gdx-freetype-platform:1.12.1:natives-armeabi-v7a"
+    natives "com.badlogicgames.gdx:gdx-freetype-platform:1.12.1:natives-arm64-v8a"
+    natives "com.badlogicgames.gdx:gdx-freetype-platform:1.12.1:natives-x86"
+    natives "com.badlogicgames.gdx:gdx-freetype-platform:1.12.1:natives-x86_64"
     implementation "com.badlogicgames.gdx-controllers:gdx-controllers-android:$gdxControllersVersion"
+
+    // Firebase的依赖库
+    implementation platform('com.google.firebase:firebase-bom:32.8.0')
+    implementation 'com.google.firebase:firebase-analytics'
+    implementation 'com.google.firebase:firebase-crashlytics'
+
+    // 使用自己的更新
+    // implementation project(':services:updates:githubUpdates')
+    implementation project(':services:news:shatteredNews')
+
+    // 应用更新库
+    implementation 'com.github.jenly1314.AppUpdater:app-updater:1.2.0'
+
+    // 启用多dex以突破64k数量限制
+    implementation "androidx.multidex:multidex:2.0.1"
 }
 
 // called every time gradle gets executed, takes the native dependencies of

@@ -24,6 +24,8 @@ package com.shatteredpixel.shatteredpixeldungeon;
 import com.shatteredpixel.shatteredpixeldungeon.actors.hero.HeroClass;
 import com.shatteredpixel.shatteredpixeldungeon.actors.hero.HeroSubClass;
 import com.shatteredpixel.shatteredpixeldungeon.messages.Messages;
+import com.shatteredpixel.shatteredpixeldungeon.spdnet.NetInProgress;
+import com.shatteredpixel.shatteredpixeldungeon.spdnet.Mode;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.FileUtils;
 
@@ -34,8 +36,9 @@ import java.util.Comparator;
 import java.util.HashMap;
 
 public class GamesInProgress {
-	
-	public static final int MAX_SLOTS = HeroClass.values().length;
+
+	// 修改最大存档数量限制
+	public static final int MAX_SLOTS = 10;
 	
 	//null means we have loaded info and it is empty, no entry means unknown.
 	private static HashMap<Integer, Info> slotStates = new HashMap<>();
@@ -162,6 +165,9 @@ public class GamesInProgress {
 		info.goldCollected = Statistics.goldCollected;
 		info.maxDepth = Statistics.deepestFloor;
 
+		// 模式信息
+		info.mode = NetInProgress.mode;
+
 		slotStates.put( slot, info );
 	}
 	
@@ -199,6 +205,9 @@ public class GamesInProgress {
 		
 		public int goldCollected;
 		public int maxDepth;
+
+		// 模式信息
+		public Mode mode;
 	}
 	
 	public static final Comparator<GamesInProgress.Info> levelComparator = new Comparator<GamesInProgress.Info>() {

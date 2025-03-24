@@ -72,7 +72,9 @@ public class Messages {
 			Assets.Messages.PLANTS,
 			Assets.Messages.SCENES,
 			Assets.Messages.UI,
-			Assets.Messages.WINDOWS
+			Assets.Messages.WINDOWS,
+			// SPDNet的语言包
+			Assets.Messages.SPDNET
 	};
 
 	static{

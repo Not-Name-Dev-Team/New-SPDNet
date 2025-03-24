@@ -40,6 +40,8 @@ import com.shatteredpixel.shatteredpixeldungeon.levels.features.Chasm;
 import com.shatteredpixel.shatteredpixeldungeon.levels.features.LevelTransition;
 import com.shatteredpixel.shatteredpixeldungeon.levels.rooms.special.SpecialRoom;
 import com.shatteredpixel.shatteredpixeldungeon.messages.Messages;
+import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.Sender;
+import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.actions.CPlayerChangeFloor;
 import com.shatteredpixel.shatteredpixeldungeon.ui.GameLog;
 import com.shatteredpixel.shatteredpixeldungeon.ui.IconButton;
 import com.shatteredpixel.shatteredpixeldungeon.ui.Icons;
@@ -428,7 +430,12 @@ public class InterlevelScene extends PixelScene {
 								reset();
 								break;
 						}
-						
+						// 改变楼层的数据包
+						// 只有在上升、下降、返回、掉落时才会发送
+						// 在GameScene加载完毕时已经发送了进入楼层的数据包，所以只需要发送局内改变楼层的数据包
+						if (mode == Mode.ASCEND || mode == Mode.DESCEND || mode == Mode.FALL || mode == Mode.RETURN) {
+							Sender.sendPlayerChangeFloor(new CPlayerChangeFloor(Dungeon.depth));
+						}
 					} catch (Exception e) {
 						
 						error = e;

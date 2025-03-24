@@ -69,6 +69,8 @@ public class RingOfSharpshooting extends Ring {
 	}
 	
 	public static float durabilityMultiplier( Char target ){
+		// 判空
+		if (target == null) return 1;
 		return (float)(Math.pow(1.2, getBonus(target, Aim.class)));
 	}
 

@@ -87,7 +87,11 @@ public class BrokenSeal extends Item {
 		this.glyph = glyph;
 	}
 
+	// 判空
 	public int maxShield( int armTier, int armLvl ){
+		if (Dungeon.hero == null){
+			return 0;
+		}
 		return armTier + armLvl + Dungeon.hero.pointsInTalent(Talent.IRON_WILL);
 	}
 

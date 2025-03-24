@@ -24,6 +24,7 @@ package com.shatteredpixel.shatteredpixeldungeon.ui;
 import com.shatteredpixel.shatteredpixeldungeon.Assets;
 import com.shatteredpixel.shatteredpixeldungeon.Chrome;
 import com.shatteredpixel.shatteredpixeldungeon.scenes.PixelScene;
+import com.shatteredpixel.shatteredpixeldungeon.spdnet.ui.SPDNetChrome;
 import com.watabou.noosa.Image;
 import com.watabou.noosa.NinePatch;
 import com.watabou.noosa.audio.Sample;
@@ -51,6 +52,22 @@ public class StyledButton extends Button {
 		text = PixelScene.renderTextBlock( size );
 		text.text( label );
 		add( text );
+	}
+
+	// 为了调用SPDNetChrome而添加的方法
+	public StyledButton(SPDNetChrome.Type type, String label) {
+		this(type, label, 9);
+	}
+
+	public StyledButton(SPDNetChrome.Type type, String label, int size) {
+		super();
+
+		bg = SPDNetChrome.get(type);
+		addToBack(bg);
+
+		text = PixelScene.renderTextBlock(size);
+		text.text(label);
+		add(text);
 	}
 	
 	@Override

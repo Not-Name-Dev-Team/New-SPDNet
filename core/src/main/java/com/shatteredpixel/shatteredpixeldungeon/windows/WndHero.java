@@ -135,7 +135,8 @@ public class WndHero extends WndTabbed {
 		buffs.layout();
 	}
 
-	private class StatsTab extends Group {
+	// 更改修饰符方便在外部显示窗口
+	public class StatsTab extends Group {
 		
 		private static final int GAP = 6;
 		

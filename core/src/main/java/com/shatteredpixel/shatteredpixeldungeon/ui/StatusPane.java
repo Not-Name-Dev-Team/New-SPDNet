@@ -31,6 +31,7 @@ import com.shatteredpixel.shatteredpixeldungeon.effects.Speck;
 import com.shatteredpixel.shatteredpixeldungeon.messages.Messages;
 import com.shatteredpixel.shatteredpixeldungeon.scenes.GameScene;
 import com.shatteredpixel.shatteredpixeldungeon.scenes.PixelScene;
+import com.shatteredpixel.shatteredpixeldungeon.spdnet.ui.ChatBtn;
 import com.shatteredpixel.shatteredpixeldungeon.sprites.HeroSprite;
 import com.shatteredpixel.shatteredpixeldungeon.windows.WndHero;
 import com.shatteredpixel.shatteredpixeldungeon.windows.WndKeyBindings;
@@ -77,6 +78,9 @@ public class StatusPane extends Component {
 	private CircleArc counter;
 
 	private boolean large;
+
+	// 聊天按钮
+	private ChatBtn chatBtn;
 
 	public StatusPane( boolean large ){
 		super();
@@ -163,6 +167,10 @@ public class StatusPane extends Component {
 		busy = new BusyIndicator();
 		add( busy );
 
+		// 聊天按钮
+		chatBtn = new ChatBtn();
+		add(chatBtn);
+
 		counter = new CircleArc(18, 4.25f);
 		counter.color( 0x808080, true );
 		counter.show(this, busy.center(), 0f);
@@ -230,6 +238,8 @@ public class StatusPane extends Component {
 			busy.y = y + 33;
 		}
 
+		// 聊天按钮
+		chatBtn.setPos(x - 1, 50);
 		counter.point(busy.center());
 	}
 	

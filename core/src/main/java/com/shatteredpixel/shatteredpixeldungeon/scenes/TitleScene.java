@@ -35,6 +35,14 @@ import com.shatteredpixel.shatteredpixeldungeon.messages.Messages;
 import com.shatteredpixel.shatteredpixeldungeon.services.news.News;
 import com.shatteredpixel.shatteredpixeldungeon.services.updates.AvailableUpdateData;
 import com.shatteredpixel.shatteredpixeldungeon.services.updates.Updates;
+import com.shatteredpixel.shatteredpixeldungeon.spdnet.ui.NetIcons;
+import com.shatteredpixel.shatteredpixeldungeon.spdnetbutcopy.scene.NetRankingsScene;
+import com.shatteredpixel.shatteredpixeldungeon.spdnet.ui.scene.SPDNetChangesButton;
+import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.Net;
+import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.Sender;
+import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.actions.CLeaveDungeon;
+import com.shatteredpixel.shatteredpixeldungeon.spdnet.windows.NetWindow;
+import com.shatteredpixel.shatteredpixeldungeon.spdnet.windows.NetWndPlayerList;
 import com.shatteredpixel.shatteredpixeldungeon.sprites.CharSprite;
 import com.shatteredpixel.shatteredpixeldungeon.ui.Archs;
 import com.shatteredpixel.shatteredpixeldungeon.ui.ExitButton;
@@ -61,6 +69,9 @@ public class TitleScene extends PixelScene {
 	public void create() {
 		
 		super.create();
+
+		// 离开地牢
+		Sender.sendLeaveDungeon(new CLeaveDungeon());
 
 		Music.INSTANCE.playTracks(
 				new String[]{Assets.Music.THEME_1, Assets.Music.THEME_2},
@@ -142,13 +153,42 @@ public class TitleScene extends PixelScene {
 		btnPlay.icon(Icons.get(Icons.ENTER));
 		add(btnPlay);
 
-		StyledButton btnSupport = new SupportButton(GREY_TR, Messages.get(this, "support"));
-		add(btnSupport);
+		// 替换支持按钮
+//		StyledButton btnSupport = new SupportButton(GREY_TR, Messages.get(this, "support"));
+//		add(btnSupport);
+
+		// 服务器连接按钮
+		StyledButton btnConnection = new StyledButton(GREY_TR, "连接服务器") {
+			@Override
+			protected void onClick() {
+				NetWindow.showServerInfo();
+			}
+		};
+
+		btnConnection.icon(NetIcons.get(NetIcons.GLOBE));
+		btnConnection.icon().scale.set(PixelScene.align(0.8f));
+		add(btnConnection);
+
+		// 玩家列表按钮
+		StyledButton btnPlayers = new StyledButton(GREY_TR, "在线玩家") {
+			@Override
+			protected void onClick() {
+				if (Net.isConnected()) {
+					Game.runOnRenderThread(() -> ShatteredPixelDungeon.scene().add(new NetWndPlayerList()));
+				} else {
+					NetWindow.error("未连接", "请先连接到服务器 >:(");
+				}
+			}
+		};
+
+		btnPlayers.icon(NetIcons.get(NetIcons.PLAYERS));
+		btnPlayers.icon().scale.set(PixelScene.align(0.8f));
+		add(btnPlayers);
 
 		StyledButton btnRankings = new StyledButton(GREY_TR,Messages.get(this, "rankings")){
 			@Override
 			protected void onClick() {
-				ShatteredPixelDungeon.switchNoFade( RankingsScene.class );
+				ShatteredPixelDungeon.switchNoFade( NetRankingsScene.class );
 			}
 		};
 		btnRankings.icon(Icons.get(Icons.RANKINGS));
@@ -168,7 +208,7 @@ public class TitleScene extends PixelScene {
 		btnNews.icon(Icons.get(Icons.NEWS));
 		add(btnNews);
 
-		StyledButton btnChanges = new ChangesButton(GREY_TR, Messages.get(this, "changes"));
+		StyledButton btnChanges = new SPDNetChangesButton(GREY_TR, Messages.get(this, "changes"));
 		btnChanges.icon(Icons.get(Icons.CHANGES));
 		add(btnChanges);
 
@@ -192,9 +232,12 @@ public class TitleScene extends PixelScene {
 		float buttonAreaWidth = landscape() ? PixelScene.MIN_WIDTH_L-6 : PixelScene.MIN_WIDTH_P-2;
 		float btnAreaLeft = (Camera.main.width - buttonAreaWidth) / 2f;
 		if (landscape()) {
-			btnPlay.setRect(btnAreaLeft, topRegion+GAP, (buttonAreaWidth/2)-1, BTN_HEIGHT);
+			btnPlay.setRect(btnAreaLeft, topRegion+GAP, (buttonAreaWidth/3)-1, BTN_HEIGHT);
 			align(btnPlay);
-			btnSupport.setRect(btnPlay.right()+2, btnPlay.top(), btnPlay.width(), BTN_HEIGHT);
+			// 替换支持按钮
+//			btnSupport.setRect(btnPlay.right()+2, btnPlay.top(), btnPlay.width(), BTN_HEIGHT);
+			btnConnection.setRect(btnPlay.right()+2, topRegion+GAP, (btnPlay.width()), BTN_HEIGHT);
+			btnPlayers.setRect(btnConnection.right()+2, topRegion+GAP, btnConnection.width(), BTN_HEIGHT);
 			btnRankings.setRect(btnPlay.left(), btnPlay.bottom()+ GAP, (float) (Math.floor(buttonAreaWidth/3f)-1), BTN_HEIGHT);
 			btnBadges.setRect(btnRankings.right()+2, btnRankings.top(), btnRankings.width(), BTN_HEIGHT);
 			btnNews.setRect(btnBadges.right()+2, btnBadges.top(), btnRankings.width(), BTN_HEIGHT);
@@ -204,8 +247,11 @@ public class TitleScene extends PixelScene {
 		} else {
 			btnPlay.setRect(btnAreaLeft, topRegion+GAP, buttonAreaWidth, BTN_HEIGHT);
 			align(btnPlay);
-			btnSupport.setRect(btnPlay.left(), btnPlay.bottom()+ GAP, btnPlay.width(), BTN_HEIGHT);
-			btnRankings.setRect(btnPlay.left(), btnSupport.bottom()+ GAP, (btnPlay.width()/2)-1, BTN_HEIGHT);
+			// 替换支持按钮
+//			btnSupport.setRect(btnPlay.left(), btnPlay.bottom()+ GAP, btnPlay.width(), BTN_HEIGHT);
+			btnConnection.setRect(btnPlay.left(), btnPlay.bottom()+ GAP, (btnPlay.width()/2)-1, BTN_HEIGHT);
+			btnPlayers.setRect(btnConnection.right()+2, btnConnection.top(), btnConnection.width(), BTN_HEIGHT);
+			btnRankings.setRect(btnPlay.left(), btnConnection.bottom()+ GAP, (btnPlay.width()/2)-1, BTN_HEIGHT);
 			btnBadges.setRect(btnRankings.right()+2, btnRankings.top(), btnRankings.width(), BTN_HEIGHT);
 			btnNews.setRect(btnRankings.left(), btnRankings.bottom()+ GAP, btnRankings.width(), BTN_HEIGHT);
 			btnChanges.setRect(btnNews.right()+2, btnNews.top(), btnNews.width(), BTN_HEIGHT);
@@ -213,7 +259,8 @@ public class TitleScene extends PixelScene {
 			btnAbout.setRect(btnSettings.right()+2, btnSettings.top(), btnSettings.width(), BTN_HEIGHT);
 		}
 
-		BitmapText version = new BitmapText( "v" + Game.version, pixelFont);
+		// 在主界面显示Net版本号
+		BitmapText version = new BitmapText("SPD: v" + Game.version + " Net: v" + Game.netVersion, pixelFont);
 		version.measure();
 		version.hardlight( 0x888888 );
 		version.x = w - version.width() - 4;
@@ -284,7 +331,8 @@ public class TitleScene extends PixelScene {
 		}
 	}
 
-	private static class ChangesButton extends StyledButton {
+	// 更改访问权限方便获取语言素材
+	public static class ChangesButton extends StyledButton {
 
 		public ChangesButton( Chrome.Type type, String label ){
 			super(type, label);

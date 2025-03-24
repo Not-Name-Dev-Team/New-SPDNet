@@ -41,8 +41,8 @@ import com.shatteredpixel.shatteredpixeldungeon.SPDSettings;
 import com.shatteredpixel.shatteredpixeldungeon.ShatteredPixelDungeon;
 import com.shatteredpixel.shatteredpixeldungeon.services.news.News;
 import com.shatteredpixel.shatteredpixeldungeon.services.news.NewsImpl;
-import com.shatteredpixel.shatteredpixeldungeon.services.updates.UpdateImpl;
 import com.shatteredpixel.shatteredpixeldungeon.services.updates.Updates;
+import com.shatteredpixel.shatteredpixeldungeon.spdnet.update.UpdateImpl;
 import com.shatteredpixel.shatteredpixeldungeon.ui.Button;
 import com.watabou.noosa.Game;
 import com.watabou.utils.FileUtils;
@@ -74,9 +74,13 @@ public class AndroidLauncher extends AndroidApplication {
 
 			instance = this;
 
+			// 设置Net版本号
 			try {
 				Game.version = getPackageManager().getPackageInfo(getPackageName(), 0).versionName;
+				Game.netVersion = Game.version.split("\\}")[1];
+				Game.version = Game.version.split("\\}")[0];
 			} catch (PackageManager.NameNotFoundException e) {
+				Game.netVersion = "???";
 				Game.version = "???";
 			}
 			try {

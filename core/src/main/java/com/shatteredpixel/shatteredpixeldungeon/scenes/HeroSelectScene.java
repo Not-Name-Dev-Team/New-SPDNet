@@ -31,6 +31,14 @@ import com.shatteredpixel.shatteredpixeldungeon.ShatteredPixelDungeon;
 import com.shatteredpixel.shatteredpixeldungeon.actors.hero.HeroClass;
 import com.shatteredpixel.shatteredpixeldungeon.journal.Journal;
 import com.shatteredpixel.shatteredpixeldungeon.messages.Messages;
+import com.shatteredpixel.shatteredpixeldungeon.spdnet.NetInProgress;
+import com.shatteredpixel.shatteredpixeldungeon.spdnet.ui.NetButton;
+import com.shatteredpixel.shatteredpixeldungeon.spdnet.ui.scene.ChallengeButton;
+import com.shatteredpixel.shatteredpixeldungeon.spdnet.ui.scene.ModeButton;
+import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.Net;
+import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.Sender;
+import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.actions.CLeaveDungeon;
+import com.shatteredpixel.shatteredpixeldungeon.spdnet.windows.NetWindow;
 import com.shatteredpixel.shatteredpixeldungeon.ui.ActionIndicator;
 import com.shatteredpixel.shatteredpixeldungeon.ui.ExitButton;
 import com.shatteredpixel.shatteredpixeldungeon.ui.IconButton;
@@ -74,19 +82,30 @@ public class HeroSelectScene extends PixelScene {
 	private IconButton btnFade; //only on landscape
 
 	//fading UI elements
-	private RenderedTextBlock title;
+	// 删除title, 因为重构UI
+//	private RenderedTextBlock title;
 	private ArrayList<StyledButton> heroBtns = new ArrayList<>();
 	private RenderedTextBlock heroName; //only on landscape
 	private RenderedTextBlock heroDesc; //only on landscape
 	private StyledButton startBtn;
 	private IconButton infoButton;
-	private IconButton btnOptions;
-	private GameOptions optionsPane;
+	// 删除选项按钮, 因为重构UI
+//	private IconButton btnOptions;
+//	private GameOptions optionsPane;
 	private IconButton btnExit;
+	// 网络状态按钮, 在原本的选项按钮位置
+	private NetButton btnNetStatus;
+	// 模式选择按钮
+	private ModeButton btnMode;
+	// 挑战选择按钮
+	private ChallengeButton btnChallenge;
 
 	@Override
 	public void create() {
 		super.create();
+
+		// 离开地牢
+		Sender.sendLeaveDungeon(new CLeaveDungeon());
 
 		Dungeon.hero = null;
 
@@ -124,16 +143,21 @@ public class HeroSelectScene extends PixelScene {
 		fadeRight.angle = 180;
 		add(fadeRight);
 
-		title = PixelScene.renderTextBlock(Messages.get(this, "title"), 12);
-		title.hardlight(Window.TITLE_COLOR);
-		PixelScene.align(title);
-		add(title);
+		// 删除title, 因为重构UI
+//		title = PixelScene.renderTextBlock(Messages.get(this, "title"), 12);
+//		title.hardlight(Window.TITLE_COLOR);
+//		PixelScene.align(title);
+//		add(title);
 
 		startBtn = new StyledButton(Chrome.Type.GREY_BUTTON_TR, ""){
 			@Override
 			protected void onClick() {
 				super.onClick();
-
+				// 禁止没连服务器的进游戏
+				if (!Net.isConnected()){
+					NetWindow.error(Messages.get(HeroSelectScene.class, "no_connection_title"), Messages.get(HeroSelectScene.class, "no_connection_desc"));
+					return;
+				}
 				if (GamesInProgress.selectedClass == null) return;
 
 				Dungeon.hero = null;
@@ -180,42 +204,48 @@ public class HeroSelectScene extends PixelScene {
 			heroBtns.add(button);
 		}
 
-		optionsPane = new GameOptions();
-		optionsPane.visible = optionsPane.active = false;
-		optionsPane.layout();
-		add(optionsPane);
+		// 网络状态按钮创建
+		btnNetStatus = new NetButton();
+		add(btnNetStatus);
+		btnNetStatus.visible = btnNetStatus.active = false;
 
-		btnOptions = new IconButton(Icons.get(Icons.PREFS)){
-			@Override
-			protected void onClick() {
-				super.onClick();
-				optionsPane.visible = !optionsPane.visible;
-				optionsPane.active = !optionsPane.active;
-			}
+//		optionsPane = new GameOptions();
+//		optionsPane.visible = optionsPane.active = false;
+//		optionsPane.layout();
+//		add(optionsPane);
+//
+//		btnOptions = new IconButton(Icons.get(Icons.PREFS)){
+//			@Override
+//			protected void onClick() {
+//				super.onClick();
+//				optionsPane.visible = !optionsPane.visible;
+//				optionsPane.active = !optionsPane.active;
+//			}
+//
+//			@Override
+//			protected void onPointerDown() {
+//				super.onPointerDown();
+//			}
+//
+//			@Override
+//			protected void onPointerUp() {
+//				updateOptionsColor();
+//			}
+//
+//			@Override
+//			protected String hoverText() {
+//				return Messages.get(HeroSelectScene.class, "options");
+//			}
+//		};
+//		updateOptionsColor();
+//		btnOptions.visible = false;
+//
+//		if(!SPDSettings.intro()){
+//			add(btnOptions);
+//		}
 
-			@Override
-			protected void onPointerDown() {
-				super.onPointerDown();
-			}
-
-			@Override
-			protected void onPointerUp() {
-				updateOptionsColor();
-			}
-
-			@Override
-			protected String hoverText() {
-				return Messages.get(HeroSelectScene.class, "options");
-			}
-		};
-		updateOptionsColor();
-		btnOptions.visible = false;
-
-		if(!SPDSettings.intro()){
-			add(btnOptions);
-		}
-
-		if (!Badges.isUnlocked(Badges.Badge.VICTORY) && !DeviceCompat.isDebug()){
+		// 手动设置开始游戏时的种子、DR、挑战等设置可见
+		if (false && !Badges.isUnlocked(Badges.Badge.VICTORY) && !DeviceCompat.isDebug()){
 			Dungeon.challenges = 0;
 			SPDSettings.challenges(0);
 			SPDSettings.customSeed("");
@@ -234,8 +264,8 @@ public class HeroSelectScene extends PixelScene {
 			float fadeLeftScale = 47 * (leftArea - background.x)/leftArea;
 			fadeLeft.scale = new PointF(3 + Math.max(0, fadeLeftScale), background.height());
 
-			title.setPos( (leftArea - title.width())/2f, (Camera.main.height-uiHeight)/2f);
-			align(title);
+//			title.setPos( (leftArea - title.width())/2f, (Camera.main.height-uiHeight)/2f);
+//			align(title);
 
 			int btnWidth = HeroBtn.MIN_WIDTH + 15;
 			int btnHeight = HeroBtn.HEIGHT;
@@ -245,7 +275,9 @@ public class HeroSelectScene extends PixelScene {
 
 			int cols = (int)Math.ceil(heroBtns.size()/2f);
 			float curX = (leftArea - btnWidth * cols + (cols-1))/2f;
-			float curY = title.bottom() + uiSpacing;
+			// 删除title, 手动设置curY的值
+//			float curY = title.bottom() + uiSpacing;
+			float curY = 55.5f;
 
 			int count = 0;
 			for (StyledButton button : heroBtns){
@@ -278,7 +310,9 @@ public class HeroSelectScene extends PixelScene {
 
 			startBtn.text(Messages.titleCase(Messages.get(this, "start")));
 			startBtn.setSize(startBtn.reqWidth()+8, 21);
-			startBtn.setPos((leftArea - startBtn.width())/2f, title.top() + uiHeight - startBtn.height());
+			// 删除title, 因为重构UI
+//			startBtn.setPos((leftArea - startBtn.width())/2f, title.top() + uiHeight - startBtn.height());
+			startBtn.setPos((leftArea - startBtn.width())/2f, uiHeight - startBtn.height());
 			align(startBtn);
 
 			btnFade = new IconButton(Icons.CHEVRON.get()){
@@ -301,9 +335,13 @@ public class HeroSelectScene extends PixelScene {
 			align(btnFade);
 			add(btnFade);
 
-			btnOptions.setRect(startBtn.right(), startBtn.top(), 20, 21);
-			optionsPane.setPos(btnOptions.right(), btnOptions.top() - optionsPane.height() - 2);
-			align(optionsPane);
+			// 删除选项按钮的相关配置, 因为重构UI
+//			btnOptions.setRect(startBtn.right(), startBtn.top(), 20, 21);
+//			optionsPane.setPos(btnOptions.right(), btnOptions.top() - optionsPane.height() - 2);
+//			align(optionsPane);
+
+			// 网络状态按钮的位置
+			btnNetStatus.setRect(startBtn.right(), startBtn.top(), btnNetStatus.width(), btnNetStatus.height());
 		} else {
 			background.visible = false;
 
@@ -321,16 +359,33 @@ public class HeroSelectScene extends PixelScene {
 				curX += btnWidth;
 			}
 
-			title.setPos((Camera.main.width - title.width()) / 2f, (Camera.main.height - HeroBtn.HEIGHT - title.height() - 4));
+			// 删除title, 因为重构UI
+//			title.setPos((Camera.main.width - title.width()) / 2f, (Camera.main.height - HeroBtn.HEIGHT - title.height() - 4));
 
-			btnOptions.setRect(heroBtns.get(0).left() + 16, Camera.main.height-HeroBtn.HEIGHT-16, 20, 21);
-			optionsPane.setPos(heroBtns.get(0).left(), 0);
+			// 删除选项按钮的相关配置, 因为重构UI
+//			btnOptions.setRect(heroBtns.get(0).left() + 16, Camera.main.height-HeroBtn.HEIGHT-16, 20, 21);
+//			optionsPane.setPos(heroBtns.get(0).left(), 0);
+
+			// 网络状态按钮的位置
+			btnNetStatus.setRect(heroBtns.get(0).left() + 16, Camera.main.height-HeroBtn.HEIGHT-16, 20, 21);
 		}
 
 		btnExit = new ExitButton();
 		btnExit.setPos( Camera.main.width - btnExit.width(), 0 );
 		add( btnExit );
 		btnExit.visible = btnExit.active = !SPDSettings.intro();
+
+		// 模式选择按钮
+		btnMode = new ModeButton(NetInProgress.mode);
+		btnMode.setPos(3, 3);
+		add(btnMode);
+		btnMode.visible = btnMode.active = false;
+
+		// 挑战选择按钮
+		btnChallenge = new ChallengeButton();
+		btnChallenge.setPos((Camera.main.width - btnChallenge.width()) / 2f, 26);
+		add(btnChallenge);
+		btnChallenge.visible = btnChallenge.active = false;
 
 		PointerArea fadeResetter = new PointerArea(0, 0, Camera.main.width, Camera.main.height){
 			@Override
@@ -372,15 +427,16 @@ public class HeroSelectScene extends PixelScene {
 
 	}
 
-	private void updateOptionsColor(){
-		if (!SPDSettings.customSeed().isEmpty()){
-			btnOptions.icon().hardlight(1f, 1.5f, 0.67f);
-		} else if (SPDSettings.challenges() != 0){
-			btnOptions.icon().hardlight(2f, 1.33f, 0.5f);
-		} else {
-			btnOptions.icon().resetColor();
-		}
-	}
+	// 删除选项按钮的相关配置, 因为重构UI
+//	private void updateOptionsColor(){
+//		if (!SPDSettings.customSeed().isEmpty()){
+//			btnOptions.icon().hardlight(1f, 1.5f, 0.67f);
+//		} else if (SPDSettings.challenges() != 0){
+//			btnOptions.icon().hardlight(2f, 1.33f, 0.5f);
+//		} else {
+//			btnOptions.icon().resetColor();
+//		}
+//	}
 
 	private void setSelectedHero(HeroClass cl){
 		GamesInProgress.selectedClass = cl;
@@ -424,10 +480,15 @@ public class HeroSelectScene extends PixelScene {
 			infoButton.setPos(heroName.right(), heroName.top() + (heroName.height() - infoButton.height())/2f);
 			align(infoButton);
 
-			btnOptions.visible = btnOptions.active = !SPDSettings.intro();
+			// 删除选项按钮的相关配置, 因为重构UI
+//			btnOptions.visible = btnOptions.active = !SPDSettings.intro();
+
+			// 网络状态按钮可见
+			btnNetStatus.visible = btnNetStatus.active = true;
 
 		} else {
-			title.visible = false;
+			// 删除title, 因为重构UI
+//			title.visible = false;
 
 			startBtn.visible = startBtn.active = true;
 			startBtn.text(Messages.titleCase(cl.title()));
@@ -439,14 +500,24 @@ public class HeroSelectScene extends PixelScene {
 			infoButton.visible = infoButton.active = true;
 			infoButton.setPos(startBtn.right(), startBtn.top());
 
-			btnOptions.visible = btnOptions.active = !SPDSettings.intro();
-			btnOptions.setPos(startBtn.left()-btnOptions.width(), startBtn.top());
+			// 删除选项按钮的相关配置, 因为重构UI
+//			btnOptions.visible = btnOptions.active = !SPDSettings.intro();
+//			btnOptions.setPos(startBtn.left()-btnOptions.width(), startBtn.top());
+//
+//			optionsPane.setPos(heroBtns.get(0).left(), startBtn.top() - optionsPane.height() - 2);
+//			align(optionsPane);
 
-			optionsPane.setPos(heroBtns.get(0).left(), startBtn.top() - optionsPane.height() - 2);
-			align(optionsPane);
+			// 网络状态按钮的位置与可见性
+			btnNetStatus.visible = btnNetStatus.active = true;
+			btnNetStatus.setPos(startBtn.left()-btnNetStatus.width(), startBtn.top());
 		}
 
-		updateOptionsColor();
+		// 删除选项按钮的相关配置, 因为重构UI
+//		updateOptionsColor();
+		// 模式选择按钮的可见性
+		btnMode.visible = btnMode.active = true;
+		// 挑战选择按钮的可见性
+		btnChallenge.visible = btnChallenge.active = true;
 	}
 
 	private float uiAlpha;
@@ -472,7 +543,8 @@ public class HeroSelectScene extends PixelScene {
 
 	private void updateFade(){
 		float alpha = GameMath.gate(0f, uiAlpha, 1f);
-		title.alpha(alpha);
+		// 删除title, 因为重构UI
+//		title.alpha(alpha);
 		for (StyledButton b : heroBtns){
 			b.enable(alpha != 0);
 			b.alpha(alpha);
@@ -487,10 +559,22 @@ public class HeroSelectScene extends PixelScene {
 		startBtn.alpha(alpha);
 		btnExit.enable(btnExit.visible && alpha != 0);
 		btnExit.icon().alpha(alpha);
-		optionsPane.active = optionsPane.visible && alpha != 0;
-		optionsPane.alpha(alpha);
-		btnOptions.enable(alpha != 0);
-		btnOptions.icon().alpha(alpha);
+		// 删除选项按钮的相关配置, 因为重构UI
+		// 删除选项按钮的相关配置, 因为重构UI
+//		optionsPane.active = optionsPane.visible && alpha != 0;
+//		optionsPane.alpha(alpha);
+//		btnOptions.enable(alpha != 0);
+//		btnOptions.icon().alpha(alpha);
+		// 网络状态按钮的渐隐
+		btnNetStatus.enable(alpha != 0);
+		btnNetStatus.icon().alpha(alpha);
+		// 模式选择按钮的渐隐
+		btnMode.enable(alpha != 0);
+		btnMode.alpha(alpha);
+		// 挑战选择按钮的渐隐
+		btnChallenge.enable(alpha != 0);
+		btnChallenge.alpha(alpha);
+
 		infoButton.enable(alpha != 0);
 		infoButton.icon().alpha(alpha);
 
@@ -596,7 +680,8 @@ public class HeroSelectScene extends PixelScene {
 			StyledButton seedButton = new StyledButton(Chrome.Type.BLANK, Messages.get(HeroSelectScene.class, "custom_seed"), 6){
 				@Override
 				protected void onClick() {
-					if (!Badges.isUnlocked(Badges.Badge.VICTORY) && !DeviceCompat.isDebug()){
+					// 手动设置开始游戏时的种子、DR、挑战等设置可见
+					if (false && !Badges.isUnlocked(Badges.Badge.VICTORY) && !DeviceCompat.isDebug()){
 						ShatteredPixelDungeon.scene().addToFront( new WndTitledMessage(
 								Icons.get(Icons.SEED),
 								Messages.get(HeroSelectScene.class, "custom_seed"),
@@ -635,7 +720,8 @@ public class HeroSelectScene extends PixelScene {
 								SPDSettings.customSeed("");
 								icon.resetColor();
 							}
-							updateOptionsColor();
+							// 删除选项按钮的相关配置, 因为重构UI
+//							updateOptionsColor();
 						}
 					});
 				}
@@ -768,7 +854,8 @@ public class HeroSelectScene extends PixelScene {
 						public void onBackPressed() {
 							super.onBackPressed();
 							icon(Icons.get(SPDSettings.challenges() > 0 ? Icons.CHALLENGE_COLOR : Icons.CHALLENGE_GREY));
-							updateOptionsColor();
+							// 删除选项按钮的相关配置, 因为重构UI
+//							updateOptionsColor();
 						}
 					} );
 				}

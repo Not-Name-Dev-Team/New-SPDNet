@@ -22,9 +22,10 @@
 		android:normalScreens="true"
 		android:largeScreens="true"
 		android:xlargeScreens="true"/>
-
+	<!-- 添加 networkSecurityConfig 允许非安全连接 -->
 	<application
 		android:icon="@mipmap/ic_launcher"
+		android:networkSecurityConfig="@xml/network_security_config"
 		android:label="${appName}"
 		android:theme="@android:style/Theme.Black.NoTitleBar"
 		android:appCategory="game"
@@ -46,6 +47,16 @@
 		<activity
 			android:name=".AndroidMissingNativesHandler">
 		</activity>
+		<!-- FileProvider 用于实现APP更新 -->
+		<provider
+			android:name="androidx.core.content.FileProvider"
+			android:authorities="${applicationId}.fileprovider"
+			android:exported="false"
+			android:grantUriPermissions="true">
+			<meta-data
+				android:name="android.support.FILE_PROVIDER_PATHS"
+				android:resource="@xml/file_provider"/>
+		</provider>
 	</application>
 
 </manifest>

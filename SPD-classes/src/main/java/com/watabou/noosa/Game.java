@@ -62,6 +62,8 @@ public class Game implements ApplicationListener {
 	public static float density = 1;
 	
 	public static String version;
+	// Net版本号
+	public static String netVersion;
 	public static int versionCode;
 	
 	// Current scene

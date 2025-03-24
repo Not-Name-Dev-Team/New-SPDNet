@@ -95,6 +95,10 @@ public class Assets {
 		public static final String HERO_ICONS       = "interfaces/hero_icons.png";
 
 		public static final String RADIAL_MENU      = "interfaces/radial_menu.png";
+
+		// SPDNet图像素材
+		public static final String NETICONS = "interfaces/neticons.png";
+		public static final String NETUI    = "interfaces/netui.png";
 	}
 
 	//these points to resource bundles, not raw asset files
@@ -108,6 +112,8 @@ public class Assets {
 		public static final String SCENES   = "messages/scenes/scenes";
 		public static final String UI       = "messages/ui/ui";
 		public static final String WINDOWS  = "messages/windows/windows";
+		// SPDNet的语言包
+		public static final String SPDNET  = "messages/spdnet/spdnet";
 	}
 
 	public static class Music {

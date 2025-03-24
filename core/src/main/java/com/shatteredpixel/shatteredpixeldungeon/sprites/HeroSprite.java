@@ -26,7 +26,11 @@ import com.shatteredpixel.shatteredpixeldungeon.Dungeon;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.HeroDisguise;
 import com.shatteredpixel.shatteredpixeldungeon.actors.hero.Hero;
 import com.shatteredpixel.shatteredpixeldungeon.actors.hero.HeroClass;
+import com.shatteredpixel.shatteredpixeldungeon.messages.Messages;
 import com.shatteredpixel.shatteredpixeldungeon.scenes.GameScene;
+import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.Sender;
+import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.actions.CArmorUpdate;
+import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.actions.CFloatingText;
 import com.watabou.gltextures.SmartTexture;
 import com.watabou.gltextures.TextureCache;
 import com.watabou.noosa.Camera;
@@ -99,6 +103,8 @@ public class HeroSprite extends CharSprite {
 			idle();
 		else
 			die();
+		// 发送护甲更新数据包
+		Sender.sendArmorUpdate(new CArmorUpdate(Dungeon.hero.tier()));
 	}
 	
 	@Override
@@ -191,5 +197,17 @@ public class HeroSprite extends CharSprite {
 		avatar.frame( frame );
 		
 		return avatar;
+	}
+
+	// 复写此方法, 方便发送文字数据包
+	@Override
+	public void showStatusWithIcon(int color, String text, int icon, Object... args) {
+		super.showStatusWithIcon(color, text, icon, args);
+		if (args.length > 0) {
+			text = Messages.format( text, args );
+		}
+		if (ch!=null){
+			Sender.sendFloatingText(new CFloatingText(color, text, icon, Dungeon.hero.HP, Dungeon.hero.shielding(),Dungeon.hero.HT));
+		}
 	}
 }

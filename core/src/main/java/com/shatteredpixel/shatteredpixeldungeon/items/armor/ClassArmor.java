@@ -312,7 +312,7 @@ abstract public class ClassArmor extends Armor {
 
 		return desc;
 	}
-	
+
 	@Override
 	public int value() {
 		return 0;

@@ -141,10 +141,11 @@ public class SpiritBow extends Weapon {
 				Math.round(augment.damageFactor(min())),
 				Math.round(augment.damageFactor(max())),
 				STRReq());
-		
-		if (STRReq() > Dungeon.hero.STR()) {
+
+		// 判空
+		if (Dungeon.hero != null && STRReq() > Dungeon.hero.STR()) {
 			info += " " + Messages.get(Weapon.class, "too_heavy");
-		} else if (Dungeon.hero.STR() > STRReq()){
+		} else if (Dungeon.hero != null && Dungeon.hero.STR() > STRReq()){
 			info += " " + Messages.get(Weapon.class, "excess_str", Dungeon.hero.STR() - STRReq());
 		}
 		
@@ -183,17 +184,21 @@ public class SpiritBow extends Weapon {
 	public int STRReq(int lvl) {
 		return STRReq(1, lvl); //tier 1
 	}
-	
+
+	// 判空
 	@Override
 	public int min(int lvl) {
+		if (Dungeon.hero == null) return 0;
 		int dmg = 1 + Dungeon.hero.lvl/5
 				+ RingOfSharpshooting.levelDamageBonus(Dungeon.hero)
 				+ (curseInfusionBonus ? 1 + Dungeon.hero.lvl/30 : 0);
 		return Math.max(0, dmg);
 	}
-	
+
+	// 判空
 	@Override
 	public int max(int lvl) {
+		if (Dungeon.hero == null) return 0;
 		int dmg = 6 + (int)(Dungeon.hero.lvl/2.5f)
 				+ 2*RingOfSharpshooting.levelDamageBonus(Dungeon.hero)
 				+ (curseInfusionBonus ? 2 + Dungeon.hero.lvl/15 : 0);

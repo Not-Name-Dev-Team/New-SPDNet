@@ -444,6 +444,8 @@ public enum Talent {
 				return 218;
 			}
 			HeroClass cls = Dungeon.hero != null ? Dungeon.hero.heroClass : GamesInProgress.selectedClass;
+			// 判空
+			if (cls == null) cls = HeroClass.WARRIOR;
 			switch (cls){
 				case WARRIOR: default:
 					return 26;

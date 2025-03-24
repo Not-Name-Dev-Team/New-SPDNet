@@ -10,8 +10,9 @@ include ':desktop'
 //service modules
 include ':services'
     //updates
-    include ':services:updates:debugUpdates'
-    include ':services:updates:githubUpdates'
+    // 使用自己的更新
+    // include ':services:updates:debugUpdates'
+    // include ':services:updates:githubUpdates'
     //news
     include ':services:news:debugNews'
     include ':services:news:shatteredNews'

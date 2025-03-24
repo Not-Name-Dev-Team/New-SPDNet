@@ -20,7 +20,8 @@ task debug(type: JavaExec) {
     main = appMainClass
     systemProperty 'Specification-Title', appName
     systemProperty 'Implementation-Title', appPackageName
-    systemProperty 'Specification-Version', appVersionName + "-INDEV"
+    // Net的版本号
+    systemProperty 'Specification-Version', appVersionName + '}' + appNetVersionName + "-INDEV"
     systemProperty 'Implementation-Version', appVersionCode
 
     if (osName.contains('mac')) {
@@ -39,7 +40,27 @@ task release(type: Jar) {
         attributes 'Main-Class': appMainClass
         attributes 'Specification-Title': appName
         attributes 'Implementation-Title': appPackageName
-        attributes 'Specification-Version': appVersionName
+        // Net的版本号
+        attributes 'Specification-Version': appVersionName + '}' + appNetVersionName
+        attributes 'Implementation-Version': appVersionCode
+    }
+}
+
+// 添加此build任务, 用于打包debug版本运行多端测试联机
+task debugJar(type: Jar) {
+    archiveFileName = "${project.name}-debug.jar"
+    //FIXME this is now needed as of gradle 7.0, due to our weird sourceSets setup. Should see if there's a better way to do this
+    setDuplicatesStrategy(DuplicatesStrategy.EXCLUDE)
+    from sourceSets.main.output
+    dependsOn configurations.runtimeClasspath
+    from { configurations.runtimeClasspath.findAll { it.name.endsWith('jar') }.collect { zipTree(it) } }
+
+    manifest {
+        attributes 'Main-Class': appMainClass
+        attributes 'Specification-Title': appName
+        attributes 'Implementation-Title': appPackageName
+        // Net的版本号
+        attributes 'Specification-Version': appVersionName + '}' + appNetVersionName + "-INDEV"
         attributes 'Implementation-Version': appVersionCode
     }
 }
@@ -121,6 +142,7 @@ dependencies {
     implementation "org.lwjgl:lwjgl-tinyfd:3.3.3:natives-linux"
     implementation "org.lwjgl:lwjgl-tinyfd:3.3.3:natives-linux-arm64"
 
-    implementation project(':services:updates:githubUpdates')
+    // 使用自己的更新
+    // implementation project(':services:updates:githubUpdates')
     implementation project(':services:news:shatteredNews')
 }

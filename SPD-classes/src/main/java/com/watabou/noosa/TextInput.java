@@ -23,9 +23,11 @@ package com.watabou.noosa;
 
 import com.badlogic.gdx.Files;
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.scenes.scene2d.Actor;
+import com.badlogic.gdx.scenes.scene2d.InputListener;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Container;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
@@ -256,5 +258,19 @@ public class TextInput extends Component {
 			Game.platform.setOnscreenKeyboardVisible(false);
 			if (!DeviceCompat.isDesktop()) Game.platform.updateSystemUI();
 		}
+	}
+
+	// 添加文本特别方法用于聊天框
+	public void setTextAlignment(int alignment){
+		textField.setAlignment(alignment);
+	}
+
+	public void setTextColor(Color color){
+		TextField.TextFieldStyle style = textField.getStyle();
+		style.fontColor = color;
+	}
+
+	public void addlistener(InputListener listener){
+		textField.addListener(listener);
 	}
 }

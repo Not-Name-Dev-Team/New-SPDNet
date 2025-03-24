@@ -91,7 +91,7 @@ public abstract class TippedDart extends Dart {
 					Messages.get(this, "cancel")
 				};
 			}
-			
+
 			GameScene.show(new WndOptions(new ItemSprite(this),
 					Messages.titleCase(name()),
 					Messages.get(this, "clean_desc"),
@@ -183,16 +183,19 @@ public abstract class TippedDart extends Dart {
 				}
 				targetPos = -1;
 			}
-			int p = curUser == null ? Dungeon.hero.pos : curUser.pos;
-			for (Char ch : Actor.chars()) {
-				if (ch instanceof WandOfRegrowth.Lotus) {
-					WandOfRegrowth.Lotus l = (WandOfRegrowth.Lotus) ch;
-					if (l.inRange(p)) {
-						lotusPreserve = Math.max(lotusPreserve, l.seedPreservation());
+			// 判空
+			if (curUser != null || Dungeon.hero != null) {
+				int p = curUser == null ? Dungeon.hero.pos : curUser.pos;
+				for (Char ch : Actor.chars()) {
+					if (ch instanceof WandOfRegrowth.Lotus) {
+						WandOfRegrowth.Lotus l = (WandOfRegrowth.Lotus) ch;
+						if (l.inRange(p)) {
+							lotusPreserve = Math.max(lotusPreserve, l.seedPreservation());
+						}
 					}
 				}
+				use *= (1f - lotusPreserve);
 			}
-			use *= (1f - lotusPreserve);
 		}
 
 		float usages = Math.round(MAX_DURABILITY/use);

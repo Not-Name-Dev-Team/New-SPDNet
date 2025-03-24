@@ -36,6 +36,9 @@ import com.shatteredpixel.shatteredpixeldungeon.items.scrolls.Scroll;
 import com.shatteredpixel.shatteredpixeldungeon.items.trinkets.Trinket;
 import com.shatteredpixel.shatteredpixeldungeon.journal.Notes;
 import com.shatteredpixel.shatteredpixeldungeon.messages.Messages;
+import com.shatteredpixel.shatteredpixeldungeon.spdnet.NetInProgress;
+import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.Sender;
+import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.actions.CGameEnd;
 import com.shatteredpixel.shatteredpixeldungeon.ui.QuickSlotButton;
 import com.shatteredpixel.shatteredpixeldungeon.ui.Toolbar;
 import com.shatteredpixel.shatteredpixeldungeon.utils.DungeonSeed;
@@ -160,7 +163,12 @@ public enum Rankings {
 		}
 
 		Badges.validateGamesPlayed();
-		
+
+		// 发送死亡/胜利信息
+		Bundle bundle = new Bundle();
+		rec.storeInNetBundle(bundle);
+		Sender.sendGameEnd(new CGameEnd(bundle.toString()));
+
 		save();
 	}
 
@@ -462,6 +470,7 @@ public enum Rankings {
 
 		private static final String DATE    = "date";
 		private static final String VERSION = "version";
+		private static final String NET_VERSION = "net_version";
 
 		public Class cause;
 		public boolean win;
@@ -558,6 +567,120 @@ public enum Rankings {
 
 			if (gameData != null) bundle.put( DATA, gameData );
 			bundle.put( ID, gameID );
+		}
+		private static final String GAME_MODE   = "game_mode";
+		private static final String GOLD		= "gold";
+		private static final String DEEPEST		= "maxDepth";
+		private static final String HIGHEST		= "maxAscent";
+		private static final String SLAIN		= "enemiesSlain";
+		private static final String FOOD		= "foodEaten";
+		private static final String ALCHEMY		= "potionsCooked";
+		private static final String PIRANHAS	= "priranhas";
+		private static final String ANKHS		= "ankhsUsed";
+
+		private static final String PROG_SCORE	    = "prog_score";
+		private static final String ITEM_VAL	    = "item_val";
+		private static final String TRES_SCORE      = "tres_score";
+		private static final String FLR_EXPL        = "flr_expl";
+		private static final String EXPL_SCORE      = "expl_score";
+		private static final String BOSS_SCORES		= "boss_scores";
+		private static final String TOT_BOSS		= "tot_boss";
+		private static final String QUEST_SCORES	= "quest_scores";
+		private static final String TOT_QUEST		= "tot_quest";
+		private static final String WIN_MULT		= "win_mult";
+		private static final String CHAL_MULT		= "chal_mult";
+		private static final String TOTAL_SCORE		= "total_score";
+
+		private static final String UPGRADES	= "upgradesUsed";
+		private static final String SNEAKS		= "sneakAttacks";
+		private static final String THROWN		= "thrownAssists";
+
+		private static final String SPAWNERS	= "spawnersAlive";
+
+		private static final String DURATION	= "duration";
+
+		private static final String NO_KILLING_QUALIFIED	= "qualifiedForNoKilling";
+		private static final String BOSS_REMAINS_QUALIFIED	= "qualifiedForBossRemainsBadge";
+		private static final String BOSS_CHALLENGE_QUALIFIED= "qualifiedForBossChallengeBadge";
+
+		private static final String AMULET          = "amuletObtained";
+		private static final String WON		        = "won";
+		private static final String ASCENDED		= "ascended";
+		public void restoreFromNetBundle(Bundle bundle) {
+			// TODO
+		}
+
+		/**
+		 * 存储一次游戏记录
+		 */
+		public void storeInNetBundle(Bundle bundle) {
+
+			if (cause != null) bundle.put(CAUSE, cause);
+
+			bundle.put(WIN, win);
+			bundle.put(SCORE, score);
+
+			bundle.put(CLASS, heroClass);
+			bundle.put(TIER, armorTier);
+			bundle.put(LEVEL, herolevel);
+			bundle.put(DEPTH, depth);
+			bundle.put(ASCEND, ascending);
+
+			bundle.put(DATE, date);
+			bundle.put(VERSION, version);
+			bundle.put(NET_VERSION, ShatteredPixelDungeon.netVersion);
+			bundle.put(GAME_MODE, NetInProgress.mode);
+
+			if (gameData != null) {
+				bundle.put(HERO, gameData.get(HERO));
+				bundle.put(BADGES, gameData.getBundle(BADGES));
+				bundle.put(HANDLERS, gameData.getBundle(HANDLERS));
+				bundle.put(CHALLENGES, gameData.getInt(CHALLENGES));
+				bundle.put(GAME_VERSION, gameData.getInt(GAME_VERSION));
+				bundle.put("seed", gameData.getLong("seed"));
+				bundle.put(CUSTOM_SEED, gameData.getString(CUSTOM_SEED));
+				bundle.put(DAILY, gameData.getBoolean(DAILY));
+				bundle.put(DAILY_REPLAY, gameData.getBoolean(DAILY_REPLAY));
+
+				Bundle stats = gameData.getBundle(STATS);
+				bundle.put(GOLD, stats.getInt("score"));
+				bundle.put(DEEPEST, stats.getInt(DEEPEST));
+				bundle.put(HIGHEST, stats.getInt(HIGHEST));
+				bundle.put(SLAIN, stats.getInt(SLAIN));
+				bundle.put(FOOD, stats.getInt(FOOD));
+				bundle.put(ALCHEMY, stats.getInt(ALCHEMY));
+				bundle.put(PIRANHAS, stats.getInt(PIRANHAS));
+				bundle.put(ANKHS, stats.getInt(ANKHS));
+				bundle.put(PROG_SCORE, stats.getInt(PROG_SCORE));
+				bundle.put(ITEM_VAL, stats.getInt(ITEM_VAL));
+				bundle.put(TRES_SCORE, stats.getInt(TRES_SCORE));
+				Bundle floorsExplored = new Bundle();
+				for (int i = 1; i < 26; i++){
+					if (stats.contains( FLR_EXPL+i )){
+						floorsExplored.put(String.valueOf(i), stats.getBoolean( FLR_EXPL+i ));
+					}
+				}
+				bundle.put(FLR_EXPL, floorsExplored);
+				bundle.put(EXPL_SCORE, stats.getInt(EXPL_SCORE));
+				bundle.put(BOSS_SCORES, stats.getIntArray(BOSS_SCORES));
+				bundle.put(TOT_BOSS, stats.getInt(TOT_BOSS));
+				bundle.put(QUEST_SCORES, stats.getIntArray(QUEST_SCORES));
+				bundle.put(TOT_QUEST, stats.getInt(TOT_QUEST));
+				bundle.put(WIN_MULT, stats.getFloat(WIN_MULT));
+				bundle.put(CHAL_MULT, stats.getFloat(CHAL_MULT));
+				bundle.put(TOTAL_SCORE, stats.getInt(TOTAL_SCORE));
+				bundle.put(UPGRADES, stats.getInt(UPGRADES));
+				bundle.put(SNEAKS, stats.getInt(SNEAKS));
+				bundle.put(THROWN, stats.getInt(THROWN));
+				bundle.put(SPAWNERS, stats.getInt(SPAWNERS));
+				bundle.put(DURATION, stats.getFloat(DURATION));
+				bundle.put(NO_KILLING_QUALIFIED, stats.getBoolean(NO_KILLING_QUALIFIED));
+				bundle.put(BOSS_REMAINS_QUALIFIED, stats.getBoolean(BOSS_REMAINS_QUALIFIED));
+				bundle.put(BOSS_CHALLENGE_QUALIFIED, stats.getBoolean(BOSS_CHALLENGE_QUALIFIED));
+				bundle.put(AMULET, stats.getBoolean(AMULET));
+				bundle.put(WON, stats.getBoolean(WON));
+				bundle.put(ASCENDED, stats.getBoolean(ASCENDED));
+			}
 		}
 	}
 

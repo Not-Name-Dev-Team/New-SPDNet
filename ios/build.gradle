@@ -40,7 +40,8 @@ createIPA.dependsOn build
 
 dependencies {
     implementation project(':core')
-    implementation project(':services:updates:debugUpdates')
+    // 使用自己的更新
+    // implementation project(':services:updates:debugUpdates')
     implementation project(':services:news:shatteredNews')
 
     implementation "com.badlogicgames.gdx:gdx-freetype:$gdxVersion"

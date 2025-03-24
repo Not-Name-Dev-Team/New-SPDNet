@@ -29,5 +29,7 @@ public class AvailableUpdateData {
 	public String desc;
 
 	public String URL;
+	// Gitee的下载镜像地址
+	public String giteeURL;
 
 }

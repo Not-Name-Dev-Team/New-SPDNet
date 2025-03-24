@@ -74,6 +74,14 @@ import com.shatteredpixel.shatteredpixeldungeon.levels.rooms.secret.SecretRoom;
 import com.shatteredpixel.shatteredpixeldungeon.levels.traps.Trap;
 import com.shatteredpixel.shatteredpixeldungeon.messages.Messages;
 import com.shatteredpixel.shatteredpixeldungeon.plants.Plant;
+import com.shatteredpixel.shatteredpixeldungeon.spdnet.NetInProgress;
+import com.shatteredpixel.shatteredpixeldungeon.spdnet.utils.NetLog;
+import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.Sender;
+import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.actors.NetHero;
+import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.sprites.NetHeroSprite;
+import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.Status;
+import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.actions.CEnterDungeon;
+import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.actions.CViewHero;
 import com.shatteredpixel.shatteredpixeldungeon.sprites.CharSprite;
 import com.shatteredpixel.shatteredpixeldungeon.sprites.DiscardedItemSprite;
 import com.shatteredpixel.shatteredpixeldungeon.sprites.HeroSprite;
@@ -170,7 +178,9 @@ public class GameScene extends PixelScene {
 	private BossHealthBar boss;
 
 	private GameLog log;
-	
+	// Net日志
+	private NetLog netLog;
+
 	private static CellSelector cellSelector;
 	
 	private Group terrain;
@@ -192,6 +202,9 @@ public class GameScene extends PixelScene {
 	private Group emoicons;
 	private Group overFogEffects;
 	private Group healthIndicators;
+
+	// 其他玩家
+	private Group players;
 
 	private InventoryPane inventory;
 	private static boolean invVisible = true;
@@ -304,7 +317,16 @@ public class GameScene extends PixelScene {
 		hero.place( Dungeon.hero.pos );
 		hero.updateArmor();
 		mobs.add( hero );
-		
+
+		// 其他玩家
+		players = new Group();
+		add(players);
+
+		for (NetHero player: Dungeon.level.players) {
+			addPlayerSprite(player);
+			((NetHeroSprite)player.sprite).updateArmor();
+		}
+
 		for (Mob mob : Dungeon.level.mobs) {
 			addMobSprite( mob );
 		}
@@ -396,6 +418,12 @@ public class GameScene extends PixelScene {
 		log.camera = uiCamera;
 		log.newLine();
 		add( log );
+
+		// Net日志
+		netLog = new NetLog();
+		netLog.camera = uiCamera;
+		netLog.newLine();
+		add(netLog);
 
 		if (uiSize > 0){
 			bringToFront(status);
@@ -638,6 +666,17 @@ public class GameScene extends PixelScene {
 			}
 		}
 
+		// 发送进入地牢信息
+		Status status1 = new Status(Dungeon.challenges,
+				Dungeon.seed,
+				Dungeon.hero.heroClass.ordinal(),
+				NetInProgress.mode.ordinal(),
+				Dungeon.depth,
+				Dungeon.hero.tier(),
+				Dungeon.hero.pos);
+		Sender.sendEnterDungeon(new CEnterDungeon(status1));
+		// 同步玩家列表
+		NetHero.syncWithCurrentLevel();
 	}
 	
 	public void destroy() {
@@ -861,6 +900,12 @@ public class GameScene extends PixelScene {
 				scene.log.setRect(insets.left, y, 160 - insets.left, 0);
 			}
 		}
+		// 添加netLog
+		if (SPDSettings.interfaceSize() == 0) {
+			scene.netLog.setRect(insets.left, scene.status.bottom(), uiCamera.width - tagWidth - insets.left, 0);
+		} else {
+			scene.netLog.setRect(insets.left, 0, 160 - insets.left, 0);
+		}
 
 		float pos = scene.toolbar.top();
 		if (tagsOnLeft && SPDSettings.interfaceSize() > 0){
@@ -940,6 +985,12 @@ public class GameScene extends PixelScene {
 		mobs.add( sprite );
 		sprite.link( mob );
 		sortMobSprites();
+	}
+
+	private synchronized void addPlayerSprite(NetHero player) {
+		CharSprite sprite = new NetHeroSprite(player);
+		sprite.visible = true;
+		players.add(sprite);
 	}
 
 	//ensures that mob sprites are drawn from top to bottom, in case of overlap
@@ -1042,6 +1093,19 @@ public class GameScene extends PixelScene {
 		if (scene != null) {
 			scene.addMobSprite(mob);
 			Actor.add(mob);
+		}
+	}
+
+	public static void addPlayer(NetHero player) {
+		if (scene != null) {
+			Dungeon.level.players.add(player);
+			scene.addPlayerSprite(player);
+		}
+	}
+	public static void clearPlayers() {
+		if (scene != null) {
+			Dungeon.level.players.clear();
+			scene.players.clear();
 		}
 	}
 
@@ -1554,6 +1618,10 @@ public class GameScene extends PixelScene {
 			if (mob != null) objects.add(mob);
 		}
 
+		// 检查指定位置的玩家 方便查看玩家信息
+		NetHero player = NetHero.findPlayerAtCell(cell);
+		if (player != null) objects.add(player);
+
 		Heap heap = Dungeon.level.heaps.get(cell);
 		if (heap != null && heap.seen) objects.add(heap);
 
@@ -1581,6 +1649,10 @@ public class GameScene extends PixelScene {
 	public static void examineObject(Object o){
 		if (o == Dungeon.hero){
 			GameScene.show( new WndHero() );
+		}
+		// 使用放大镜检查显示玩家信息
+		else if (o instanceof NetHero) {
+			Sender.sendViewHero(new CViewHero(((NetHero) o).name));
 		} else if ( o instanceof Mob && ((Mob) o).isActive() ){
 			GameScene.show(new WndInfoMob((Mob) o));
 			if (o instanceof Snake && !Document.ADVENTURERS_GUIDE.isPageRead(Document.GUIDE_SURPRISE_ATKS)){

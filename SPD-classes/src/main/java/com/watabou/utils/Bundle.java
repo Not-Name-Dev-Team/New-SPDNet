@@ -587,5 +587,15 @@ public class Bundle {
 	public static void addAlias( Class<?> cl, String alias ) {
 		aliases.put( alias, cl.getName() );
 	}
-	
+
+	// 用于将字符串转换为Bundle
+	public static Bundle fromString(String s) {
+		try {
+			JSONObject data = new JSONObject(s);
+			return new Bundle(data);
+		} catch (JSONException e) {
+			e.printStackTrace();
+			return null;
+		}
+	}
 }

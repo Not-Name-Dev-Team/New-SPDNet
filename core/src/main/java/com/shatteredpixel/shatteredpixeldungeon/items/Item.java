@@ -312,7 +312,7 @@ public class Item implements Bundlable {
 		dupe.restoreFromBundle(copy);
 		return dupe;
 	}
-	
+
 	public final Item detach( Bag container ) {
 		
 		if (quantity <= 0) {

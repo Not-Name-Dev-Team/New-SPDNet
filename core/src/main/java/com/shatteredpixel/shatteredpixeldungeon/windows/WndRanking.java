@@ -62,17 +62,17 @@ import java.text.NumberFormat;
 import java.util.Locale;
 
 public class WndRanking extends WndTabbed {
-	
+
 	private static final int WIDTH			= 115;
 	private static final int HEIGHT			= 144;
-	
+
 	private static WndRanking INSTANCE;
-	
+
 	private String gameID;
 	private Rankings.Record record;
-	
+
 	public WndRanking( final Rankings.Record rec ) {
-		
+
 		super();
 		resize( WIDTH, HEIGHT );
 
@@ -152,14 +152,15 @@ public class WndRanking extends WndTabbed {
 			}
 		}
 	}
-	
-	private class StatsTab extends Group {
+
+	// 更改访问修饰符以方便使用翻译键
+	public class StatsTab extends Group {
 
 		private int GAP	= 4;
 		
 		public StatsTab() {
 			super();
-			
+
 			String heroClass = record.heroClass.name();
 			if (Dungeon.hero != null){
 				heroClass = Dungeon.hero.className();
@@ -261,8 +262,9 @@ public class WndRanking extends WndTabbed {
 
 			int buttontop = HEIGHT - 16;
 
+			// 手动设置排行榜中的种子相关信息可见
 			if (Dungeon.hero != null && Dungeon.seed != -1 && !Dungeon.daily &&
-					(DeviceCompat.isDebug() || Badges.isUnlocked(Badges.Badge.VICTORY))){
+					(true || Badges.isUnlocked(Badges.Badge.VICTORY))){
 				final Image icon = Icons.get(Icons.SEED);
 				RedButton btnSeed = new RedButton(Messages.get(this, "copy_seed")){
 					@Override
@@ -408,7 +410,7 @@ public class WndRanking extends WndTabbed {
 		
 		public BadgesTab() {
 			super();
-			
+
 			camera = WndRanking.this.camera;
 
 			Component badges;

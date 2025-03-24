@@ -318,7 +318,8 @@ public class Armor extends EquipableItem {
 
 		}
 	}
-	
+
+	// 判空
 	@Override
 	public boolean isEquipped( Hero hero ) {
 		return hero != null && hero.belongings.armor() == this;
@@ -383,11 +384,11 @@ public class Armor extends EquipableItem {
 			int aEnc = STRReq() - ((Hero) owner).STR();
 			if (aEnc > 0) speed /= Math.pow(1.2, aEnc);
 		}
-		
+
 		return speed;
 		
 	}
-	
+
 	@Override
 	public int level() {
 		int level = super.level();
@@ -532,7 +533,7 @@ public class Armor extends EquipableItem {
 		if (levelKnown) {
 
 			info += "\n\n" + Messages.get(Armor.class, "curr_absorb", tier, DRMin(), DRMax(), STRReq());
-			
+
 			if (Dungeon.hero != null && STRReq() > Dungeon.hero.STR()) {
 				info += " " + Messages.get(Armor.class, "too_heavy");
 			}
@@ -581,7 +582,7 @@ public class Armor extends EquipableItem {
 		if (seal != null) {
 			info += "\n\n" + Messages.get(Armor.class, "seal_attached", seal.maxShield(tier, level()));
 		}
-		
+
 		return info;
 	}
 

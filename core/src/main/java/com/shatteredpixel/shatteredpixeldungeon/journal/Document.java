@@ -253,7 +253,8 @@ public enum Document {
 
 	//pages and default states
 	static {
-		boolean debug = DeviceCompat.isDebug();
+		// 手动设置以解锁教程书
+		boolean debug = true;
 		//hero gets these when guidebook is collected
 		ADVENTURERS_GUIDE.pagesStates.put(GUIDE_INTRO,          debug ? READ : NOT_FOUND);
 		ADVENTURERS_GUIDE.pagesStates.put(GUIDE_EXAMINING,      debug ? READ : NOT_FOUND);

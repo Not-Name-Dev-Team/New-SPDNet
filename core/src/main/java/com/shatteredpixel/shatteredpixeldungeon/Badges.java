@@ -1093,7 +1093,7 @@ public class Badges {
 
 		displayBadge( badge );
 	}
-	
+
 	public static void validateHappyEnd() {
 		local.add( Badge.HAPPY_END );
 		displayBadge( Badge.HAPPY_END );
@@ -1146,7 +1146,8 @@ public class Badges {
 	}
 	
 	public static boolean isUnlocked( Badge badge ) {
-		return global.contains( badge );
+		// 判空
+		return global != null && global.contains( badge );
 	}
 	
 	public static HashSet<Badge> allUnlocked(){

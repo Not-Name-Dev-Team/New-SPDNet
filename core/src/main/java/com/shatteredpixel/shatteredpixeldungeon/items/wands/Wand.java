@@ -277,7 +277,7 @@ public abstract class Wand extends Item {
 	public boolean readyToIdentify(){
 		return !isIdentified() && usesLeftToID <= 0;
 	}
-	
+
 	public void onHeroGainExp( float levelPercent, Hero hero ){
 		levelPercent *= Talent.itemIDSpeedFactor(hero, this);
 		if (!isIdentified() && availableUsesToID <= USES_TO_ID/2f) {
@@ -326,7 +326,7 @@ public abstract class Wand extends Item {
 	public String upgradeStat3(int level){
 		return null;
 	}
-	
+
 	@Override
 	public boolean isIdentified() {
 		return super.isIdentified() && curChargeKnown;

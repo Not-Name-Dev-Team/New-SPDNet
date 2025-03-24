@@ -6,4 +6,17 @@ sourceCompatibility = targetCompatibility = appJavaCompatibility
 dependencies {
     api project(':SPD-classes')
     implementation project(':services')
+
+    // Websocket
+    implementation 'io.socket:socket.io-client:2.1.0'
+
+    // Fastjson 此为最后支持Android 6 的版本
+    implementation 'com.alibaba:fastjson:1.1.77.android_noneautotype'
+
+    // Http
+    implementation 'org.apache.httpcomponents:httpclient:4.5.14'
+
+    // Lombok
+    compileOnly 'org.projectlombok:lombok:1.18.30'
+    annotationProcessor 'org.projectlombok:lombok:1.18.30'
 }
