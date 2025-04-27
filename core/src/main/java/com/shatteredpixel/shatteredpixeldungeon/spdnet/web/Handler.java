@@ -73,7 +73,10 @@ public class Handler {
 			if (player1 != null) {
 				player1.useAnkh(true, ankhUsed.getUnusedBlessedAnkh(), ankhUsed.getUnusedUnblessedAnkh());
 			}
-			NLog.w(ankhUsed.getName() + "差点因为" + ankhUsed.getCause() + "而死, " + "剩余十字架: " + (ankhUsed.getUnusedBlessedAnkh() + ankhUsed.getUnusedUnblessedAnkh()));
+			if (ankhUsed.getUnusedBlessedAnkh() + ankhUsed.getUnusedUnblessedAnkh() == 0) {
+				NLog.w(ankhUsed.getName() + "因为" + ankhUsed.getCause() + "用掉了他的最后一个十字架");
+			}
+			NLog.w(ankhUsed.getName() + "因为" + ankhUsed.getCause() + "用掉了他的十字架，" + "剩余十字架: " + (ankhUsed.getUnusedBlessedAnkh() + ankhUsed.getUnusedUnblessedAnkh()));
 		}
 	}
 

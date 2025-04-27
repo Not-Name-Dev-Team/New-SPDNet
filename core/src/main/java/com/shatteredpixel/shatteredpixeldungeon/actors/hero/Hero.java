@@ -161,6 +161,7 @@ import com.shatteredpixel.shatteredpixeldungeon.scenes.AlchemyScene;
 import com.shatteredpixel.shatteredpixeldungeon.scenes.GameScene;
 import com.shatteredpixel.shatteredpixeldungeon.scenes.PixelScene;
 import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.Sender;
+import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.actions.CAnkhUsed;
 import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.actions.CPlayerMove;
 import com.shatteredpixel.shatteredpixeldungeon.sprites.CharSprite;
 import com.shatteredpixel.shatteredpixeldungeon.sprites.HeroSprite;
@@ -2086,11 +2087,20 @@ public class Hero extends Char {
 		curAction = null;
 
 		Ankh ankh = null;
+		// AnkhUsed消息需要的变量
+		int unusedBlessedAnkh = 0;
+		int unusedUnblessedAnkh = 0;
 
 		//look for ankhs in player inventory, prioritize ones which are blessed.
 		for (Ankh i : belongings.getAllItems(Ankh.class)){
 			if (ankh == null || i.isBlessed()) {
 				ankh = i;
+			}
+			// 计算AnkhUsed消息剩余十字架数量
+			if (i.isBlessed()) {
+				unusedBlessedAnkh++;
+			} else {
+				unusedUnblessedAnkh++;
 			}
 		}
 
@@ -2118,6 +2128,8 @@ public class Hero extends Char {
 						return;
 					}
 				}
+				// 发送AnkhUsed消息
+				Sender.sendAnkhUsed(new CAnkhUsed(cause.getClass().getSimpleName(), unusedBlessedAnkh - 1, unusedUnblessedAnkh));
 			} else {
 
 				//this is hacky, basically we want to declare that a wndResurrect exists before
@@ -2142,6 +2154,8 @@ public class Hero extends Char {
 					sacMark.detach();
 				}
 
+				// 发送AnkhUsed消息
+				Sender.sendAnkhUsed(new CAnkhUsed(cause.getClass().getSimpleName(), unusedBlessedAnkh, unusedUnblessedAnkh - 1));
 			}
 			return;
 		}
