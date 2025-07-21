@@ -35,7 +35,7 @@ allprojects {
         appAndroidTargetSDK = 34
 
         gdxVersion = '1.12.1'
-        gdxControllersVersion = '2.2.4-SNAPSHOT'
+        gdxControllersVersion = '2.2.4'
         robovmVersion = '2.3.21'
     }
     // 添加Net版本号
