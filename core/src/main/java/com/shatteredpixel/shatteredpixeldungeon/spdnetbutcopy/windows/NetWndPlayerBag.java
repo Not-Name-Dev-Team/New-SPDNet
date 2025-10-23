@@ -126,6 +126,9 @@ public class NetWndPlayerBag extends NetWndTabbed {
 				BagTab tab = new BagTab( b, i++ );
 				add( tab );
 				tab.select( b == bag );
+				if  (b == bag){
+					selected = tab;
+				}
 			}
 		}
 

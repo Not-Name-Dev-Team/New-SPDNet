@@ -3,7 +3,7 @@
  * Copyright (C) 2012-2015 Oleg Dolya
  *
  * Shattered Pixel Dungeon
- * Copyright (C) 2014-2024 Evan Debenham
+ * Copyright (C) 2014-2025 Evan Debenham
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -165,7 +165,7 @@ public class MasterThievesArmband extends Artifact {
 								} else {
 									if (loot.doPickUp(curUser)) {
 										//item collection happens instantly
-										curUser.spend(-TIME_TO_PICK_UP);
+										curUser.spend(-loot.pickupDelay());
 									} else {
 										Dungeon.level.drop(loot, curUser.pos).sprite.drop();
 									}

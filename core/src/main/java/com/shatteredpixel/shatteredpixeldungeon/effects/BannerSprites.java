@@ -3,7 +3,7 @@
  * Copyright (C) 2012-2015 Oleg Dolya
  *
  * Shattered Pixel Dungeon
- * Copyright (C) 2014-2024 Evan Debenham
+ * Copyright (C) 2014-2025 Evan Debenham
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -33,7 +33,6 @@ public class BannerSprites {
 		TITLE_GLOW_LAND,
 		BOSS_SLAIN,
 		GAME_OVER,
-		SELECT_YOUR_HERO
 	}
 
 	public static Image get( Type type ) {
@@ -52,13 +51,10 @@ public class BannerSprites {
 				icon.frame( icon.texture.uvRect( 240, 100, 480, 157 ) );
 				break;
 			case BOSS_SLAIN:
-				icon.frame( icon.texture.uvRect( 0, 157, 128, 192 ) );
+				icon.frame( icon.texture.uvRect( 0, 157, 127, 225 ) );
 				break;
 			case GAME_OVER:
-				icon.frame( icon.texture.uvRect( 0, 192, 128, 227 ) );
-				break;
-			case SELECT_YOUR_HERO:
-				icon.frame( icon.texture.uvRect( 0, 227, 128, 248 ) );
+				icon.frame( icon.texture.uvRect( 128, 157, 256, 192 ) );
 				break;
 		}
 		return icon;

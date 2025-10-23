@@ -61,19 +61,16 @@ configurations { natives }
 dependencies {
     implementation project(':core')
 
-    // Evan为了保证安卓4.4以下的兼容性只能用LibGdx1.11.0
-    // 但是我们都用Firebase了 :D minSdkVersion早就是19了
-    // 直接上1.12!
     implementation "com.badlogicgames.gdx:gdx-backend-android:$gdxVersion"
-    natives "com.badlogicgames.gdx:gdx-platform:1.12.1:natives-armeabi-v7a"
-    natives "com.badlogicgames.gdx:gdx-platform:1.12.1:natives-arm64-v8a"
-    natives "com.badlogicgames.gdx:gdx-platform:1.12.1:natives-x86"
-    natives "com.badlogicgames.gdx:gdx-platform:1.12.1:natives-x86_64"
+    natives "com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-armeabi-v7a"
+    natives "com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-x86"
+    natives "com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-arm64-v8a"
+    natives "com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-x86_64"
     implementation "com.badlogicgames.gdx:gdx-freetype:$gdxVersion"
-    natives "com.badlogicgames.gdx:gdx-freetype-platform:1.12.1:natives-armeabi-v7a"
-    natives "com.badlogicgames.gdx:gdx-freetype-platform:1.12.1:natives-arm64-v8a"
-    natives "com.badlogicgames.gdx:gdx-freetype-platform:1.12.1:natives-x86"
-    natives "com.badlogicgames.gdx:gdx-freetype-platform:1.12.1:natives-x86_64"
+    natives "com.badlogicgames.gdx:gdx-freetype-platform:$gdxVersion:natives-armeabi-v7a"
+    natives "com.badlogicgames.gdx:gdx-freetype-platform:$gdxVersion:natives-arm64-v8a"
+    natives "com.badlogicgames.gdx:gdx-freetype-platform:$gdxVersion:natives-x86"
+    natives "com.badlogicgames.gdx:gdx-freetype-platform:$gdxVersion:natives-x86_64"
     implementation "com.badlogicgames.gdx-controllers:gdx-controllers-android:$gdxControllersVersion"
 
     // Firebase的依赖库

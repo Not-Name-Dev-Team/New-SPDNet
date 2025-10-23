@@ -3,7 +3,7 @@
  * Copyright (C) 2012-2015 Oleg Dolya
  *
  * Shattered Pixel Dungeon
- * Copyright (C) 2014-2024 Evan Debenham
+ * Copyright (C) 2014-2025 Evan Debenham
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -53,13 +53,26 @@ public class ForceCube extends MissileWeapon {
 	}
 
 	@Override
+	public float castDelay(Char user, int cell) {
+		//special rules as throwing this onto empty space or yourself does trigger it
+		if (!Dungeon.level.pit[cell] && Actor.findChar(cell) == null){
+			return delayFactor( user );
+		} else {
+			return super.castDelay(user, cell);
+		}
+	}
+
+	@Override
 	protected void onThrow(int cell) {
-		if (Dungeon.level.pit[cell]){
+		if ((Dungeon.level.pit[cell] && Actor.findChar(cell) == null)){
 			super.onThrow(cell);
 			return;
 		}
 
+		//keep the parent reference for things like IDing
+		MissileWeapon parentTemp = parent;
 		rangedHit( null, cell );
+		parent = parentTemp;
 		Dungeon.level.pressCell(cell);
 		
 		ArrayList<Char> targets = new ArrayList<>();

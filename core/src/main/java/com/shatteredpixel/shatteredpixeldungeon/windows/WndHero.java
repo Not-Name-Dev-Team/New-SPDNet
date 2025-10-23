@@ -3,7 +3,7 @@
  * Copyright (C) 2012-2015 Oleg Dolya
  *
  * Shattered Pixel Dungeon
- * Copyright (C) 2014-2024 Evan Debenham
+ * Copyright (C) 2014-2025 Evan Debenham
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -219,8 +219,11 @@ public class WndHero extends WndTabbed {
 			RenderedTextBlock txt = PixelScene.renderTextBlock( label, 8 );
 			txt.setPos(0, pos);
 			add( txt );
-			
-			txt = PixelScene.renderTextBlock( value, 8 );
+
+			int size = 8;
+			if (value.length() >= 14) size -=2;
+			if (value.length() >= 18) size -=1;
+			txt = PixelScene.renderTextBlock( value, size );
 			txt.setPos(WIDTH * 0.55f, pos);
 			PixelScene.align(txt);
 			add( txt );

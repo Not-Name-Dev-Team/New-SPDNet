@@ -3,7 +3,7 @@
  * Copyright (C) 2012-2015 Oleg Dolya
  *
  * Shattered Pixel Dungeon
- * Copyright (C) 2014-2024 Evan Debenham
+ * Copyright (C) 2014-2025 Evan Debenham
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -255,6 +255,13 @@ public class Assets {
 		public static final String CAVES    = "splashes/caves.jpg";
 		public static final String CITY     = "splashes/city.jpg";
 		public static final String HALLS    = "splashes/halls.jpg";
+
+		public static class Title {
+			public static final String ARCHS         = "splashes/title/archs.png";
+			public static final String BACK_CLUSTERS = "splashes/title/back_clusters.png";
+			public static final String MID_MIXED     = "splashes/title/mid_mixed.png";
+			public static final String FRONT_SMALL   = "splashes/title/front_small.png";
+		}
 	}
 
 	public static class Sprites {

@@ -3,7 +3,7 @@
  * Copyright (C) 2012-2015 Oleg Dolya
  *
  * Shattered Pixel Dungeon
- * Copyright (C) 2014-2024 Evan Debenham
+ * Copyright (C) 2014-2025 Evan Debenham
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -65,7 +65,7 @@ public class AndroidMissingNativesHandler extends Activity {
 		}
 
 		TextView text = new TextView(this);
-		String message = "ShatteredPD failed to access some of its internal code and cannot start!\n\n" +
+		String message = "Shattered Pixel Dungeon failed to access some of its internal code and cannot start!\n\n" +
 				"Try downloading the game from an official source if you haven't already. You can also screenshot this debug info and send it to the developer (Evan@ShatteredPixel.com):";
 
 		message += "\n\nPackage: " + getPackageName();
@@ -88,7 +88,7 @@ public class AndroidMissingNativesHandler extends Activity {
 		text.setTextColor(0xFFFFFFFF);
 		text.setTypeface(Typeface.createFromAsset(getAssets(), "fonts/pixel_font.ttf"));
 		text.setGravity(Gravity.CENTER_VERTICAL);
-		text.setPadding(10, 10, 10, 10);
+		text.setPadding(20, 20, 20, 20);
 		setContentView(text);
 
 	}

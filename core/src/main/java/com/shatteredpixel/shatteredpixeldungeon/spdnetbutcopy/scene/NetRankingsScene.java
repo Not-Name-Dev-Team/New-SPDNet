@@ -18,6 +18,7 @@ import com.shatteredpixel.shatteredpixeldungeon.ui.ExitButton;
 import com.shatteredpixel.shatteredpixeldungeon.ui.IconButton;
 import com.shatteredpixel.shatteredpixeldungeon.ui.Icons;
 import com.shatteredpixel.shatteredpixeldungeon.ui.RenderedTextBlock;
+import com.shatteredpixel.shatteredpixeldungeon.ui.TitleBackground;
 import com.shatteredpixel.shatteredpixeldungeon.ui.Window;
 import com.shatteredpixel.shatteredpixeldungeon.windows.IconTitle;
 import com.shatteredpixel.shatteredpixeldungeon.windows.WndDailies;
@@ -25,11 +26,14 @@ import com.shatteredpixel.shatteredpixeldungeon.windows.WndVictoryCongrats;
 import com.watabou.noosa.Camera;
 import com.watabou.noosa.Group;
 import com.watabou.noosa.audio.Music;
+import com.watabou.utils.DeviceCompat;
 import com.watabou.utils.GameMath;
+import com.watabou.utils.RectF;
 
 import java.util.ArrayList;
 
 //RankingsScene
+//更新到3.2.5
 public class NetRankingsScene extends PixelScene {
 
 	private static final float ROW_HEIGHT_MAX = 20;
@@ -39,7 +43,6 @@ public class NetRankingsScene extends PixelScene {
 
 	private static final float GAP = 4;
 
-	private Archs archs;
 	public static String playerName;
 	public static Integer challengeCount;
 	public static Boolean winOnly;
@@ -73,18 +76,21 @@ public class NetRankingsScene extends PixelScene {
 
 		int w = Camera.main.width;
 		int h = Camera.main.height;
+		RectF insets = getCommonInsets();
 
-		archs = new Archs();
-		archs.setSize(w, h);
-		add(archs);
+		TitleBackground BG = new TitleBackground(w, h);
+		add( BG );
+
+		w -= insets.left + insets.right;
+		h -= insets.top + insets.bottom;
 
 		Rankings.INSTANCE.load();
 
 		title = new IconTitle( Icons.RANKINGS.get(), "当前显示: 总排行榜");
 		title.setSize(200, 0);
 		title.setPos(
-				(w - title.reqWidth()) / 2f,
-				(20 - title.height()) / 2f
+				insets.left + (w - title.reqWidth()) / 2f,
+				insets.top + (20 - title.height()) / 2f
 		);
 		align(title);
 		add(title);
@@ -92,8 +98,8 @@ public class NetRankingsScene extends PixelScene {
 		select = PixelScene.renderTextBlock("当前筛选: 无", 9);
 		select.hardlight(Window.TITLE_COLOR);
 		select.setPos(
-				(w - select.width()) / 2f,
-				title.bottom() + 4
+				insets.left + (w - select.width()) / 2f,
+				insets.top + title.bottom() + 4
 		);
 		align(select);
 		add(select);
@@ -102,8 +108,8 @@ public class NetRankingsScene extends PixelScene {
 		label.hardlight(0xCCCCCC);
 		label.setHightlighting(true, Window.SHPX_COLOR);
 		label.setPos(
-				(w - label.width()) / 2,
-				h - label.height() - 2 * GAP
+				insets.left + (w - label.width()) / 2,
+				insets.top + h - label.height() - 2*GAP
 		);
 		align(label);
 		add(label);
@@ -120,10 +126,10 @@ public class NetRankingsScene extends PixelScene {
 		add(btn);
 
 		ExitButton btnExit = new ExitButton();
-		btnExit.setPos(Camera.main.width - btnExit.width(), 0);
+		btnExit.setPos( Camera.main.width - btnExit.width() - insets.right, insets.top );
 		add(btnExit);
 
-		int left = 0;
+		float left = insets.left + (PixelScene.landscape() && !DeviceCompat.isDesktop() ? 10 : 0);
 
 		if (Rankings.INSTANCE.latestDaily != null) {
 			IconButton btnDailies = new IconButton(Icons.CALENDAR.get()) {
@@ -138,7 +144,7 @@ public class NetRankingsScene extends PixelScene {
 				}
 			};
 			btnDailies.icon().hardlight(0.5f, 1f, 2f);
-			btnDailies.setRect( left, 0, 16, 20 );
+			btnDailies.setRect( left, insets.top, 16, 20 );
 			left += 16;
 			add(btnDailies);
 		}
@@ -176,6 +182,7 @@ public class NetRankingsScene extends PixelScene {
 	public void updateLayout() {
 		int w = Camera.main.width;
 		int h = Camera.main.height;
+		RectF insets = getCommonInsets();
 
 		if (playerName == null) {
 			title.label("当前显示: 总排行榜");
@@ -223,7 +230,7 @@ public class NetRankingsScene extends PixelScene {
 			add(rows);
 
 			//attempts to give each record as much space as possible, ideally as much space as portrait mode
-			float rowHeight = GameMath.gate(ROW_HEIGHT_MIN, (uiCamera.height - 26) / records.size(), ROW_HEIGHT_MAX);
+			float rowHeight = GameMath.gate(ROW_HEIGHT_MIN, (h - 26) / records.size(), ROW_HEIGHT_MAX);
 
 			float left = (w - Math.min(MAX_ROW_WIDTH, w)) / 2 + GAP;
 			float top = (h - rowHeight * records.size()) / 2;
@@ -236,7 +243,7 @@ public class NetRankingsScene extends PixelScene {
 				if (rowHeight <= 14) {
 					offset = (pos % 2 == 1) ? 5 : -5;
 				}
-				row.setRect(left + offset, top + pos * rowHeight, w - left * 2, rowHeight);
+				row.setRect( insets.left + left+offset, insets.top + top + pos * rowHeight, w - left * 2, rowHeight );
 				rows.add(row);
 
 				pos++;
@@ -249,8 +256,8 @@ public class NetRankingsScene extends PixelScene {
 			noRec = PixelScene.renderTextBlock("没找到记录", 8);
 			noRec.hardlight(0xCCCCCC);
 			noRec.setPos(
-					(w - noRec.width()) / 2,
-					(h - noRec.height()) / 2
+					insets.left + (w - noRec.width()) / 2,
+					insets.top + (h - noRec.height()) / 2
 			);
 			align(noRec);
 			add(noRec);

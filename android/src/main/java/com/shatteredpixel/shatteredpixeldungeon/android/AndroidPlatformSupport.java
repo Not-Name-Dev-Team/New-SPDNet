@@ -3,7 +3,7 @@
  * Copyright (C) 2012-2015 Oleg Dolya
  *
  * Shattered Pixel Dungeon
- * Copyright (C) 2014-2024 Evan Debenham
+ * Copyright (C) 2014-2025 Evan Debenham
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,31 +21,31 @@
 
 package com.shatteredpixel.shatteredpixeldungeon.android;
 
-import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
+import android.graphics.Rect;
 import android.net.ConnectivityManager;
-import android.net.NetworkInfo;
 import android.net.Uri;
-import android.opengl.GLSurfaceView;
 import android.os.Build;
+import android.view.DisplayCutout;
 import android.view.View;
+import android.view.WindowInsets;
 import android.view.WindowManager;
 
 import androidx.core.content.FileProvider;
 
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.backends.android.AndroidGraphics;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.g2d.PixmapPacker;
 import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator;
 import com.king.app.updater.AppUpdater;
 import com.king.app.updater.http.OkHttpManager;
 import com.shatteredpixel.shatteredpixeldungeon.SPDSettings;
-import com.shatteredpixel.shatteredpixeldungeon.scenes.PixelScene;
+import com.shatteredpixel.shatteredpixeldungeon.ShatteredPixelDungeon;
 import com.watabou.noosa.Game;
 import com.watabou.utils.PlatformSupport;
+import com.watabou.utils.RectF;
 
 import java.io.File;
 import java.util.HashMap;
@@ -55,78 +55,114 @@ import java.util.regex.Pattern;
 public class AndroidPlatformSupport extends PlatformSupport {
 	
 	public void updateDisplaySize(){
-		if (SPDSettings.landscape() != null) {
-			AndroidLauncher.instance.setRequestedOrientation( SPDSettings.landscape() ?
-					ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE :
-					ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT );
-		}
+		AndroidLauncher.instance.setRequestedOrientation( SPDSettings.landscape() ?
+				ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE :
+				ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED );
 
-		GLSurfaceView view = (GLSurfaceView) ((AndroidGraphics)Gdx.graphics).getView();
-		
-		if (view.getMeasuredWidth() == 0 || view.getMeasuredHeight() == 0)
-			return;
-		
-		Game.dispWidth = view.getMeasuredWidth();
-		Game.dispHeight = view.getMeasuredHeight();
+		ShatteredPixelDungeon.seamlessResetScene();
+	}
 
-		boolean fullscreen = Build.VERSION.SDK_INT < Build.VERSION_CODES.N
-				|| !AndroidLauncher.instance.isInMultiWindowMode();
-
-		if (fullscreen && SPDSettings.landscape() != null
-				&& (Game.dispWidth >= Game.dispHeight) != SPDSettings.landscape()){
-			int tmp = Game.dispWidth;
-			Game.dispWidth = Game.dispHeight;
-			Game.dispHeight = tmp;
-		}
-		
-		float dispRatio = Game.dispWidth / (float)Game.dispHeight;
-		
-		float renderWidth = dispRatio > 1 ? PixelScene.MIN_WIDTH_L : PixelScene.MIN_WIDTH_P;
-		float renderHeight = dispRatio > 1 ? PixelScene.MIN_HEIGHT_L : PixelScene.MIN_HEIGHT_P;
-		
-		//force power saver in this case as all devices must run at at least 2x scale.
-		if (Game.dispWidth < renderWidth*2 || Game.dispHeight < renderHeight*2)
-			SPDSettings.put( SPDSettings.KEY_POWER_SAVER, true );
-		
-		if (SPDSettings.powerSaver() && fullscreen){
-			
-			int maxZoom = (int)Math.min(Game.dispWidth/renderWidth, Game.dispHeight/renderHeight);
-			
-			renderWidth *= Math.max( 2, Math.round(1f + maxZoom*0.4f));
-			renderHeight *= Math.max( 2, Math.round(1f + maxZoom*0.4f));
-			
-			if (dispRatio > renderWidth / renderHeight){
-				renderWidth = renderHeight * dispRatio;
-			} else {
-				renderHeight = renderWidth / dispRatio;
-			}
-			
-			final int finalW = Math.round(renderWidth);
-			final int finalH = Math.round(renderHeight);
-			if (finalW != Game.width || finalH != Game.height){
-				
-				AndroidLauncher.instance.runOnUiThread(new Runnable() {
-					@Override
-					public void run() {
-						view.getHolder().setFixedSize(finalW, finalH);
-					}
-				});
-				
-			}
+	public boolean supportsFullScreen(){
+		//We support hiding the navigation bar or gesture bar, if it is present
+		// on Android 9+ we check for this, on earlier just assume it's present
+		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+			WindowInsets insets = AndroidLauncher.instance.getApplicationWindow().getDecorView().getRootWindowInsets();
+			return insets != null && (insets.getStableInsetBottom() > 0 || insets.getStableInsetRight() > 0 || insets.getStableInsetLeft() > 0);
 		} else {
-			AndroidLauncher.instance.runOnUiThread(new Runnable() {
-				@Override
-				public void run() {
-					view.getHolder().setSizeFromLayout();
-				}
-			});
+			return true;
 		}
 	}
-	
+
+	@Override
+	public RectF getDisplayCutout() {
+		RectF cutoutRect = new RectF();
+
+		//some extra logic here is because cutouts can apparently be returned inverted
+		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+			DisplayCutout cutout = AndroidLauncher.instance.getApplicationWindow().getDecorView().getRootWindowInsets().getDisplayCutout();
+
+			Rect largest = null;
+			if (cutout != null) {
+				for (Rect r : cutout.getBoundingRects()) {
+					if (largest == null
+							|| Math.abs(r.height() * r.width()) > Math.abs(largest.height() * largest.width())) {
+						largest = r;
+					}
+				}
+			}
+
+			if (largest != null){
+				cutoutRect.left = Math.min(largest.left, largest.right);
+				cutoutRect.right = Math.max(largest.left, largest.right);
+				cutoutRect.top  = Math.min(largest.top, largest.bottom);
+				cutoutRect.bottom  = Math.max(largest.top, largest.bottom);
+			}
+		}
+
+		return cutoutRect;
+	}
+
+	@Override
+	public RectF getSafeInsets( int level ) {
+		RectF insets = new RectF();
+
+		//getting insets technically works down to 6.0 Marshmallow, but we let the device handle all of that prior to 9.0 Pie
+		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P && !AndroidLauncher.instance.isInMultiWindowMode()) {
+			WindowInsets rootInsets = AndroidLauncher.instance.getApplicationWindow().getDecorView().getRootWindowInsets();
+			if (rootInsets != null) {
+
+				//Navigation bar (never on the top)
+				if (supportsFullScreen() && !SPDSettings.fullscreen()) {
+					insets.left = Math.max(insets.left, rootInsets.getStableInsetLeft());
+					insets.right = Math.max(insets.right, rootInsets.getStableInsetRight());
+					insets.bottom = Math.max(insets.bottom, rootInsets.getStableInsetBottom());
+				}
+
+				//display cutout
+				if (level > INSET_BLK) {
+					DisplayCutout cutout = rootInsets.getDisplayCutout();
+
+					if (cutout != null) {
+						boolean largeCutout = false;
+						boolean cutoutsPresent = false;
+
+						int screenSize = Game.width * Game.height;
+						for (Rect r : cutout.getBoundingRects()) {
+							//use abs as some cutouts can apparently be returned inverted
+							int cutoutSize = Math.abs(r.height() * r.width());
+							//display cutouts are considered large if they take up more than 0.75%
+							// of the screen/ in reality we want less than about 0.5%,
+							// but some cutouts over-report their size, Pixel devices especially =S
+							if (cutoutSize > 0){
+								cutoutsPresent = true;
+								if (cutoutSize * 133.33f >= screenSize) {
+									largeCutout = true;
+								}
+							}
+						}
+
+						if (!cutoutsPresent){
+							//if we get no cutouts reported, assume the device is lying to us
+							// and there actually is a cutout, which we must assume is large =S
+							largeCutout = true;
+						}
+
+						if (largeCutout || level == INSET_ALL) {
+							insets.left = Math.max(insets.left, cutout.getSafeInsetLeft());
+							insets.top = Math.max(insets.top, cutout.getSafeInsetTop());
+							insets.right = Math.max(insets.right, cutout.getSafeInsetRight());
+							insets.bottom = Math.max(insets.bottom, cutout.getSafeInsetBottom());
+						}
+					}
+				}
+			}
+		}
+		return insets;
+	}
+
 	public void updateSystemUI() {
 		
 		AndroidLauncher.instance.runOnUiThread(new Runnable() {
-			@SuppressLint("NewApi")
 			@Override
 			public void run() {
 				boolean fullscreen = Build.VERSION.SDK_INT < Build.VERSION_CODES.N
@@ -139,17 +175,16 @@ public class AndroidPlatformSupport extends PlatformSupport {
 					AndroidLauncher.instance.getWindow().setFlags(WindowManager.LayoutParams.FLAG_FORCE_NOT_FULLSCREEN,
 							WindowManager.LayoutParams.FLAG_FULLSCREEN | WindowManager.LayoutParams.FLAG_FORCE_NOT_FULLSCREEN);
 				}
-				
-				if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT){
-					if (SPDSettings.fullscreen()) {
-						AndroidLauncher.instance.getWindow().getDecorView().setSystemUiVisibility(
-								View.SYSTEM_UI_FLAG_LAYOUT_STABLE | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-										| View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_FULLSCREEN
-										| View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY );
-					} else {
-						AndroidLauncher.instance.getWindow().getDecorView().setSystemUiVisibility(
-								View.SYSTEM_UI_FLAG_LAYOUT_STABLE );
-					}
+
+				if (supportsFullScreen() && SPDSettings.fullscreen()) {
+					AndroidLauncher.instance.getWindow().getDecorView().setSystemUiVisibility(
+							View.SYSTEM_UI_FLAG_LAYOUT_STABLE | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+									| View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_FULLSCREEN
+									| View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY );
+				} else {
+					//still want to hide the status bar and cutout void
+					AndroidLauncher.instance.getWindow().getDecorView().setSystemUiVisibility(
+							View.SYSTEM_UI_FLAG_LAYOUT_STABLE | View.SYSTEM_UI_FLAG_FULLSCREEN | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN );
 				}
 			}
 		});
@@ -157,20 +192,9 @@ public class AndroidPlatformSupport extends PlatformSupport {
 	}
 	
 	@Override
-	@SuppressWarnings("deprecation")
 	public boolean connectedToUnmeteredNetwork() {
-		//Returns true if using unmetered connection, use shortcut method if available
-		ConnectivityManager cm = (ConnectivityManager) AndroidLauncher.instance.getSystemService(Context.CONNECTIVITY_SERVICE);
-		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP){
-			return !cm.isActiveNetworkMetered();
-		} else {
-			NetworkInfo activeNetwork = cm.getActiveNetworkInfo();
-			return activeNetwork != null && activeNetwork.isConnectedOrConnecting() &&
-					(activeNetwork.getType() == ConnectivityManager.TYPE_WIFI
-					|| activeNetwork.getType() == ConnectivityManager.TYPE_WIMAX
-					|| activeNetwork.getType() == ConnectivityManager.TYPE_BLUETOOTH
-					|| activeNetwork.getType() == ConnectivityManager.TYPE_ETHERNET);
-		}
+		//Returns true if using unmetered connection
+		return !((ConnectivityManager) AndroidLauncher.instance.getSystemService(Context.CONNECTIVITY_SERVICE)).isActiveNetworkMetered();
 	}
 
 	@Override
@@ -184,8 +208,8 @@ public class AndroidPlatformSupport extends PlatformSupport {
 	private static FreeTypeFontGenerator basicFontGenerator;
 	//droid sans / nanum gothic / noto sans, for use with Korean
 	private static FreeTypeFontGenerator KRFontGenerator;
-	//droid sans / noto sans, for use with Simplified Chinese
-	private static FreeTypeFontGenerator SCFontGenerator;
+	//droid sans / noto sans, for use with Chinese
+	private static FreeTypeFontGenerator ZHFontGenerator;
 	//droid sans / noto sans, for use with Japanese
 	private static FreeTypeFontGenerator JPFontGenerator;
 	
@@ -203,7 +227,7 @@ public class AndroidPlatformSupport extends PlatformSupport {
 
 		resetGenerators(false);
 		fonts = new HashMap<>();
-		basicFontGenerator = KRFontGenerator = SCFontGenerator = JPFontGenerator = null;
+		basicFontGenerator = KRFontGenerator = ZHFontGenerator = JPFontGenerator = null;
 		
 		if (systemfont && Gdx.files.absolute("/system/fonts/Roboto-Regular.ttf").exists()) {
 			basicFontGenerator = new FreeTypeFontGenerator(Gdx.files.absolute("/system/fonts/Roboto-Regular.ttf"));
@@ -224,11 +248,15 @@ public class AndroidPlatformSupport extends PlatformSupport {
 				case KOREAN:
 					typeFace = 1;
 					break;
-				case CHINESE:
+				case CHI_SMPL:
 				default:
 					typeFace = 2;
+					break;
+				case CHI_TRAD:
+					typeFace = 3;
+					break;
 			}
-			KRFontGenerator = SCFontGenerator = JPFontGenerator = new FreeTypeFontGenerator(Gdx.files.absolute("/system/fonts/NotoSansCJK-Regular.ttc"), typeFace);
+			KRFontGenerator = ZHFontGenerator = JPFontGenerator = new FreeTypeFontGenerator(Gdx.files.absolute("/system/fonts/NotoSansCJK-Regular.ttc"), typeFace);
 			
 		//otherwise we have to go over a few possibilities.
 		} else {
@@ -242,10 +270,13 @@ public class AndroidPlatformSupport extends PlatformSupport {
 			}
 			
 			//Chinese font generators
+			//we don't use a separate generator for traditional chinese because
+			// NotoSansTC-Regular and NotoSansHant-Regular seem to only contain some hant-specific
+			// ways to draw certain symbols, too much messing for old android
 			if (Gdx.files.absolute("/system/fonts/NotoSansSC-Regular.otf").exists()){
-				SCFontGenerator = new FreeTypeFontGenerator(Gdx.files.absolute("/system/fonts/NotoSansSC-Regular.otf"));
+				ZHFontGenerator = new FreeTypeFontGenerator(Gdx.files.absolute("/system/fonts/NotoSansSC-Regular.otf"));
 			} else if (Gdx.files.absolute("/system/fonts/NotoSansHans-Regular.otf").exists()){
-				SCFontGenerator = new FreeTypeFontGenerator(Gdx.files.absolute("/system/fonts/NotoSansHans-Regular.otf"));
+				ZHFontGenerator = new FreeTypeFontGenerator(Gdx.files.absolute("/system/fonts/NotoSansHans-Regular.otf"));
 			}
 			
 			//Japaneses font generators
@@ -263,14 +294,14 @@ public class AndroidPlatformSupport extends PlatformSupport {
 			}
 			
 			if (KRFontGenerator == null) KRFontGenerator = fallbackGenerator;
-			if (SCFontGenerator == null) SCFontGenerator = fallbackGenerator;
+			if (ZHFontGenerator == null) ZHFontGenerator = fallbackGenerator;
 			if (JPFontGenerator == null) JPFontGenerator = fallbackGenerator;
 			
 		}
 		
 		if (basicFontGenerator != null) fonts.put(basicFontGenerator, new HashMap<>());
 		if (KRFontGenerator != null) fonts.put(KRFontGenerator, new HashMap<>());
-		if (SCFontGenerator != null) fonts.put(SCFontGenerator, new HashMap<>());
+		if (ZHFontGenerator != null) fonts.put(ZHFontGenerator, new HashMap<>());
 		if (JPFontGenerator != null) fonts.put(JPFontGenerator, new HashMap<>());
 		
 		//would be nice to use RGBA4444 to save memory, but this causes problems on some gpus =S
@@ -278,15 +309,15 @@ public class AndroidPlatformSupport extends PlatformSupport {
 	}
 
 	private static Matcher KRMatcher = Pattern.compile("\\p{InHangul_Syllables}").matcher("");
-	private static Matcher SCMatcher = Pattern.compile("\\p{InCJK_Unified_Ideographs}|\\p{InCJK_Symbols_and_Punctuation}|\\p{InHalfwidth_and_Fullwidth_Forms}").matcher("");
+	private static Matcher ZHMatcher = Pattern.compile("\\p{InCJK_Unified_Ideographs}|\\p{InCJK_Symbols_and_Punctuation}|\\p{InHalfwidth_and_Fullwidth_Forms}").matcher("");
 	private static Matcher JPMatcher = Pattern.compile("\\p{InHiragana}|\\p{InKatakana}").matcher("");
 
 	@Override
 	protected FreeTypeFontGenerator getGeneratorForString( String input ){
 		if (KRMatcher.reset(input).find()){
 			return KRFontGenerator;
-		} else if (SCMatcher.reset(input).find()){
-			return SCFontGenerator;
+		} else if (ZHMatcher.reset(input).find()){
+			return ZHFontGenerator;
 		} else if (JPMatcher.reset(input).find()){
 			return JPFontGenerator;
 		} else {

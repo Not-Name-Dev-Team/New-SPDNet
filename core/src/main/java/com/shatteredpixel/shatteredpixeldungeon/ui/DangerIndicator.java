@@ -3,7 +3,7 @@
  * Copyright (C) 2012-2015 Oleg Dolya
  *
  * Shattered Pixel Dungeon
- * Copyright (C) 2014-2024 Evan Debenham
+ * Copyright (C) 2014-2025 Evan Debenham
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -73,14 +73,14 @@ public class DangerIndicator extends Tag {
 	protected void layout() {
 		super.layout();
 		
-		icon.x = right() - 10;
+		icon.x = left() + 14;
 		icon.y = y + (height - icon.height) / 2;
 		
 		placeNumber();
 	}
 	
 	private void placeNumber() {
-		number.x = right() - 11 - number.width();
+		number.x = left() + 13 - number.width();
 		number.y = y + (height - number.baseLine()) / 2f;
 		PixelScene.align(number);
 	}

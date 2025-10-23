@@ -3,7 +3,7 @@
  * Copyright (C) 2012-2015 Oleg Dolya
  *
  * Shattered Pixel Dungeon
- * Copyright (C) 2014-2024 Evan Debenham
+ * Copyright (C) 2014-2025 Evan Debenham
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,6 +24,7 @@ package com.shatteredpixel.shatteredpixeldungeon.items.scrolls;
 import com.shatteredpixel.shatteredpixeldungeon.Challenges;
 import com.shatteredpixel.shatteredpixeldungeon.Dungeon;
 import com.shatteredpixel.shatteredpixeldungeon.Statistics;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Buff;
 import com.shatteredpixel.shatteredpixeldungeon.effects.Speck;
 import com.shatteredpixel.shatteredpixeldungeon.effects.Transmuting;
 import com.shatteredpixel.shatteredpixeldungeon.items.EquipableItem;
@@ -124,7 +125,11 @@ public class ScrollOfTransmutation extends InventoryScroll {
 					}
 					Dungeon.hero.spend(-Dungeon.hero.cooldown()); //cancel equip/unequip time
 				} else {
-					item.detach(Dungeon.hero.belongings.backpack);
+					if (item instanceof MissileWeapon){
+						item.detachAll(Dungeon.hero.belongings.backpack);
+					} else {
+						item.detach(Dungeon.hero.belongings.backpack);
+					}
 					if (!result.collect()) {
 						Dungeon.level.drop(result, curUser.pos).sprite.drop();
 					} else if (result.stackable && Dungeon.hero.belongings.getSimilar(result) != null){
@@ -205,6 +210,7 @@ public class ScrollOfTransmutation extends InventoryScroll {
 			do {
 				n = (Wand) Generator.randomUsingDefaults(Generator.Category.WAND);
 			} while (Challenges.isItemBlocked(n) || n.getClass() == wandClass);
+			n.cursed = false;
 			n.level(0);
 			n.identify();
 			staff.imbueWand(n, null);
@@ -236,7 +242,7 @@ public class ScrollOfTransmutation extends InventoryScroll {
 		} while (Challenges.isItemBlocked(n) || n.getClass() == w.getClass());
 
 		n.level(0);
-		n.quantity(1);
+		n.quantity(w.quantity());
 		int level = w.trueLevel();
 		if (level > 0) {
 			n.upgrade( level );
@@ -252,6 +258,13 @@ public class ScrollOfTransmutation extends InventoryScroll {
 		n.cursed = w.cursed;
 		n.augment = w.augment;
 		n.enchantHardened = w.enchantHardened;
+
+		//technically a new set, ensure old one is destroyed (except for darts)
+		if (w instanceof MissileWeapon && w.isUpgradable()){
+			Buff.affect(Dungeon.hero, MissileWeapon.UpgradedSetTracker.class).levelThresholds.put(((MissileWeapon) w).setID, Integer.MAX_VALUE);
+			//also extra missile weapon properties
+			((MissileWeapon) n).damage(100 - ((MissileWeapon)w).durabilityLeft());
+		}
 		
 		return n;
 		

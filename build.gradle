@@ -3,12 +3,9 @@ buildscript {
         gradlePluginPortal()
         google()
         mavenCentral()
-        maven {
-            url = uri("https://storage.googleapis.com/r8-releases/raw")
-        }
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:8.7.1'
+        classpath 'com.android.tools.build:gradle:8.11.1'
 
         // 添加获取调试信息用的Firebase
         classpath 'com.google.gms:google-services:4.4.1'
@@ -22,21 +19,20 @@ allprojects {
         appName = 'SPDNet'
         appPackageName = 'me.nonamedev.spdnet'
 
-        appVersionCode = 833
-        appVersionName = '3.0.2'
+        appVersionCode = 877
+        appVersionName = '3.2.5'
         // Net的版本号
-        appNetVersionName = '0.0.2'
+        appNetVersionName = '0.0.1'
 
-        appJavaCompatibility = JavaVersion.VERSION_1_8
+        appJavaCompatibility = JavaVersion.VERSION_11
 
-        appAndroidCompileSDK = 34 //compile SDK is still 33 atm as we're sticking with AGP 8.0.2
-        // 因为Firebase的需要, 最低版本提高到19
-        appAndroidMinSDK = 19
-        appAndroidTargetSDK = 34
+        appAndroidCompileSDK = 35   //Android 15
+        appAndroidMinSDK = 21       //Android 5.0
+        appAndroidTargetSDK = 35    //Android 15
 
-        gdxVersion = '1.12.1'
-        gdxControllersVersion = '2.2.4-SNAPSHOT'
-        robovmVersion = '2.3.21'
+        gdxVersion = '1.13.6-SNAPSHOT' //using snapshot as 1.13.5 has issues with Android R8
+        gdxControllersVersion = '2.2.4'
+        robovmVersion = '2.3.23'
     }
     // 添加Net版本号
     version = appVersionName + '}' + appNetVersionName
@@ -44,7 +40,7 @@ allprojects {
     repositories {
         google()
         mavenCentral()
-        maven { url 'https://oss.sonatype.org/content/repositories/snapshots' }
+        maven { url 'https://central.sonatype.com/repository/maven-snapshots/' }
     }
 
 }

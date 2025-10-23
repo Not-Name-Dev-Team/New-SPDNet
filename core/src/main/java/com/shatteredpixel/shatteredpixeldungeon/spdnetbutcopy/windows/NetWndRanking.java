@@ -11,12 +11,14 @@ import com.shatteredpixel.shatteredpixeldungeon.actors.Actor;
 import com.shatteredpixel.shatteredpixeldungeon.actors.hero.Belongings;
 import com.shatteredpixel.shatteredpixeldungeon.actors.hero.HeroClass;
 import com.shatteredpixel.shatteredpixeldungeon.actors.hero.HeroSubClass;
+import com.shatteredpixel.shatteredpixeldungeon.items.EquipableItem;
 import com.shatteredpixel.shatteredpixeldungeon.items.Generator;
 import com.shatteredpixel.shatteredpixeldungeon.items.Item;
 import com.shatteredpixel.shatteredpixeldungeon.items.potions.Potion;
 import com.shatteredpixel.shatteredpixeldungeon.items.rings.Ring;
 import com.shatteredpixel.shatteredpixeldungeon.items.scrolls.Scroll;
 import com.shatteredpixel.shatteredpixeldungeon.items.trinkets.Trinket;
+import com.shatteredpixel.shatteredpixeldungeon.items.wands.Wand;
 import com.shatteredpixel.shatteredpixeldungeon.journal.Notes;
 import com.shatteredpixel.shatteredpixeldungeon.messages.Messages;
 import com.shatteredpixel.shatteredpixeldungeon.scenes.PixelScene;
@@ -328,8 +330,11 @@ public class NetWndRanking extends WndTabbed {
 			txt.setPos(0, pos);
 			parent.add( txt );
 
-			txt = PixelScene.renderTextBlock( value, 7 );
-			txt.setPos(WIDTH * 0.6f, pos);
+			int size = 7;
+			if (value.length() >= 14) size -=1;
+			if (value.length() >= 18) size -=1;
+			txt = PixelScene.renderTextBlock( value, size );
+			txt.setPos(WIDTH * 0.55f, pos);
 			PixelScene.align(txt);
 			parent.add( txt );
 
@@ -510,11 +515,17 @@ public class NetWndRanking extends WndTabbed {
 
 			slot.item( item );
 			if (item.cursed && item.cursedKnown) {
-				bg.ra = +0.2f;
-				bg.ga = -0.1f;
+				bg.ra = +0.3f;
+				bg.ga = -0.15f;
+				bg.ba = -0.15f;
 			} else if (!item.isIdentified()) {
-				bg.ra = 0.1f;
-				bg.ba = 0.1f;
+				if ((item instanceof EquipableItem || item instanceof Wand) && item.cursedKnown){
+					bg.ba = +0.3f;
+					bg.ra = -0.1f;
+				} else {
+					bg.ra = +0.35f;
+					bg.ba = +0.35f;
+				}
 			}
 		}
 

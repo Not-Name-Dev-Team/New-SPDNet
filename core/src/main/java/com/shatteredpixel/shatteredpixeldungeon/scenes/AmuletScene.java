@@ -3,7 +3,7 @@
  * Copyright (C) 2012-2015 Oleg Dolya
  *
  * Shattered Pixel Dungeon
- * Copyright (C) 2014-2024 Evan Debenham
+ * Copyright (C) 2014-2025 Evan Debenham
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -43,6 +43,7 @@ import com.watabou.noosa.Image;
 import com.watabou.noosa.audio.Music;
 import com.watabou.noosa.tweeners.Delayer;
 import com.watabou.utils.Random;
+import com.watabou.utils.RectF;
 
 public class AmuletScene extends PixelScene {
 	
@@ -120,30 +121,34 @@ public class AmuletScene extends PixelScene {
 		btnStay.icon(Icons.CLOSE.get());
 		btnStay.setSize( WIDTH, BTN_HEIGHT );
 		add( btnStay );
-		
+
+		RectF insets = getCommonInsets();
+		int w = (int) (Camera.main.width - insets.left + insets.right);
+		int h = (int) (Camera.main.height - insets.top + insets.bottom);
+
 		float height;
 		if (noText) {
 			height = amulet.height + LARGE_GAP + btnExit.height() + SMALL_GAP + btnStay.height();
 			
-			amulet.x = (Camera.main.width - amulet.width) / 2;
-			amulet.y = (Camera.main.height - height) / 2;
+			amulet.x = insets.left + (w - amulet.width) / 2;
+			amulet.y = insets.top + (h - height) / 2;
 			align(amulet);
 
-			btnExit.setPos( (Camera.main.width - btnExit.width()) / 2, amulet.y + amulet.height + LARGE_GAP );
+			btnExit.setPos( insets.left + (w - btnExit.width()) / 2, amulet.y + amulet.height + LARGE_GAP );
 			btnStay.setPos( btnExit.left(), btnExit.bottom() + SMALL_GAP );
 			
 		} else {
 			height = amulet.height + LARGE_GAP + text.height() + LARGE_GAP + btnExit.height() + SMALL_GAP + btnStay.height();
-			
-			amulet.x = (Camera.main.width - amulet.width) / 2;
-			amulet.y = (Camera.main.height - height) / 2;
+
+			amulet.x = insets.left + (w - amulet.width) / 2;
+			amulet.y = insets.top + (h - height) / 2;
 			align(amulet);
 
-			text.setPos((Camera.main.width - text.width()) / 2, amulet.y + amulet.height + LARGE_GAP);
+			text.setPos(insets.left + (w - text.width()) / 2, amulet.y + amulet.height + LARGE_GAP);
 			align(text);
 			add(text);
-			
-			btnExit.setPos( (Camera.main.width - btnExit.width()) / 2, text.top() + text.height() + LARGE_GAP );
+
+			btnExit.setPos( insets.left + (w - btnExit.width()) / 2, text.top() + text.height() + LARGE_GAP );
 			btnStay.setPos( btnExit.left(), btnExit.bottom() + SMALL_GAP );
 		}
 

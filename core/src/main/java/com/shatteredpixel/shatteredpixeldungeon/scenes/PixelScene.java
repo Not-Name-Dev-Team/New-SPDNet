@@ -3,7 +3,7 @@
  * Copyright (C) 2012-2015 Oleg Dolya
  *
  * Shattered Pixel Dungeon
- * Copyright (C) 2014-2024 Evan Debenham
+ * Copyright (C) 2014-2025 Evan Debenham
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,6 +28,7 @@ import com.shatteredpixel.shatteredpixeldungeon.SPDSettings;
 import com.shatteredpixel.shatteredpixeldungeon.effects.BadgeBanner;
 import com.shatteredpixel.shatteredpixeldungeon.messages.Languages;
 import com.shatteredpixel.shatteredpixeldungeon.messages.Messages;
+import com.shatteredpixel.shatteredpixeldungeon.ui.TitleBackground;
 import com.shatteredpixel.shatteredpixeldungeon.ui.RenderedTextBlock;
 import com.shatteredpixel.shatteredpixeldungeon.ui.Tooltip;
 import com.shatteredpixel.shatteredpixeldungeon.ui.Window;
@@ -52,7 +53,9 @@ import com.watabou.noosa.ui.Cursor;
 import com.watabou.utils.Callback;
 import com.watabou.utils.DeviceCompat;
 import com.watabou.utils.GameMath;
+import com.watabou.utils.PlatformSupport;
 import com.watabou.utils.PointF;
+import com.watabou.utils.RectF;
 import com.watabou.utils.Reflection;
 import com.watabou.utils.Signal;
 
@@ -77,7 +80,6 @@ public class PixelScene extends Scene {
 
 	public static int defaultZoom = 0;
 	public static int maxDefaultZoom = 0;
-	public static int maxScreenZoom = 0;
 	public static float minZoom;
 	public static float maxZoom;
 
@@ -101,6 +103,7 @@ public class PixelScene extends Scene {
 		if (!inGameScene && InterlevelScene.lastRegion != -1){
 			InterlevelScene.lastRegion = -1;
 			TextureCache.clear();
+			TitleBackground.reset();
 			//good time to clear holiday cache as well
 			Holiday.clearCachedHoliday();
 		}
@@ -120,8 +123,14 @@ public class PixelScene extends Scene {
 			scaleFactor = 2.5f;
 		}
 
-		maxDefaultZoom = (int)Math.min(Game.width/minWidth, Game.height/minHeight);
-		maxScreenZoom = (int)Math.min(Game.dispWidth/minWidth, Game.dispHeight/minHeight);
+		//TODO all insets? or just blockers?
+		RectF insets = Game.platform.getSafeInsets(PlatformSupport.INSET_ALL);
+
+		float w = Game.width - insets.left - insets.right;
+		float h = Game.height - insets.top - insets.bottom;
+
+		maxDefaultZoom = (int)Math.min(w/minWidth, h/minHeight);
+		maxDefaultZoom = Math.max(2, maxDefaultZoom);
 		defaultZoom = SPDSettings.scale();
 
 		if (defaultZoom < Math.ceil( Game.density * 2 ) || defaultZoom > maxDefaultZoom){
@@ -157,9 +166,8 @@ public class PixelScene extends Scene {
 			renderedTextPageSize = 1024;
 		}
 		//asian languages have many more unique characters, so increase texture size to anticipate that
-		if (Messages.lang() == Languages.KOREAN ||
-				Messages.lang() == Languages.CHINESE ||
-				Messages.lang() == Languages.JAPANESE){
+		if (Messages.lang() == Languages.CHI_SMPL || Messages.lang() == Languages.CHI_TRAD ||
+				Messages.lang() == Languages.KOREAN || Messages.lang() == Languages.JAPANESE){
 			renderedTextPageSize *= 2;
 		}
 		Game.platform.setupFontGenerators(renderedTextPageSize, SPDSettings.systemFont());
@@ -324,8 +332,11 @@ public class PixelScene extends Scene {
 	}
 
 	public static RenderedTextBlock renderTextBlock(String text, int size ){
-		RenderedTextBlock result = new RenderedTextBlock( text, size*defaultZoom);
-		result.zoom(1/(float)defaultZoom);
+		//some systems (macOS mainly) require this back buffer check to ensure
+		// that we're working with real pixels, not logical ones
+		float scale = DeviceCompat.getRealPixelScaleX();
+		RenderedTextBlock result = new RenderedTextBlock( text, size*Math.round(defaultZoom*scale));
+		result.zoom(1/(float)Math.round(defaultZoom*scale));
 		return result;
 	}
 
@@ -395,6 +406,18 @@ public class PixelScene extends Scene {
 	public static void shake( float magnitude, float duration){
 		magnitude *= SPDSettings.screenShake();
 		Camera.main.shake(magnitude, duration);
+	}
+
+	//returns insets for the common case of all on top/bottom and only blocking on left/right
+	//plus scaled to pixel zoom
+	public RectF getCommonInsets(){
+		RectF all = Game.platform.getSafeInsets(PlatformSupport.INSET_ALL);
+		RectF blocking = Game.platform.getSafeInsets(PlatformSupport.INSET_BLK);
+
+		all.left =  blocking.left;
+		all.right = blocking.right;
+
+		return all.scale(1f/defaultZoom);
 	}
 	
 	protected static class Fader extends ColorBlock {

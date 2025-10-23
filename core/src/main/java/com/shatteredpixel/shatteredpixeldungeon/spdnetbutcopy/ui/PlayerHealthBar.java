@@ -16,7 +16,7 @@ public class PlayerHealthBar extends CharHealthIndicator {
 
 	private static final int COLOR_BG	= 0xFFCC0000;
 	private static final int COLOR_HP	= 0xFF00EE00;
-	private static final int COLOR_SHLD = 0xFFBBEEBB;
+	private static final int COLOR_SHLD = 0xFFFFFFFF;
 
 	private static final int HEIGHT = 5;
 
