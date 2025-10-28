@@ -1,7 +1,5 @@
 package com.shatteredpixel.shatteredpixeldungeon.spdnet;
 
-import java.util.Map;
-
 /**
  * 用来存储某些变量
  * 比如玩家当前选择的模式
@@ -9,6 +7,6 @@ import java.util.Map;
  */
 public class NetInProgress {
 	public static Mode mode = Mode.FUN;
-	public static String seedName;
+	public static String seedName = "";
 	public static long seed;
 }
