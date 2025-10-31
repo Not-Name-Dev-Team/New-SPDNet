@@ -283,11 +283,23 @@ public class Statistics {
 		progressScore = gameRecord.getProgScore();
 		heldItemValue = gameRecord.getItemVal();
 		treasureScore = gameRecord.getTresScore();
-			floorsExplored.clear();
-			Map<String, Float> flrExplMap = JSON.parseObject(gameRecord.getFlrExpl(), Map.class);
+		floorsExplored.clear();
+		// 优先处理新版本的float数据
+		if (gameRecord.getFlrExpl() != null && !gameRecord.getFlrExpl().isEmpty()) {
+			Map<String, Number> flrExplMap = JSON.parseObject(gameRecord.getFlrExpl(), Map.class);
 			for (String key : flrExplMap.keySet()) {
-					floorsExplored.put(Integer.parseInt(key), flrExplMap.get(key));
+				Number value = flrExplMap.get(key);
+				floorsExplored.put(Integer.parseInt(key), value.floatValue());
 			}
+		}
+		// 如果新版本数据不存在，再处理旧版本的布尔数据
+		else if (gameRecord.getFlrExplOld() != null && !gameRecord.getFlrExplOld().isEmpty()) {
+			Map<String, Boolean> flrExplOldMap = JSON.parseObject(gameRecord.getFlrExplOld(), Map.class);
+			for (String key : flrExplOldMap.keySet()) {
+				Boolean value = flrExplOldMap.get(key);
+				floorsExplored.put(Integer.parseInt(key), value ? 1f : 0f);
+			}
+		}
 		exploreScore = gameRecord.getExplScore();
 		bossScores = gameRecord.getBossScores();
 		totalBossScore = gameRecord.getTotBoss();

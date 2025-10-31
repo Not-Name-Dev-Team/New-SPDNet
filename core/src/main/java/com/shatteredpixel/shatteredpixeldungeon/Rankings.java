@@ -582,7 +582,7 @@ public enum Rankings {
 		private static final String PROG_SCORE	    = "prog_score";
 		private static final String ITEM_VAL	    = "item_val";
 		private static final String TRES_SCORE      = "tres_score";
-		private static final String FLR_EXPL        = "flr_expl";
+		private static final String FLR_EXPL        = "flr_expl_";
 		private static final String EXPL_SCORE      = "expl_score";
 		private static final String BOSS_SCORES		= "boss_scores";
 		private static final String TOT_BOSS		= "tot_boss";
@@ -656,9 +656,16 @@ public enum Rankings {
 				bundle.put(ITEM_VAL, stats.getInt(ITEM_VAL));
 				bundle.put(TRES_SCORE, stats.getInt(TRES_SCORE));
 				Bundle floorsExplored = new Bundle();
+				int deepest = stats.getInt(DEEPEST);
 				for (int i = 1; i < 26; i++){
-					if (stats.contains( FLR_EXPL+i )){
-						floorsExplored.put(String.valueOf(i), stats.getBoolean( FLR_EXPL+i ));
+					if (bundle.contains( FLR_EXPL+i )){
+						//we have this check to reduce an error with bad conversion specifically in v3.1-BETA-1.0
+						if (!Dungeon.bossLevel(i) && i <= deepest){
+							floorsExplored.put(String.valueOf(i), bundle.getFloat( FLR_EXPL+i ));
+						}
+						//pre-3.1 saves. The bundle key does have an underscore and is a boolean
+					} else if (bundle.contains( "flr_expl"+i )){
+						floorsExplored.put(String.valueOf(i), bundle.getBoolean( "flr_expl"+i ) ? 1f : 0f);
 					}
 				}
 				bundle.put(FLR_EXPL, floorsExplored);

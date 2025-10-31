@@ -60,8 +60,10 @@ public class GameRecord {
 	private int itemVal;
 	@JSONField(name = "tres_score")
 	private int tresScore;
-	@JSONField(name = "flr_expl")
+	@JSONField(name = "flr_expl_")
 	private String flrExpl;
+	@JSONField(name = "flr_expl")
+	private String flrExplOld;
 	@JSONField(name = "expl_score")
 	private int explScore;
 	@JSONField(name = "boss_scores")
