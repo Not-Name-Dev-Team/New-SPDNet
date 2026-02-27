@@ -13,6 +13,7 @@
         </template>
         <template v-else>
           <router-link to="/profile">个人中心</router-link>
+          <router-link v-if="isAdmin" to="/admin" class="admin-link">后台管理</router-link>
           <span class="user-info">
             {{ authStore.user.name }}
             <span class="user-role">({{ authStore.user.role }})</span>
@@ -30,7 +31,10 @@
 </template>
 
 <script setup>
+import { computed } from 'vue'
 import { authStore } from './store/auth'
+
+const isAdmin = computed(() => authStore.user?.role === '管理员')
 </script>
 
 <style scoped>
@@ -46,5 +50,16 @@ import { authStore } from './store/auth'
 .user-role {
   color: var(--text-secondary);
   font-size: 0.875rem;
+}
+
+.admin-link {
+  background-color: rgba(220, 53, 69, 0.1);
+  color: #dc3545 !important;
+  border-radius: 4px;
+  padding: 0.5rem 1rem;
+}
+
+.admin-link:hover {
+  background-color: rgba(220, 53, 69, 0.2);
 }
 </style>

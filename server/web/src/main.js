@@ -9,6 +9,7 @@ import Login from './views/Login.vue'
 import Leaderboard from './views/Leaderboard.vue'
 import Player from './views/Player.vue'
 import Profile from './views/Profile.vue'
+import Admin from './views/Admin.vue'
 
 const routes = [
   { path: '/', component: Home },
@@ -16,7 +17,8 @@ const routes = [
   { path: '/login', component: Login },
   { path: '/leaderboard', component: Leaderboard },
   { path: '/player/:name', component: Player },
-  { path: '/profile', component: Profile }
+  { path: '/profile', component: Profile },
+  { path: '/admin', component: Admin }
 ]
 
 const router = createRouter({

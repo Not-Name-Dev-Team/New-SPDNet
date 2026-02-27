@@ -11,22 +11,23 @@ import org.springframework.data.repository.query.Param;
 import java.util.List;
 
 public interface GameRecordRepository extends JpaRepository<GameRecord, Long> {
-	@Query("SELECT g FROM GameRecord g WHERE " +
-			"(g.player.name = :username OR :username IS NULL) AND " +
-			"(g.win = :win OR :win IS NULL) AND " +
-			"(g.gameMode = :gameMode OR :gameMode IS NULL) AND " +
-			"(g.challengeAmount = :challengeAmount OR :challengeAmount IS NULL)")
-	Page<GameRecord> findWithFilters(@Param("username") String username,
-	                                 @Param("win") Boolean win,
-	                                 @Param("gameMode") String gameMode,
-	                                 @Param("challengeAmount") Integer challengeAmount,
-	                                 Pageable pageable);
+    @Query("SELECT g FROM GameRecord g WHERE " +
+            "(g.player.name = :username OR :username IS NULL) AND " +
+            "(g.win = :win OR :win IS NULL) AND " +
+            "(g.gameMode = :gameMode OR :gameMode IS NULL) AND " +
+            "(g.challengeAmount = :challengeAmount OR :challengeAmount IS NULL)")
+    Page<GameRecord> findWithFilters(@Param("username") String username,
+                                     @Param("win") Boolean win,
+                                     @Param("gameMode") String gameMode,
+                                     @Param("challengeAmount") Integer challengeAmount,
+                                     Pageable pageable);
 
-	Page<GameRecord> findByWinTrue(Pageable pageable);
-
-	List<GameRecord> findByPlayerOrderByScoreDesc(Player player);
-
-	long countByPlayer(Player player);
-
-	long countByPlayerAndWinTrue(Player player);
+    Page<GameRecord> findByWinTrue(Pageable pageable);
+    Page<GameRecord> findByWinFalse(Pageable pageable);
+    List<GameRecord> findByPlayerOrderByScoreDesc(Player player);
+    Page<GameRecord> findByPlayerOrderByScoreDesc(Player player, Pageable pageable);
+    long countByPlayer(Player player);
+    long countByPlayerAndWinTrue(Player player);
+    long countByWinTrue();
+    void deleteByPlayer(Player player);
 }

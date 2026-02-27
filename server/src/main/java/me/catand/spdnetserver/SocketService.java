@@ -229,4 +229,13 @@ public class SocketService {
 		ZonedDateTime zdt = todayNoon.atZone(ZoneId.of("Asia/Shanghai"));
 		return zdt.toInstant().toEpochMilli();
 	}
+
+	public void kickPlayer(String name) {
+		playerMap.forEach((uuid, player) -> {
+			if (player.getName().equals(name)) {
+				server.getClient(uuid).sendEvent(Events.ERROR.getName(), new SError("你已被踢出服务器"));
+				server.getClient(uuid).disconnect();
+			}
+		});
+	}
 }
