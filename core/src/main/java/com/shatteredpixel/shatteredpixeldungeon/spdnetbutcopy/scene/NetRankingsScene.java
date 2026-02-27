@@ -32,8 +32,16 @@ import com.watabou.utils.RectF;
 
 import java.util.ArrayList;
 
-//RankingsScene
-//更新到3.2.5
+/**
+ * SPDNet: Copy of RankingsScene for displaying online leaderboard
+ * Original class: RankingsScene
+ * Key changes:
+ * - Fetches data from server instead of local Rankings
+ * - Uses GameRecord instead of Rankings.Record
+ * - Added filtering (player name, challenge count, win status, game mode)
+ * - Added pagination support
+ * Updated to upstream version: 3.2.5
+ */
 public class NetRankingsScene extends PixelScene {
 
 	private static final float ROW_HEIGHT_MAX = 20;

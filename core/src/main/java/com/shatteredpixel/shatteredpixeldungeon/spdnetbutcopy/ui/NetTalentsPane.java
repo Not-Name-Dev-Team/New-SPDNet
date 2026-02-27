@@ -20,7 +20,13 @@ import com.watabou.noosa.ui.Component;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 
-//TalentsPane
+/**
+ * SPDNet: Copy of TalentsPane for viewing other players' talents
+ * Original class: TalentsPane
+ * Key changes:
+ * - Uses NetTalentTierPane instead of TalentTierPane
+ * - Supports read-only view of other players' talent builds
+ */
 public class NetTalentsPane extends ScrollPane {
 
 	ArrayList<NetTalentTierPane> panes = new ArrayList<>();

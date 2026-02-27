@@ -104,6 +104,12 @@ public class WndTabbed extends Window {
 		}
 	}
 	
+	// SPDNet: Added public method to allow external tab selection
+	// This enables subclasses in other packages to programmatically select tabs
+	public void selectTab( Tab tab, boolean value ) {
+		tab.select( value );
+	}
+	
 	@Override
 	public void resize( int w, int h ) {
 		// -> super.resize(...)

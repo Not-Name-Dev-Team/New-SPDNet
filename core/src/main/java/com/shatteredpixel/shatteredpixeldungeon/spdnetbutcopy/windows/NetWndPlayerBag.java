@@ -24,6 +24,7 @@ import com.shatteredpixel.shatteredpixeldungeon.ui.RightClickMenu;
 import com.shatteredpixel.shatteredpixeldungeon.ui.Window;
 import com.shatteredpixel.shatteredpixeldungeon.windows.WndBag;
 import com.shatteredpixel.shatteredpixeldungeon.windows.WndInfoItem;
+import com.shatteredpixel.shatteredpixeldungeon.windows.WndTabbed;
 import com.shatteredpixel.shatteredpixeldungeon.windows.WndUseItem;
 import com.watabou.input.GameAction;
 import com.watabou.input.KeyBindings;
@@ -34,8 +35,21 @@ import com.watabou.noosa.Game;
 import com.watabou.noosa.Image;
 import com.watabou.utils.PointF;
 
-//WndBag
-public class NetWndPlayerBag extends NetWndTabbed {
+/**
+ * SPDNet: Copy of WndBag for viewing other players' inventories
+ * Original class: WndBag
+ * 
+ * DIFF FROM ORIGINAL (for upstream merge tracking):
+ * ================================================
+ * - Uses NetHero instead of Dungeon.hero for multiplayer support
+ * - Extends WndTabbed (uses selectTab() for external tab selection)
+ * - Static hero field to store the target NetHero
+ * - Constructor accepts NetHero parameter
+ * - Uses selectTab(tab, value) instead of tab.select(value)
+ * 
+ * USAGE: Displayed when viewing another player's inventory in multiplayer.
+ */
+public class NetWndPlayerBag extends WndTabbed {
 
 	//only one bag window can appear at a time
 	public static Window INSTANCE;
@@ -125,7 +139,7 @@ public class NetWndPlayerBag extends NetWndTabbed {
 			if (b != null) {
 				BagTab tab = new BagTab( b, i++ );
 				add( tab );
-				tab.select( b == bag );
+				selectTab( tab, b == bag );  // SPDNet: Use selectTab() instead of tab.select()
 				if  (b == bag){
 					selected = tab;
 				}

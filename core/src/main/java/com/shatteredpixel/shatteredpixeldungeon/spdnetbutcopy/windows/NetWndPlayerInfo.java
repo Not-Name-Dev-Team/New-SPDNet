@@ -50,7 +50,13 @@ import com.watabou.noosa.ui.Component;
 import java.util.ArrayList;
 import java.util.Locale;
 
-//WndHero
+/**
+ * SPDNet: Copy of WndHero for viewing other players' info
+ * Original class: WndHero
+ * Key changes:
+ * - Uses NetHero instead of Hero
+ * - Added "View Bag" and "Give Item" buttons for multiplayer interaction
+ */
 public class NetWndPlayerInfo extends WndTabbed {
 
 	private static final int WIDTH		= 120;

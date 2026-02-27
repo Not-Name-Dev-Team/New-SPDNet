@@ -54,7 +54,13 @@ import com.watabou.utils.Bundle;
 import java.text.NumberFormat;
 import java.util.Locale;
 
-//WndRanking
+/**
+ * SPDNet: Copy of WndRanking for displaying network game records
+ * Original class: WndRanking
+ * Key changes:
+ * - Uses GameRecord instead of Rankings.Record for network data
+ * - Displays game records from online leaderboard
+ */
 public class NetWndRanking extends WndTabbed {
 
 	private static final int WIDTH			= 115;

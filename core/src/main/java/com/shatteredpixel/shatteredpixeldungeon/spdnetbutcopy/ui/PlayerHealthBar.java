@@ -11,7 +11,14 @@ import com.watabou.noosa.Image;
 import com.watabou.noosa.RenderedText;
 import com.watabou.utils.PointF;
 
-//HealthBar
+/**
+ * SPDNet: Extension of CharHealthIndicator for displaying player health bars
+ * Original class: CharHealthIndicator
+ * Key changes:
+ * - Displays player name above health bar
+ * - Shows challenge count (e.g., "3挑")
+ * - Uses NetHero as target for multiplayer support
+ */
 public class PlayerHealthBar extends CharHealthIndicator {
 
 	private static final int COLOR_BG	= 0xFFCC0000;

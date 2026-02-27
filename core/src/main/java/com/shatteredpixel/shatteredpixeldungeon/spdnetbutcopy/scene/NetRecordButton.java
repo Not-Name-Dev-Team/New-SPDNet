@@ -17,7 +17,13 @@ import com.shatteredpixel.shatteredpixeldungeon.ui.RenderedTextBlock;
 import com.watabou.noosa.BitmapText;
 import com.watabou.noosa.Image;
 
-//RankingsScene下的Record类
+/**
+ * SPDNet: Copy of RankingsScene.Record for displaying leaderboard entries
+ * Original class: RankingsScene.Record (inner class)
+ * Key changes:
+ * - Uses GameRecord instead of Rankings.Record
+ * - Opens NetWndRanking on click for network game details
+ */
 public class NetRecordButton extends Button {
 
 	private static final float GAP = 4;
