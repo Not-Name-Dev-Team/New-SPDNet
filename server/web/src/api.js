@@ -81,6 +81,10 @@ export const adminApi = {
 
   deleteRecord(id) {
     return api.delete(`/admin/record/${id}`)
+  },
+
+  broadcast(message) {
+    return api.post('/admin/broadcast', { message })
   }
 }
 

@@ -36,6 +36,35 @@
       <div class="tabs">
         <button :class="['tab', activeTab === 'players' ? 'active' : '']" @click="activeTab = 'players'">玩家管理</button>
         <button :class="['tab', activeTab === 'records' ? 'active' : '']" @click="activeTab = 'records'">记录管理</button>
+        <button :class="['tab', activeTab === 'broadcast' ? 'active' : '']" @click="activeTab = 'broadcast'">广播通知</button>
+      </div>
+
+      <div class="card" v-show="activeTab === 'broadcast'">
+        <h3 class="card-title">发送广播通知</h3>
+        <p class="hint">向当前服务器中的所有在线玩家发送消息弹窗</p>
+        
+        <div v-if="broadcastMessage" :class="['alert', broadcastSuccess ? 'alert-success' : 'alert-error']">
+          {{ broadcastMessage }}
+        </div>
+
+        <form @submit.prevent="sendBroadcast">
+          <div class="form-group">
+            <label for="broadcastText">消息内容</label>
+            <textarea 
+              id="broadcastText" 
+              v-model="broadcastText" 
+              placeholder="请输入要广播的消息..."
+              rows="4"
+              required
+            ></textarea>
+          </div>
+          <div class="broadcast-info">
+            <span>当前在线玩家: <strong>{{ stats?.onlineCount || 0 }}</strong> 人</span>
+          </div>
+          <button type="submit" class="btn btn-broadcast" :disabled="broadcastLoading">
+            {{ broadcastLoading ? '发送中...' : '发送广播' }}
+          </button>
+        </form>
       </div>
 
       <div class="card" v-show="activeTab === 'players'">
@@ -171,6 +200,11 @@ const recordTotalPages = ref(0)
 const recordPlayerFilter = ref('')
 const recordWinFilter = ref('')
 
+const broadcastText = ref('')
+const broadcastLoading = ref(false)
+const broadcastMessage = ref('')
+const broadcastSuccess = ref(false)
+
 async function loadStats() {
   try {
     const res = await adminApi.getStats()
@@ -275,6 +309,34 @@ function getRoleBadgeClass(role) {
     case 'ADMIN': return 'badge-win'
     case 'BANNED': return 'badge-offline'
     default: return 'badge-online'
+  }
+}
+
+async function sendBroadcast() {
+  if (!broadcastText.value.trim()) {
+    broadcastSuccess.value = false
+    broadcastMessage.value = '请输入消息内容'
+    return
+  }
+
+  broadcastLoading.value = true
+  broadcastMessage.value = ''
+
+  try {
+    const res = await adminApi.broadcast(broadcastText.value)
+    if (res.data.success) {
+      broadcastSuccess.value = true
+      broadcastMessage.value = '广播发送成功！'
+      broadcastText.value = ''
+    } else {
+      broadcastSuccess.value = false
+      broadcastMessage.value = res.data.message
+    }
+  } catch (error) {
+    broadcastSuccess.value = false
+    broadcastMessage.value = error.response?.data?.message || '发送失败'
+  } finally {
+    broadcastLoading.value = false
   }
 }
 
@@ -383,5 +445,49 @@ onMounted(() => {
   margin-top: 1rem;
   padding-top: 1rem;
   border-top: 1px solid var(--border-color);
+}
+
+.hint {
+  color: var(--text-secondary);
+  margin-bottom: 1rem;
+}
+
+textarea {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  font-family: inherit;
+  font-size: 1rem;
+  resize: vertical;
+}
+
+textarea:focus {
+  outline: none;
+  border-color: var(--primary-color);
+}
+
+.broadcast-info {
+  margin: 1rem 0;
+  padding: 0.75rem;
+  background-color: var(--bg-color);
+  border-radius: 4px;
+  color: var(--text-secondary);
+}
+
+.broadcast-info strong {
+  color: var(--primary-color);
+}
+
+.btn-broadcast {
+  background-color: #17a2b8;
+  border-color: #17a2b8;
+}
+
+.btn-broadcast:hover {
+  background-color: #138496;
+  border-color: #117a8b;
 }
 </style>

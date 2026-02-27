@@ -171,4 +171,14 @@ public class AdminController {
         data.put("adminCount", playerRepository.countByRole(UserRole.ADMIN));
         return ApiResponse.success("获取成功", data);
     }
+
+    @PostMapping("/broadcast")
+    public ApiResponse<Void> broadcastMessage(@RequestBody Map<String, String> request) {
+        String message = request.get("message");
+        if (message == null || message.trim().isEmpty()) {
+            return ApiResponse.error("消息内容不能为空");
+        }
+        socketService.broadcastMessage(message);
+        return ApiResponse.success("广播发送成功");
+    }
 }

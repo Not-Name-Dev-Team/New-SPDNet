@@ -238,4 +238,8 @@ public class SocketService {
 			}
 		});
 	}
+
+	public void broadcastMessage(String message) {
+		sender.sendBroadcastServerMessage(new SServerMessage(message));
+	}
 }
