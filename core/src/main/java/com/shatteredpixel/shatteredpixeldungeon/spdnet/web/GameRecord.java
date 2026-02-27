@@ -84,7 +84,7 @@ public class GameRecord {
 	private int sneakAttacks;
 	private int thrownAssists;
 	private int spawnersAlive;
-	private int duration;
+	private float duration;
 	private boolean qualifiedForNoKilling;
 	private boolean qualifiedForBossRemainsBadge;
 	private boolean qualifiedForBossChallengeBadge;

@@ -658,14 +658,10 @@ public enum Rankings {
 				Bundle floorsExplored = new Bundle();
 				int deepest = stats.getInt(DEEPEST);
 				for (int i = 1; i < 26; i++){
-					if (bundle.contains( FLR_EXPL+i )){
-						//we have this check to reduce an error with bad conversion specifically in v3.1-BETA-1.0
+					if (stats.contains( FLR_EXPL+i )){
 						if (!Dungeon.bossLevel(i) && i <= deepest){
-							floorsExplored.put(String.valueOf(i), bundle.getFloat( FLR_EXPL+i ));
+							floorsExplored.put(String.valueOf(i), stats.getFloat( FLR_EXPL+i ));
 						}
-						//pre-3.1 saves. The bundle key does have an underscore and is a boolean
-					} else if (bundle.contains( "flr_expl"+i )){
-						floorsExplored.put(String.valueOf(i), bundle.getBoolean( "flr_expl"+i ) ? 1f : 0f);
 					}
 				}
 				bundle.put(FLR_EXPL, floorsExplored);

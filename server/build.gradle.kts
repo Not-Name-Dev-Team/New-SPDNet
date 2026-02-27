@@ -29,16 +29,16 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-web")
 
     // Lombok
-    compileOnly("org.projectlombok:lombok:1.18.36")
-    annotationProcessor("org.projectlombok:lombok:1.18.36")
+    compileOnly("org.projectlombok:lombok:1.18.42")
+    annotationProcessor("org.projectlombok:lombok:1.18.42")
 
     // Database
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
-    implementation("org.xerial:sqlite-jdbc:3.49.1.0")
+    implementation("org.xerial:sqlite-jdbc:3.51.2.0")
     implementation("org.hibernate.orm:hibernate-community-dialects:6.6.11.Final")
 
-    // Fastjson
-    implementation("com.alibaba:fastjson:2.0.48")
+    // Fastjson2
+    implementation("com.alibaba.fastjson2:fastjson2:2.0.48")
 
     // Socket.io
     implementation("com.corundumstudio.socketio:netty-socketio:2.0.8")
