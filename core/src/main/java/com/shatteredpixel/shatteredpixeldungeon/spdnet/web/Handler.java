@@ -197,7 +197,7 @@ public class Handler {
 
 	public static void handleJoin(SJoin join) {
 		if (!join.getName().equals(Net.name)) {
-			Net.playerList.put(join.getName(), new Player(join.getQq(), join.getName(), join.getPower(), null));
+			Net.playerList.put(join.getName(), new Player(join.getName(), join.getRole(), null));
 			NLog.h(join.getName() + " 上线了");
 		}
 	}

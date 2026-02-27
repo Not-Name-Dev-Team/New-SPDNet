@@ -32,9 +32,6 @@ dependencies {
     compileOnly("org.projectlombok:lombok:1.18.36")
     annotationProcessor("org.projectlombok:lombok:1.18.36")
 
-    // Shiro
-    implementation("com.mikuac:shiro:2.3.7")
-
     // Database
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     implementation("org.xerial:sqlite-jdbc:3.49.1.0")
@@ -46,8 +43,8 @@ dependencies {
     // Socket.io
     implementation("com.corundumstudio.socketio:netty-socketio:2.0.8")
 
-    // email
-    implementation("javax.mail:mail:1.4.7")
+    // BCrypt for password encoding
+    implementation("org.springframework.security:spring-security-crypto:6.4.4")
 }
 
 tasks.withType<Test> {

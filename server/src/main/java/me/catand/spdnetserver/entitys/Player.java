@@ -1,6 +1,5 @@
 package me.catand.spdnetserver.entitys;
 
-import com.alibaba.fastjson2.annotation.JSONField;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
@@ -22,19 +21,16 @@ public class Player {
 	private Long id;
 
 	@Column(unique = true)
-	private Long qq;
-
-	@Column(unique = true)
 	private String name;
 
 	@Column(unique = true)
-	@JsonIgnore
-	private String key;
-
-	private String power;
-
-	@JsonIgnore
 	private String email;
+
+	@JsonIgnore
+	private String password;
+
+	@Enumerated(EnumType.STRING)
+	private UserRole role;
 
 	@Transient
 	private Status status;

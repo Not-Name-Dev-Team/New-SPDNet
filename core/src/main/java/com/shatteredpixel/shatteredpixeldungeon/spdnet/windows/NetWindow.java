@@ -2,13 +2,10 @@ package com.shatteredpixel.shatteredpixeldungeon.spdnet.windows;
 
 import com.shatteredpixel.shatteredpixeldungeon.ShatteredPixelDungeon;
 import com.shatteredpixel.shatteredpixeldungeon.messages.Messages;
-import com.shatteredpixel.shatteredpixeldungeon.spdnet.NetSettings;
 import com.shatteredpixel.shatteredpixeldungeon.spdnet.ui.NetIcons;
 import com.shatteredpixel.shatteredpixeldungeon.spdnet.ui.SPDNetChrome;
-import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.Net;
 import com.shatteredpixel.shatteredpixeldungeon.ui.Icons;
 import com.shatteredpixel.shatteredpixeldungeon.ui.Window;
-import com.shatteredpixel.shatteredpixeldungeon.windows.WndTextInput;
 import com.watabou.noosa.Game;
 import com.watabou.noosa.Image;
 
@@ -59,16 +56,8 @@ public class NetWindow extends Window {
 		show(new NetWndServerInfo());
 	}
 
-	public static void showKeyInput() {
-		Game.runOnRenderThread(() -> ShatteredPixelDungeon.scene().add(new WndTextInput(Messages.get(NetWindow.class, "key_input"), null, NetSettings.getKey(), 30, false, "确定", "取消") {
-			@Override
-			public void onSelect(boolean positive, String text) {
-				if (positive) {
-					NetSettings.setKey(text);
-					Net.destroySocket();
-				}
-			}
-		}));
+	public static void showLogin() {
+		Game.runOnRenderThread(() -> ShatteredPixelDungeon.scene().add(new NetWndLogin()));
 	}
 
 	public static void showMotd(String motd) {

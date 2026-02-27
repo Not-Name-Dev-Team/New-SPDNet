@@ -11,7 +11,6 @@ import me.catand.spdnetserver.data.Data;
 @AllArgsConstructor
 @NoArgsConstructor
 public class SJoin extends Data {
-	private long qq;
 	private String name;
-	private String power;
+	private String role;
 }

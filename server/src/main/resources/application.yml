@@ -1,16 +1,5 @@
 server:
   port: 15447
-shiro:
-  ws:
-    server:
-      enable: true
-      url: "/ws/shiro"
-  plugin-list:
-    - me.catand.spdnetserver.plugins.LogPlugin
-    - me.catand.spdnetserver.plugins.SPDNetRegisterPlugin
-    - me.catand.spdnetserver.plugins.SPDNetGetkeyPlugin
-    - me.catand.spdnetserver.plugins.SPDNetOnlinePlugin
-    - me.catand.spdnetserver.plugins.SPDNetChangeNamePlugin
 spring:
   datasource:
     url: jdbc:sqlite:SPDNetData.db
@@ -19,12 +8,9 @@ spring:
     properties:
       hibernate:
         dialect: org.hibernate.community.dialect.SQLiteDialect
+    hibernate:
+      ddl-auto: update
 spd:
   version: 3.2.5
   netVersion: 0.0.1
   motd: 不欢迎  >:^(
-  mail:
-    sender: your-email@126.com
-    username: your-email@126.com
-    password: your-email-auth-code
-    host: smtp.126.com

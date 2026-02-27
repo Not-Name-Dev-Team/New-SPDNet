@@ -2,7 +2,7 @@
   <div class="app">
     <nav class="navbar">
       <div class="nav-brand">
-        <router-link to="/">破碎地牢联机</router-link>
+        <router-link to="/">联机破碎地牢</router-link>
       </div>
       <div class="nav-links">
         <router-link to="/">首页</router-link>
@@ -15,7 +15,7 @@
       <router-view />
     </main>
     <footer class="footer">
-      <p>破碎地牢联机服务 &copy; 2024</p>
+      <p>联机破碎地牢 &copy; 2024</p>
     </footer>
   </div>
 </template>

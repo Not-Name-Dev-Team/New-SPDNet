@@ -25,7 +25,7 @@
             <div class="stat-label">成就数量</div>
           </div>
           <div class="stat-card">
-            <div class="stat-value">{{ playerInfo.power }}</div>
+            <div class="stat-value">{{ playerInfo.role }}</div>
             <div class="stat-label">身份</div>
           </div>
         </div>

@@ -22,7 +22,7 @@ public class NetButton extends IconButton {
 
 	@Override
 	protected boolean onLongClick() {
-		NetWindow.showKeyInput();
+		NetWindow.showLogin();
 		return true;
 	}
 

@@ -1,25 +1,18 @@
 package me.catand.spdnetserver.controller;
 
-import com.alibaba.fastjson2.JSON;
-import jakarta.annotation.PostConstruct;
-import lombok.extern.slf4j.Slf4j;
-import me.catand.spdnetserver.MailSender;
 import me.catand.spdnetserver.SocketService;
-import me.catand.spdnetserver.controller.dto.ApiResponse;
-import me.catand.spdnetserver.controller.dto.PlayerInfo;
-import me.catand.spdnetserver.controller.dto.RegisterRequest;
-import me.catand.spdnetserver.controller.dto.SendKeyRequest;
+import me.catand.spdnetserver.controller.dto.*;
 import me.catand.spdnetserver.entitys.GameRecord;
 import me.catand.spdnetserver.entitys.Player;
+import me.catand.spdnetserver.entitys.UserRole;
 import me.catand.spdnetserver.repositories.GameRecordRepository;
 import me.catand.spdnetserver.repositories.PlayerRepository;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
-import org.springframework.util.DigestUtils;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
@@ -27,7 +20,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-@Slf4j
 @RestController
 @RequestMapping("/api")
 @CrossOrigin(origins = "*")
@@ -42,34 +34,20 @@ public class PlayerController {
     @Autowired
     private SocketService socketService;
 
-    @Value("${spd.mail.sender:}")
-    private String mailSenderAddress;
-
-    @Value("${spd.mail.username:}")
-    private String mailSenderUsername;
-
-    @Value("${spd.mail.password:}")
-    private String mailSenderPassword;
-
-    @Value("${spd.mail.host:smtp.126.com}")
-    private String mailSenderHost;
-
-    private MailSender mailSender;
-
-    @PostConstruct
-    public void init() {
-        if (mailSenderAddress != null && !mailSenderAddress.isEmpty()) {
-            mailSender = new MailSender(mailSenderAddress, mailSenderUsername, mailSenderPassword, mailSenderHost);
-        }
-    }
+    private BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
     @PostMapping("/register")
     public ApiResponse<Map<String, Object>> register(@RequestBody RegisterRequest request) {
         String name = request.getName();
         String email = request.getEmail();
+        String password = request.getPassword();
 
         if (name == null || name.trim().isEmpty()) {
             return ApiResponse.error("用户名不能为空");
+        }
+
+        if (name.length() < 2 || name.length() > 16) {
+            return ApiResponse.error("用户名长度需在2-16个字符之间");
         }
 
         if (email == null || email.trim().isEmpty()) {
@@ -78,6 +56,14 @@ public class PlayerController {
 
         if (!email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$")) {
             return ApiResponse.error("邮箱格式不正确");
+        }
+
+        if (password == null || password.trim().isEmpty()) {
+            return ApiResponse.error("密码不能为空");
+        }
+
+        if (password.length() < 6 || password.length() > 32) {
+            return ApiResponse.error("密码长度需在6-32个字符之间");
         }
 
         if (playerRepository.existsByName(name)) {
@@ -91,74 +77,55 @@ public class PlayerController {
         Player player = new Player();
         player.setName(name);
         player.setEmail(email);
-        player.setKey(generateKey(email));
-        player.setPower("玩家");
+        player.setPassword(passwordEncoder.encode(password));
+        player.setRole(UserRole.USER);
 
         playerRepository.save(player);
 
-        if (mailSender != null) {
-            try {
-                String mailContent = String.format(
-                    "<h2>欢迎注册破碎地牢联机服务</h2>" +
-                    "<p>您的用户名: <strong>%s</strong></p>" +
-                    "<p>您的连接Key: <strong>%s</strong></p>" +
-                    "<p>请妥善保管您的Key，这是您登录游戏的唯一凭证。</p>" +
-                    "<p>如需查询Key，请访问网页端或使用QQ机器人。</p>",
-                    name, player.getKey()
-                );
-                mailSender.sendMail(email, "破碎地牢联机服务 - 注册成功", mailContent);
-            } catch (Exception e) {
-                log.error("发送邮件失败: {}", e.getMessage());
-            }
-        }
-
-        log.info("新用户注册: {}", name);
-
         Map<String, Object> data = new HashMap<>();
         data.put("name", name);
-        data.put("key", player.getKey());
 
-        return ApiResponse.success("注册成功，Key已发送到您的邮箱", data);
+        return ApiResponse.success("注册成功", data);
     }
 
-    @PostMapping("/send-key")
-    public ApiResponse<Void> sendKey(@RequestBody SendKeyRequest request) {
-        String email = request.getEmail();
+    @PostMapping("/login")
+    public ApiResponse<Map<String, Object>> login(@RequestBody LoginRequest request) {
+        String name = request.getName();
+        String password = request.getPassword();
 
-        if (email == null || email.trim().isEmpty()) {
-            return ApiResponse.error("邮箱不能为空");
+        if (name == null || name.trim().isEmpty()) {
+            return ApiResponse.error("用户名不能为空");
         }
 
-        Player player = playerRepository.findByEmail(email);
+        if (password == null || password.trim().isEmpty()) {
+            return ApiResponse.error("密码不能为空");
+        }
+
+        Player player = playerRepository.findByName(name);
         if (player == null) {
-            return ApiResponse.error("该邮箱未注册");
+            return ApiResponse.error("用户名或密码错误");
         }
 
-        if (mailSender == null) {
-            return ApiResponse.error("邮件服务未配置");
+        if (!passwordEncoder.matches(password, player.getPassword())) {
+            return ApiResponse.error("用户名或密码错误");
         }
 
-        try {
-            String mailContent = String.format(
-                "<h2>破碎地牢联机服务 - Key查询</h2>" +
-                "<p>您的用户名: <strong>%s</strong></p>" +
-                "<p>您的连接Key: <strong>%s</strong></p>" +
-                "<p>请妥善保管您的Key，这是您登录游戏的唯一凭证。</p>",
-                player.getName(), player.getKey()
-            );
-            mailSender.sendMail(email, "破碎地牢联机服务 - Key查询", mailContent);
-            return ApiResponse.success("Key已发送到您的邮箱");
-        } catch (Exception e) {
-            log.error("发送邮件失败: {}", e.getMessage());
-            return ApiResponse.error("发送邮件失败: " + e.getMessage());
+        if (player.getRole() == UserRole.BANNED) {
+            return ApiResponse.error("账号已被封禁");
         }
+
+        Map<String, Object> data = new HashMap<>();
+        data.put("name", player.getName());
+        data.put("role", player.getRole().getDisplayName());
+
+        return ApiResponse.success("登录成功", data);
     }
 
     @GetMapping("/online")
     public ApiResponse<List<PlayerInfo>> getOnlinePlayers() {
         Map<?, Player> playerMap = socketService.getPlayerMap();
         List<PlayerInfo> onlinePlayers = playerMap.values().stream()
-            .map(p -> new PlayerInfo(p.getName(), p.getPower(), true))
+            .map(p -> new PlayerInfo(p.getName(), p.getRole().getDisplayName(), true))
             .collect(Collectors.toList());
         return ApiResponse.success("获取成功", onlinePlayers);
     }
@@ -171,7 +138,7 @@ public class PlayerController {
         List<PlayerInfo> playerInfos = players.stream()
             .map(p -> new PlayerInfo(
                 p.getName(),
-                p.getPower(),
+                p.getRole().getDisplayName(),
                 onlineMap.values().stream().anyMatch(op -> op.getName().equals(p.getName()))
             ))
             .collect(Collectors.toList());
@@ -227,7 +194,7 @@ public class PlayerController {
 
         Map<String, Object> data = new HashMap<>();
         data.put("name", player.getName());
-        data.put("power", player.getPower());
+        data.put("role", player.getRole().getDisplayName());
         data.put("online", isOnline);
         data.put("achievementCount", player.getAchievements() != null ? player.getAchievements().size() : 0);
 
@@ -247,10 +214,5 @@ public class PlayerController {
         data.put("onlineCount", socketService.getPlayerMap().size());
         data.put("totalPlayers", playerRepository.count());
         return ApiResponse.success("获取成功", data);
-    }
-
-    private String generateKey(String email) {
-        String salt = "SPDNet-Key-Salt:" + email + ":" + System.currentTimeMillis();
-        return DigestUtils.md5DigestAsHex(salt.getBytes()).substring(0, 16);
     }
 }

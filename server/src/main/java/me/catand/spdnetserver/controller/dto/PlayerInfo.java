@@ -9,6 +9,6 @@ import lombok.Setter;
 @AllArgsConstructor
 public class PlayerInfo {
     private String name;
-    private String power;
+    private String role;
     private boolean online;
 }

@@ -72,10 +72,10 @@ public class NetWndServerInfo extends NetWindow {
 
 		bottom = status.bottom() + (GAP * 3);
 
-		keyBtn = new BlueButton(Messages.get(this, "set_key")) {
+		keyBtn = new BlueButton(Messages.get(this, "set_credentials")) {
 			@Override
 			protected void onClick() {
-				NetWindow.showKeyInput();
+				NetWindow.showLogin();
 			}
 		};
 		add(keyBtn);

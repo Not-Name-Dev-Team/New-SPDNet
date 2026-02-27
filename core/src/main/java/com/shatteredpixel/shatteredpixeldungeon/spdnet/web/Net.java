@@ -45,7 +45,7 @@ public class Net {
 			try {
 				IO.Options opts = new IO.Options();
 				opts.reconnection = false;
-				opts.query = "token=" + NetSettings.getKey() + "&SPDVersion=" + Game.version + "&NetVersion=" + Game.netVersion;
+				opts.query = "name=" + NetSettings.getName() + "&password=" + NetSettings.getPassword() + "&SPDVersion=" + Game.version + "&NetVersion=" + Game.netVersion;
 				socket = IO.socket(serverUrl, opts);
 			} catch (URISyntaxException e) {
 				throw new RuntimeException(e);

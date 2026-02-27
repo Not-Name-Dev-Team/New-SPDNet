@@ -5,6 +5,7 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public class SendKeyRequest {
-    private String email;
+public class LoginRequest {
+    private String name;
+    private String password;
 }

@@ -15,9 +15,6 @@ import com.watabou.noosa.ColorBlock;
 import com.watabou.noosa.Image;
 import com.watabou.noosa.ui.Component;
 
-import java.util.Map;
-import java.util.Set;
-
 public class NetWndPlayerList extends NetWindow {
 	private static final int WIDTH_P = 120;
 	private static final int WIDTH_L = 144;
@@ -26,10 +23,10 @@ public class NetWndPlayerList extends NetWindow {
 	private static final int VGAP = 32;
 	private static final int HGAP = 3;
 
-	public static class Power {
-		public static final String ADMIN = "admin";
-		public static final String NORMAL = "normal";
-		public static final String BOT = "bot";
+	public static class Role {
+		public static final String ADMIN = "管理员";
+		public static final String USER = "玩家";
+		public static final String BANNED = "封禁";
 	}
 
 	public NetWndPlayerList() {
@@ -114,7 +111,7 @@ public class NetWndPlayerList extends NetWindow {
 			this.order = order;
 			this.enabled = player.getStatus() != null;
 
-			int color = getRoleColor(player.getPower());
+			int color = getRoleColor(player.getRole());
 			nick = PixelScene.renderTextBlock(player.getName(), 8);
 			nick.hardlight(color);
 			add(nick);
@@ -143,16 +140,20 @@ public class NetWndPlayerList extends NetWindow {
 		}
 	}
 
-	public static int getRoleColor(String power) {
-		switch (power) {
-			case Power.BOT:
-				return 0xFFFF00;
-			case Power.ADMIN:
+	public static int getRoleColor(String role) {
+		if (role == null) {
+			return 0xFFFFFF;
+		}
+		switch (role) {
+			case Role.ADMIN:
 				return 0x00FF00;
-			case Power.NORMAL:
+			case Role.USER:
+				return 0xFFFFFF;
+			case Role.BANNED:
+				return 0xFF0000;
+			default:
 				return 0xFFFFFF;
 		}
-		return 0xFFFFFF;
 	}
 
 	protected boolean enabled(int index) {

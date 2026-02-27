@@ -11,10 +11,12 @@ import me.catand.spdnetserver.data.actions.*;
 import me.catand.spdnetserver.data.events.*;
 import me.catand.spdnetserver.entitys.GameRecord;
 import me.catand.spdnetserver.entitys.Player;
+import me.catand.spdnetserver.entitys.UserRole;
 import me.catand.spdnetserver.repositories.GameRecordRepository;
 import me.catand.spdnetserver.repositories.PlayerRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -42,6 +44,7 @@ public class SocketService {
 	private Handler handler;
 	private SocketIONamespace spdNetNamespace;
 	public static ConcurrentHashMap<String, Long> seeds = new ConcurrentHashMap<>();
+	private BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
 	public static SocketService getInstance() {
 		if (instance == null) {
@@ -77,53 +80,80 @@ public class SocketService {
 		server.stop();
 	}
 
-	/**
-	 * 启动所有事件
-	 */
 	private void startAll() {
 		spdNetNamespace.addConnectListener(client -> {
 			HandshakeData handshakeData = client.getHandshakeData();
-			// 检测Socket.IO设置的AuthToken
 			LinkedHashMap<String, String> authTokenMap = (LinkedHashMap) handshakeData.getAuthToken();
-			String authToken = null;
-			if (authTokenMap != null && authTokenMap.containsKey("token")) {
-				authToken = authTokenMap.get("token");
+			String name = null;
+			String password = null;
+			if (authTokenMap != null) {
+				name = authTokenMap.get("name");
+				password = authTokenMap.get("password");
 			}
-			// 检测Query参数中的token
-			String authTokenQuery = handshakeData.getSingleUrlParam("token");
+			String nameQuery = handshakeData.getSingleUrlParam("name");
+			String passwordQuery = handshakeData.getSingleUrlParam("password");
 			String spdVersion = handshakeData.getSingleUrlParam("SPDVersion");
 			String netVersion = handshakeData.getSingleUrlParam("NetVersion");
-			if (authToken == null) {
-				authToken = authTokenQuery;
+			if (name == null) {
+				name = nameQuery;
 			}
-			if (!playerRepository.existsByKey(authToken)) {
-				client.sendEvent(Events.ERROR.getName(), new SError("Key无效"));
-				log.info("连接失败: Key无效, " + authToken + ", " + client.getSessionId());
+			if (password == null) {
+				password = passwordQuery;
+			}
+
+			if (name == null || password == null) {
+				client.sendEvent(Events.ERROR.getName(), new SError("请提供用户名和密码"));
+				log.info("连接失败: 缺少认证信息, " + client.getSessionId());
 				client.disconnect();
-			} else if (!(spdProperties.getVersion().equals(spdVersion) && (spdProperties.getNetVersion().equals(netVersion) || netVersion.equals(spdProperties.getNetVersion() + "-INDEV")))) {
+				return;
+			}
+
+			Player player = playerRepository.findByName(name);
+			if (player == null) {
+				client.sendEvent(Events.ERROR.getName(), new SError("用户名或密码错误"));
+				log.info("连接失败: 用户不存在, " + name + ", " + client.getSessionId());
+				client.disconnect();
+				return;
+			}
+
+			if (!passwordEncoder.matches(password, player.getPassword())) {
+				client.sendEvent(Events.ERROR.getName(), new SError("用户名或密码错误"));
+				log.info("连接失败: 密码错误, " + name + ", " + client.getSessionId());
+				client.disconnect();
+				return;
+			}
+
+			if (player.getRole() == UserRole.BANNED) {
+				client.sendEvent(Events.ERROR.getName(), new SError("账号已被封禁"));
+				log.info("连接失败: 账号已封禁, " + name + ", " + client.getSessionId());
+				client.disconnect();
+				return;
+			}
+
+			if (!(spdProperties.getVersion().equals(spdVersion) && (spdProperties.getNetVersion().equals(netVersion) || netVersion.equals(spdProperties.getNetVersion() + "-INDEV")))) {
 				client.sendEvent(Events.ERROR.getName(), new SError("版本不匹配"));
 				log.info("连接失败: 版本不匹配, 破碎版本: " + spdVersion + ", Net版本: " + netVersion + ", " + client.getSessionId());
 				client.disconnect();
-			} else {
-				Player player = playerRepository.findByKey(authToken);
-				final boolean[] isDuplicate = {false};
-				playerMap.forEach((uuid, player1) -> {
-					if (player1.getName().equals(player.getName())) {
-						client.sendEvent(Events.ERROR.getName(), new SError(player.getName() + "已登录, 重复登录"));
-						log.info("连接失败: " + player.getName() + "已登录, 重复登录, " + client.getSessionId());
-						client.disconnect();
-						isDuplicate[0] = true;
-					}
-				});
-				if (isDuplicate[0]) {
-					return;
-				}
-				playerMap.put(client.getSessionId(), player);
-				sender.sendInit(client, new SInit(player.getName(), spdProperties.getMotd(), seeds));
-				sender.sendBroadcastJoin(new SJoin(player.getQq(), player.getName(), player.getPower()));
-				sender.sendPlayerList(client, new SPlayerList(playerMap));
-				log.info("玩家已连接: " + player.getName() + ", " + client.getSessionId());
+				return;
 			}
+
+			final boolean[] isDuplicate = {false};
+			playerMap.forEach((uuid, player1) -> {
+				if (player1.getName().equals(player.getName())) {
+					client.sendEvent(Events.ERROR.getName(), new SError(player.getName() + "已登录, 重复登录"));
+					log.info("连接失败: " + player.getName() + "已登录, 重复登录, " + client.getSessionId());
+					client.disconnect();
+					isDuplicate[0] = true;
+				}
+			});
+			if (isDuplicate[0]) {
+				return;
+			}
+			playerMap.put(client.getSessionId(), player);
+			sender.sendInit(client, new SInit(player.getName(), spdProperties.getMotd(), seeds));
+			sender.sendBroadcastJoin(new SJoin(player.getName(), player.getRole().getDisplayName()));
+			sender.sendPlayerList(client, new SPlayerList(playerMap));
+			log.info("玩家已连接: " + player.getName() + ", " + client.getSessionId());
 		});
 		spdNetNamespace.addDisconnectListener(client -> {
 			Player player = playerMap.get(client.getSessionId());
@@ -186,9 +216,6 @@ public class SocketService {
 
 	}
 
-	/**
-	 * 定时更改种子
-	 */
 	@Scheduled(cron = "0 30 0 * * ?")
 	public void doSomething() {
 		seeds.clear();

@@ -1,8 +1,8 @@
 <template>
   <div class="home">
     <div class="hero">
-      <h1>破碎地牢联机服务</h1>
-      <p class="subtitle">Shattered Pixel Dungeon Multiplayer</p>
+      <h1>联机破碎地牢</h1>
+      <p class="subtitle">Shattered Pixel Dungeon NET</p>
     </div>
 
     <div class="stats-grid" v-if="serverInfo">
@@ -39,7 +39,7 @@
             <td>
               <router-link :to="`/player/${player.name}`">{{ player.name }}</router-link>
             </td>
-            <td>{{ player.power }}</td>
+            <td>{{ player.role }}</td>
             <td><span class="badge badge-online">在线</span></td>
           </tr>
         </tbody>
@@ -52,8 +52,9 @@
     </div>
 
     <div class="actions">
-      <router-link to="/register" class="btn">立即注册</router-link>
-      <router-link to="/leaderboard" class="btn" style="margin-left: 1rem;">查看排行榜</router-link>
+      <router-link to="/login" class="btn">登录</router-link>
+      <router-link to="/register" class="btn" style="margin-left: 1rem;">注册</router-link>
+      <router-link to="/leaderboard" class="btn" style="margin-left: 1rem;">排行榜</router-link>
     </div>
   </div>
 </template>
