@@ -85,6 +85,14 @@ export const adminApi = {
 
   broadcast(message) {
     return api.post('/admin/broadcast', { message })
+  },
+
+  getOnline() {
+    return api.get('/admin/online')
+  },
+
+  kick(name) {
+    return api.post(`/admin/kick/${encodeURIComponent(name)}`)
   }
 }
 

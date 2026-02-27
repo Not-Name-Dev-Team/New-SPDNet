@@ -34,9 +34,50 @@
       </div>
 
       <div class="tabs">
+        <button :class="['tab', activeTab === 'online' ? 'active' : '']" @click="activeTab = 'online'">在线玩家</button>
         <button :class="['tab', activeTab === 'players' ? 'active' : '']" @click="activeTab = 'players'">玩家管理</button>
         <button :class="['tab', activeTab === 'records' ? 'active' : '']" @click="activeTab = 'records'">记录管理</button>
         <button :class="['tab', activeTab === 'broadcast' ? 'active' : '']" @click="activeTab = 'broadcast'">广播通知</button>
+      </div>
+
+      <div class="card" v-show="activeTab === 'online'">
+        <div class="card-header">
+          <h3 class="card-title">在线玩家 ({{ onlinePlayers.length }})</h3>
+          <button class="btn btn-sm" @click="loadOnlinePlayers">刷新</button>
+        </div>
+
+        <div v-if="onlineLoading" class="loading">加载中...</div>
+
+        <table class="table" v-else-if="onlinePlayers.length > 0">
+          <thead>
+            <tr>
+              <th>用户名</th>
+              <th>身份</th>
+              <th>状态</th>
+              <th>深度</th>
+              <th>挑战</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="player in onlinePlayers" :key="player.name">
+              <td>
+                <router-link :to="`/player/${player.name}`">{{ player.name }}</router-link>
+              </td>
+              <td>
+                <span :class="['badge', getRoleBadgeClass(player.role)]">{{ player.role }}</span>
+              </td>
+              <td>{{ getStatusText(player.status) }}</td>
+              <td>{{ player.status?.depth || '-' }}</td>
+              <td>{{ countChallenges(player.status?.challenges) }}</td>
+              <td>
+                <button class="btn btn-sm btn-danger" @click="kickPlayer(player)">踢出</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div v-else class="loading">暂无在线玩家</div>
       </div>
 
       <div class="card" v-show="activeTab === 'broadcast'">
@@ -205,6 +246,26 @@ const broadcastLoading = ref(false)
 const broadcastMessage = ref('')
 const broadcastSuccess = ref(false)
 
+const onlinePlayers = ref([])
+const onlineLoading = ref(false)
+
+const CHALLENGE_MASKS = [128, 256, 1, 2, 4, 8, 16, 32, 64]
+
+function countChallenges(challenges) {
+  if (!challenges) return 0
+  let count = 0
+  for (const mask of CHALLENGE_MASKS) {
+    if ((challenges & mask) !== 0) count++
+  }
+  return count
+}
+
+function getStatusText(status) {
+  if (!status) return '大厅'
+  if (status.depth > 0) return `地牢第${status.depth}层`
+  return '大厅'
+}
+
 async function loadStats() {
   try {
     const res = await adminApi.getStats()
@@ -312,6 +373,36 @@ function getRoleBadgeClass(role) {
   }
 }
 
+async function loadOnlinePlayers() {
+  onlineLoading.value = true
+  try {
+    const res = await adminApi.getOnline()
+    if (res.data.success) {
+      onlinePlayers.value = res.data.data || []
+    }
+  } catch (error) {
+    console.error('加载在线玩家失败:', error)
+  } finally {
+    onlineLoading.value = false
+  }
+}
+
+async function kickPlayer(player) {
+  if (!confirm(`确定要踢出玩家 ${player.name} 吗？`)) return
+  try {
+    const res = await adminApi.kick(player.name)
+    if (res.data.success) {
+      alert('踢出成功')
+      loadOnlinePlayers()
+      loadStats()
+    } else {
+      alert(res.data.message)
+    }
+  } catch (error) {
+    alert(error.response?.data?.message || '踢出失败')
+  }
+}
+
 async function sendBroadcast() {
   if (!broadcastText.value.trim()) {
     broadcastSuccess.value = false
@@ -343,6 +434,7 @@ async function sendBroadcast() {
 onMounted(() => {
   if (isAdmin.value) {
     loadStats()
+    loadOnlinePlayers()
     loadPlayers()
     loadRecords()
   }

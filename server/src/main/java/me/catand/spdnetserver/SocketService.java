@@ -221,7 +221,7 @@ public class SocketService {
 		seeds.clear();
 		seeds.put("seedFUN", getNoonTimestamp());
 		sender.sendBroadcastError(new SError("换种子了嗷"));
-		server.getAllClients().forEach(ClientOperations::disconnect);
+		spdNetNamespace.getAllClients().forEach(ClientOperations::disconnect);
 	}
 
 	private long getNoonTimestamp() {
@@ -233,8 +233,11 @@ public class SocketService {
 	public void kickPlayer(String name) {
 		playerMap.forEach((uuid, player) -> {
 			if (player.getName().equals(name)) {
-				server.getClient(uuid).sendEvent(Events.ERROR.getName(), new SError("你已被踢出服务器"));
-				server.getClient(uuid).disconnect();
+				SocketIOClient client = spdNetNamespace.getClient(uuid);
+				if (client != null) {
+					client.sendEvent(Events.ERROR.getName(), new SError("你已被踢出服务器"));
+					client.disconnect();
+				}
 			}
 		});
 	}

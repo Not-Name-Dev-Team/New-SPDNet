@@ -181,4 +181,24 @@ public class AdminController {
         socketService.broadcastMessage(message);
         return ApiResponse.success("广播发送成功");
     }
+
+    @GetMapping("/online")
+    public ApiResponse<List<Map<String, Object>>> getOnlinePlayers() {
+        List<Map<String, Object>> onlinePlayers = socketService.getPlayerMap().values().stream()
+            .map(player -> {
+                Map<String, Object> playerInfo = new HashMap<>();
+                playerInfo.put("name", player.getName());
+                playerInfo.put("role", player.getRole().getDisplayName());
+                playerInfo.put("status", player.getStatus());
+                return playerInfo;
+            })
+            .collect(java.util.stream.Collectors.toList());
+        return ApiResponse.success("获取成功", onlinePlayers);
+    }
+
+    @PostMapping("/kick/{name}")
+    public ApiResponse<Void> kickPlayer(@PathVariable String name) {
+        socketService.kickPlayer(name);
+        return ApiResponse.success("踢出成功");
+    }
 }
