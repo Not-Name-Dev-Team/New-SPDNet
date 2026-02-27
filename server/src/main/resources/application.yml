@@ -23,3 +23,8 @@ spd:
   version: 3.2.5
   netVersion: 0.0.1
   motd: 不欢迎  >:^(
+  mail:
+    sender: your-email@126.com
+    username: your-email@126.com
+    password: your-email-auth-code
+    host: smtp.126.com

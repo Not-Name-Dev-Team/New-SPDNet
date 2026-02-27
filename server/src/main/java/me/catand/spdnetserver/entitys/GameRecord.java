@@ -1,6 +1,9 @@
 package me.catand.spdnetserver.entitys;
 
 import com.alibaba.fastjson2.annotation.JSONField;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -11,16 +14,17 @@ import me.catand.spdnetserver.Challenges;
 @Getter
 @Setter
 @NoArgsConstructor
+@JsonIgnoreProperties({"player"})
 public class GameRecord {
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
-	@JSONField(serialize = false)
+	@JsonIgnore
 	private long id;
 	private String cause;
 	private boolean win;
 	private int score;
-	@JSONField(name = "class")
+	@JsonProperty("class")
 	private String heroClass;
 	private int tier;
 	private int level;
@@ -28,21 +32,22 @@ public class GameRecord {
 	private boolean ascending;
 	private String date;
 	private String version;
-	@JSONField(name = "net_version")
+	@JsonProperty("net_version")
 	private String netVersion;
-	@JSONField(name = "game_mode")
+	@JsonProperty("game_mode")
 	private String gameMode;
 
 	private String hero;
 	private String badges;
 	private String handlers;
 	private int challenges;
-	@JSONField(serialize = false, name = "challenge_amount")
+	@JsonIgnore
+	@JsonProperty("challenge_amount")
 	private int challengeAmount;
-	@JSONField(name = "game_version")
+	@JsonProperty("game_version")
 	private int gameVersion;
 	private long seed;
-	@JSONField(name = "custom_seed")
+	@JsonProperty("custom_seed")
 	private String customSeed;
 	private boolean daily;
 	private boolean dailyReplay;
@@ -55,29 +60,29 @@ public class GameRecord {
 	private int potionsCooked;
 	private int priranhas;
 	private int ankhsUsed;
-	@JSONField(name = "prog_score")
+	@JsonProperty("prog_score")
 	private int progScore;
-	@JSONField(name = "item_val")
+	@JsonProperty("item_val")
 	private int itemVal;
-	@JSONField(name = "tres_score")
+	@JsonProperty("tres_score")
 	private int tresScore;
-	@JSONField(name = "flr_expl")
+	@JsonProperty("flr_expl")
 	private String flrExpl;
-	@JSONField(name = "expl_score")
+	@JsonProperty("expl_score")
 	private int explScore;
-	@JSONField(name = "boss_scores")
+	@JsonProperty("boss_scores")
 	private int[] bossScores;
-	@JSONField(name = "tot_boss")
+	@JsonProperty("tot_boss")
 	private int totBoss;
-	@JSONField(name = "quest_scores")
+	@JsonProperty("quest_scores")
 	private int[] questScores;
-	@JSONField(name = "tot_quest")
+	@JsonProperty("tot_quest")
 	private int totQuest;
-	@JSONField(name = "win_mult")
+	@JsonProperty("win_mult")
 	private float winMult;
-	@JSONField(name = "chal_mult")
+	@JsonProperty("chal_mult")
 	private float chalMult;
-	@JSONField(name = "total_score")
+	@JsonProperty("total_score")
 	private int totalScore;
 	private int upgradesUsed;
 	private int sneakAttacks;
@@ -92,10 +97,10 @@ public class GameRecord {
 	private boolean ascended;
 	@ManyToOne
 	@JoinColumn(name = "player_id")
-	@JSONField(serialize = false)
+	@JsonIgnore
 	private Player player;
 	@Transient
-	@JSONField(name = "player_name")
+	@JsonProperty("player_name")
 	private String playerName;
 
 	public void setchallenges(int challenges) {

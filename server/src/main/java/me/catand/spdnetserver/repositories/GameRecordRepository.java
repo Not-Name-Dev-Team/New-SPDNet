@@ -1,6 +1,7 @@
 package me.catand.spdnetserver.repositories;
 
 import me.catand.spdnetserver.entitys.GameRecord;
+import me.catand.spdnetserver.entitys.Player;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -9,7 +10,7 @@ import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 
-public interface GameRecordRepository extends JpaRepository<GameRecord, String> {
+public interface GameRecordRepository extends JpaRepository<GameRecord, Long> {
 	@Query("SELECT g FROM GameRecord g WHERE " +
 			"(g.player.name = :username OR :username IS NULL) AND " +
 			"(g.win = :win OR :win IS NULL) AND " +
@@ -20,4 +21,12 @@ public interface GameRecordRepository extends JpaRepository<GameRecord, String> 
 	                                 @Param("gameMode") String gameMode,
 	                                 @Param("challengeAmount") Integer challengeAmount,
 	                                 Pageable pageable);
+
+	Page<GameRecord> findByWinTrue(Pageable pageable);
+
+	List<GameRecord> findByPlayerOrderByScoreDesc(Player player);
+
+	long countByPlayer(Player player);
+
+	long countByPlayerAndWinTrue(Player player);
 }
