@@ -104,8 +104,8 @@ public class WndTabbed extends Window {
 		}
 	}
 	
-	// SPDNet: Added public method to allow external tab selection
-	// This enables subclasses in other packages to programmatically select tabs
+	// SPDNet: 添加公共方法以允许外部选择标签页
+	// 这使得其他包中的子类可以编程方式选择标签页
 	public void selectTab( Tab tab, boolean value ) {
 		tab.select( value );
 	}

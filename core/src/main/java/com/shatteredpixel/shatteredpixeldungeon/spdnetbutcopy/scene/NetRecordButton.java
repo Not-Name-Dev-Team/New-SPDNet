@@ -18,11 +18,16 @@ import com.watabou.noosa.BitmapText;
 import com.watabou.noosa.Image;
 
 /**
- * SPDNet: Copy of RankingsScene.Record for displaying leaderboard entries
- * Original class: RankingsScene.Record (inner class)
- * Key changes:
- * - Uses GameRecord instead of Rankings.Record
- * - Opens NetWndRanking on click for network game details
+ * SPDNet: RankingsScene.Record 的复制版本，用于显示排行榜记录按钮
+ * 原类: RankingsScene.Record（内部类）
+ * 
+ * 与原类的差异（用于上游合并追踪）:
+ * ================================================
+ * - 使用 GameRecord 替代 Rankings.Record
+ * - 点击后打开 NetWndRanking 显示网络游戏记录详情
+ * - 独立类而非内部类
+ * 
+ * 用途: 在 NetRankingsScene 中显示单条排行榜记录。
  */
 public class NetRecordButton extends Button {
 

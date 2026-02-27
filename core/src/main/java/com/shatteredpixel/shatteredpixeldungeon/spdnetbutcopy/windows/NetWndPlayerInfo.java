@@ -51,11 +51,17 @@ import java.util.ArrayList;
 import java.util.Locale;
 
 /**
- * SPDNet: Copy of WndHero for viewing other players' info
- * Original class: WndHero
- * Key changes:
- * - Uses NetHero instead of Hero
- * - Added "View Bag" and "Give Item" buttons for multiplayer interaction
+ * SPDNet: WndHero 的复制版本，用于查看其他玩家的信息
+ * 原类: WndHero
+ * 
+ * 与原类的差异（用于上游合并追踪）:
+ * ================================================
+ * - 使用 NetHero 替代 Hero 以支持多人联机
+ * - 添加"查看背包"按钮，可打开 NetWndPlayerBag
+ * - 添加"赠送物品"按钮，支持多人物品交易
+ * - 第96-117行: 匿名内部类覆盖 IconTab.select() 方法
+ * 
+ * 用途: 在多人联机中查看其他玩家的详细信息时显示。
  */
 public class NetWndPlayerInfo extends WndTabbed {
 

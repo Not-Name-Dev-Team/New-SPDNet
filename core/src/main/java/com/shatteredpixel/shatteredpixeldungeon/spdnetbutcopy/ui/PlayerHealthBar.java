@@ -12,12 +12,18 @@ import com.watabou.noosa.RenderedText;
 import com.watabou.utils.PointF;
 
 /**
- * SPDNet: Extension of CharHealthIndicator for displaying player health bars
- * Original class: CharHealthIndicator
- * Key changes:
- * - Displays player name above health bar
- * - Shows challenge count (e.g., "3挑")
- * - Uses NetHero as target for multiplayer support
+ * SPDNet: CharHealthIndicator 的扩展版本，用于显示玩家血条
+ * 原类: CharHealthIndicator
+ * 
+ * 与原类的差异（用于上游合并追踪）:
+ * ================================================
+ * - 在血条上方显示玩家名称
+ * - 显示挑战数量（如"3挑"）
+ * - 使用 NetHero 作为目标以支持多人联机
+ * - 添加 challengeIcon 和 challengeText 字段
+ * - 添加 playerName 字段
+ * 
+ * 用途: 在游戏场景中显示其他玩家的血条和名称。
  */
 public class PlayerHealthBar extends CharHealthIndicator {
 

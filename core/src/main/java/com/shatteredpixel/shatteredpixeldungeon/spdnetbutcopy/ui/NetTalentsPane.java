@@ -21,11 +21,16 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 
 /**
- * SPDNet: Copy of TalentsPane for viewing other players' talents
- * Original class: TalentsPane
- * Key changes:
- * - Uses NetTalentTierPane instead of TalentTierPane
- * - Supports read-only view of other players' talent builds
+ * SPDNet: TalentsPane 的复制版本，用于查看其他玩家的天赋
+ * 原类: TalentsPane
+ * 
+ * 与原类的差异（用于上游合并追踪）:
+ * ================================================
+ * - 使用 NetTalentTierPane 替代 TalentTierPane
+ * - 支持只读查看其他玩家的天赋配置
+ * - 内部类 NetTalentTierPane 替代 TalentTierPane
+ * 
+ * 用途: 在 NetWndPlayerInfo 的天赋标签页中显示。
  */
 public class NetTalentsPane extends ScrollPane {
 

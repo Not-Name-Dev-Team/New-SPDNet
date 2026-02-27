@@ -55,11 +55,16 @@ import java.text.NumberFormat;
 import java.util.Locale;
 
 /**
- * SPDNet: Copy of WndRanking for displaying network game records
- * Original class: WndRanking
- * Key changes:
- * - Uses GameRecord instead of Rankings.Record for network data
- * - Displays game records from online leaderboard
+ * SPDNet: WndRanking 的复制版本，用于显示网络游戏记录
+ * 原类: WndRanking
+ * 
+ * 与原类的差异（用于上游合并追踪）:
+ * ================================================
+ * - 使用 GameRecord 替代 Rankings.Record 以支持网络数据
+ * - 从在线排行榜获取游戏记录并显示
+ * - 第183行: RankingTab.select() 方法覆盖
+ * 
+ * 用途: 在网络排行榜中点击记录后显示详细信息。
  */
 public class NetWndRanking extends WndTabbed {
 

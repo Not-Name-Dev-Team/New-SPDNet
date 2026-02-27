@@ -36,18 +36,18 @@ import com.watabou.noosa.Image;
 import com.watabou.utils.PointF;
 
 /**
- * SPDNet: Copy of WndBag for viewing other players' inventories
- * Original class: WndBag
+ * SPDNet: WndBag 的复制版本，用于查看其他玩家的背包
+ * 原类: WndBag
  * 
- * DIFF FROM ORIGINAL (for upstream merge tracking):
+ * 与原类的差异（用于上游合并追踪）:
  * ================================================
- * - Uses NetHero instead of Dungeon.hero for multiplayer support
- * - Extends WndTabbed (uses selectTab() for external tab selection)
- * - Static hero field to store the target NetHero
- * - Constructor accepts NetHero parameter
- * - Uses selectTab(tab, value) instead of tab.select(value)
+ * - 使用 NetHero 替代 Dungeon.hero 以支持多人联机
+ * - 继承 WndTabbed（使用 selectTab() 方法进行外部标签选择）
+ * - 添加静态 hero 字段存储目标 NetHero
+ * - 构造函数接受 NetHero 参数
+ * - 第141行: 使用 selectTab(tab, value) 替代 tab.select(value)
  * 
- * USAGE: Displayed when viewing another player's inventory in multiplayer.
+ * 用途: 在多人联机中查看其他玩家的背包时显示。
  */
 public class NetWndPlayerBag extends WndTabbed {
 
