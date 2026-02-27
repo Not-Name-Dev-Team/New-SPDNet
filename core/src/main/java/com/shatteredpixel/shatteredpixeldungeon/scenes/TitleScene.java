@@ -88,6 +88,8 @@ public class TitleScene extends PixelScene {
 	private BitmapText version;
 	private IconButton btnFade;
 	private ExitButton btnExit;
+	private StyledButton btnConnection;
+	private StyledButton btnPlayers;
 
 	@Override
 	public void create() {
@@ -187,7 +189,7 @@ public class TitleScene extends PixelScene {
 //		add(btnSupport);
 
 		// 服务器连接按钮
-		StyledButton btnConnection = new StyledButton(GREY_TR, "连接服务器") {
+		btnConnection = new StyledButton(GREY_TR, "连接服务器") {
 			@Override
 			protected void onClick() {
 				NetWindow.showServerInfo();
@@ -199,7 +201,7 @@ public class TitleScene extends PixelScene {
 		add(btnConnection);
 
 		// 玩家列表按钮
-		StyledButton btnPlayers = new StyledButton(GREY_TR, "在线玩家") {
+		btnPlayers = new StyledButton(GREY_TR, "在线玩家") {
 			@Override
 			protected void onClick() {
 				if (Net.isConnected()) {
@@ -362,7 +364,10 @@ public class TitleScene extends PixelScene {
 		//signs.am = alpha; handles this itself
 
 		btnPlay.enable(alpha != 0);
-		btnSupport.enable(alpha != 0);
+		// 替换支持按钮
+		//btnSupport.enable(alpha != 0);
+		btnConnection.enable(alpha != 0);
+		btnPlayers.enable(alpha != 0);
 		btnRankings.enable(alpha != 0);
 		btnJournal.enable(alpha != 0);
 		btnNews.enable(alpha != 0);
@@ -371,7 +376,10 @@ public class TitleScene extends PixelScene {
 		btnAbout.enable(alpha != 0);
 
 		btnPlay.alpha(alpha);
-		btnSupport.alpha(alpha);
+		// 替换支持按钮
+		//btnSupport.alpha(alpha);
+		btnConnection.alpha(alpha);
+		btnPlayers.alpha(alpha);
 		btnRankings.alpha(alpha);
 		btnJournal.alpha(alpha);
 		btnNews.alpha(alpha);
