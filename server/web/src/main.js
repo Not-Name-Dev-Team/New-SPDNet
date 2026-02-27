@@ -10,6 +10,7 @@ import Leaderboard from './views/Leaderboard.vue'
 import Player from './views/Player.vue'
 import Profile from './views/Profile.vue'
 import Admin from './views/Admin.vue'
+import Chat from './views/Chat.vue'
 
 const routes = [
   { path: '/', component: Home },
@@ -18,7 +19,8 @@ const routes = [
   { path: '/leaderboard', component: Leaderboard },
   { path: '/player/:name', component: Player },
   { path: '/profile', component: Profile },
-  { path: '/admin', component: Admin }
+  { path: '/admin', component: Admin },
+  { path: '/chat', component: Chat }
 ]
 
 const router = createRouter({

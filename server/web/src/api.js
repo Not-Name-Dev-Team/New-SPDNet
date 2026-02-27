@@ -96,4 +96,14 @@ export const adminApi = {
   }
 }
 
+export const chatApi = {
+  getMessages(count = 50) {
+    return api.get('/chat/messages', { params: { count } })
+  },
+
+  send(name, message) {
+    return api.post('/chat/send', { name, message })
+  }
+}
+
 export default api

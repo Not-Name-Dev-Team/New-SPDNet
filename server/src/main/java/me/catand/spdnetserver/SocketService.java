@@ -38,6 +38,8 @@ public class SocketService {
 	private GameRecordRepository gameRecordRepository;
 	@Autowired
 	private SpdProperties spdProperties;
+	@Autowired
+	private ChatService chatService;
 	private SocketIOServer server;
 	private Map<UUID, Player> playerMap = new ConcurrentHashMap<>();
 	private Sender sender;
@@ -72,7 +74,7 @@ public class SocketService {
 		server.start();
 		startAll();
 		sender = new Sender(server);
-		handler = new Handler(playerRepository, gameRecordRepository, this, sender, playerMap);
+		handler = new Handler(playerRepository, gameRecordRepository, this, sender, playerMap, chatService);
 	}
 
 	@PreDestroy
@@ -244,5 +246,9 @@ public class SocketService {
 
 	public void broadcastMessage(String message) {
 		sender.sendBroadcastServerMessage(new SServerMessage(message));
+	}
+
+	public void broadcastChatMessage(String name, String message) {
+		sender.sendBroadcastChatMessage(new SChatMessage(name, message));
 	}
 }

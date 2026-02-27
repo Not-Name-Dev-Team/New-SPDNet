@@ -26,13 +26,15 @@ public class Handler {
 	private SocketService socketService;
 	private Sender sender;
 	private Map<UUID, Player> playerMap;
+	private ChatService chatService;
 
-	public Handler(PlayerRepository playerRepository, GameRecordRepository gameRecordRepository, SocketService socketService, Sender sender, Map<UUID, Player> playerMap) {
+	public Handler(PlayerRepository playerRepository, GameRecordRepository gameRecordRepository, SocketService socketService, Sender sender, Map<UUID, Player> playerMap, ChatService chatService) {
 		this.playerRepository = playerRepository;
 		this.gameRecordRepository = gameRecordRepository;
 		this.socketService = socketService;
 		this.sender = sender;
 		this.playerMap = playerMap;
+		this.chatService = chatService;
 	}
 
 	public void handleAchievement(Player player, CAchievement cAchievement) {
@@ -56,7 +58,9 @@ public class Handler {
 
 	public void handleChatMessage(Player player, CChatMessage cChatMessage) {
 		log.info("玩家{}发送了消息：{}", player.getName(), cChatMessage.getMessage());
-		sender.sendBroadcastChatMessage(new SChatMessage(player.getName(), cChatMessage.getMessage()));
+		SChatMessage chatMessage = new SChatMessage(player.getName(), cChatMessage.getMessage());
+		chatService.addMessage(player.getName(), cChatMessage.getMessage());
+		sender.sendBroadcastChatMessage(chatMessage);
 	}
 
 	public void handleEnterDungeon(SocketIOClient client, Player player, CEnterDungeon cEnterDungeon) {

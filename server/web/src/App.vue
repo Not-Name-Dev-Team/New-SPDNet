@@ -7,6 +7,7 @@
       <div class="nav-links">
         <router-link to="/">首页</router-link>
         <router-link to="/leaderboard">排行榜</router-link>
+        <router-link to="/chat">聊天室</router-link>
         <template v-if="!authStore.isLoggedIn">
           <router-link to="/login">登录</router-link>
           <router-link to="/register">注册</router-link>
