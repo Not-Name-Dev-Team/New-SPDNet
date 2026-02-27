@@ -50,13 +50,13 @@
             <tr v-for="record in records" :key="record.id">
               <td>{{ record.score }}</td>
               <td>{{ record.maxDepth }}</td>
-              <td>{{ record.challengeAmount }}</td>
+              <td>{{ countChallenges(record.challenges) }}</td>
               <td>
                 <span :class="['badge', record.win ? 'badge-win' : 'badge-offline']">
                   {{ record.win ? '胜利' : '失败' }}
                 </span>
               </td>
-              <td>{{ record.heroClass }}</td>
+              <td>{{ record.class }}</td>
             </tr>
           </tbody>
         </table>
@@ -76,6 +76,17 @@
 import { ref, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { playerApi } from '../api'
+
+const CHALLENGE_MASKS = [128, 256, 1, 2, 4, 8, 16, 32, 64]
+
+function countChallenges(challenges) {
+  if (!challenges) return 0
+  let count = 0
+  for (const mask of CHALLENGE_MASKS) {
+    if ((challenges & mask) !== 0) count++
+  }
+  return count
+}
 
 const route = useRoute()
 const playerInfo = ref(null)

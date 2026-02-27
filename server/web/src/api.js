@@ -35,6 +35,14 @@ export const playerApi = {
 
   getServerInfo() {
     return api.get('/server/info')
+  },
+
+  changeName(data) {
+    return api.post('/change-name', data)
+  },
+
+  changePassword(data) {
+    return api.post('/change-password', data)
   }
 }
 

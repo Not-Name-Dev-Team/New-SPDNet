@@ -52,8 +52,13 @@
     </div>
 
     <div class="actions">
-      <router-link to="/login" class="btn">登录</router-link>
-      <router-link to="/register" class="btn" style="margin-left: 1rem;">注册</router-link>
+      <template v-if="!authStore.isLoggedIn">
+        <router-link to="/login" class="btn">登录</router-link>
+        <router-link to="/register" class="btn" style="margin-left: 1rem;">注册</router-link>
+      </template>
+      <template v-else>
+        <router-link to="/profile" class="btn">个人中心</router-link>
+      </template>
       <router-link to="/leaderboard" class="btn" style="margin-left: 1rem;">排行榜</router-link>
     </div>
   </div>
@@ -62,6 +67,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { playerApi } from '../api'
+import { authStore } from '../store/auth'
 
 const serverInfo = ref(null)
 const onlinePlayers = ref([])

@@ -8,13 +8,15 @@ import Register from './views/Register.vue'
 import Login from './views/Login.vue'
 import Leaderboard from './views/Leaderboard.vue'
 import Player from './views/Player.vue'
+import Profile from './views/Profile.vue'
 
 const routes = [
   { path: '/', component: Home },
   { path: '/register', component: Register },
   { path: '/login', component: Login },
   { path: '/leaderboard', component: Leaderboard },
-  { path: '/player/:name', component: Player }
+  { path: '/player/:name', component: Player },
+  { path: '/profile', component: Profile }
 ]
 
 const router = createRouter({

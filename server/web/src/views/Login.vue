@@ -7,13 +7,7 @@
         {{ message }}
       </div>
 
-      <div v-if="loginData" class="alert alert-success">
-        <p><strong>登录成功！</strong></p>
-        <p>用户名: {{ loginData.name }}</p>
-        <p>身份: {{ loginData.role }}</p>
-      </div>
-
-      <form @submit.prevent="handleLogin" v-if="!loginData">
+      <form @submit.prevent="handleLogin">
         <div class="form-group">
           <label for="name">用户名</label>
           <input 
@@ -41,11 +35,7 @@
         </button>
       </form>
 
-      <div class="links" v-if="loginData">
-        <router-link to="/" class="btn">返回首页</router-link>
-      </div>
-      
-      <div class="links" v-if="!loginData">
+      <div class="links">
         <router-link to="/register">没有账号？去注册</router-link>
       </div>
     </div>
@@ -54,7 +44,11 @@
 
 <script setup>
 import { ref, reactive } from 'vue'
+import { useRouter } from 'vue-router'
 import { playerApi } from '../api'
+import { authStore } from '../store/auth'
+
+const router = useRouter()
 
 const form = reactive({
   name: '',
@@ -64,7 +58,6 @@ const form = reactive({
 const loading = ref(false)
 const message = ref('')
 const success = ref(false)
-const loginData = ref(null)
 
 async function handleLogin() {
   loading.value = true
@@ -79,7 +72,10 @@ async function handleLogin() {
     if (res.data.success) {
       success.value = true
       message.value = res.data.message
-      loginData.value = res.data.data
+      authStore.login(res.data.data)
+      setTimeout(() => {
+        router.push('/profile')
+      }, 500)
     } else {
       success.value = false
       message.value = res.data.message

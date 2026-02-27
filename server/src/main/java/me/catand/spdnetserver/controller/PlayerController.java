@@ -161,6 +161,12 @@ public class PlayerController {
             records = gameRecordRepository.findAll(pageable);
         }
 
+        for (GameRecord record : records.getContent()) {
+            if (record.getPlayer() != null) {
+                record.setPlayerName(record.getPlayer().getName());
+            }
+        }
+
         Map<String, Object> data = new HashMap<>();
         data.put("records", records.getContent());
         data.put("totalElements", records.getTotalElements());
@@ -214,5 +220,87 @@ public class PlayerController {
         data.put("onlineCount", socketService.getPlayerMap().size());
         data.put("totalPlayers", playerRepository.count());
         return ApiResponse.success("获取成功", data);
+    }
+
+    @PostMapping("/change-name")
+    public ApiResponse<Map<String, Object>> changeName(@RequestBody ChangeNameRequest request) {
+        String currentName = request.getCurrentName();
+        String password = request.getPassword();
+        String newName = request.getNewName();
+
+        if (currentName == null || currentName.trim().isEmpty()) {
+            return ApiResponse.error("当前用户名不能为空");
+        }
+
+        if (password == null || password.trim().isEmpty()) {
+            return ApiResponse.error("密码不能为空");
+        }
+
+        if (newName == null || newName.trim().isEmpty()) {
+            return ApiResponse.error("新用户名不能为空");
+        }
+
+        if (newName.length() < 2 || newName.length() > 16) {
+            return ApiResponse.error("新用户名长度需在2-16个字符之间");
+        }
+
+        Player player = playerRepository.findByName(currentName);
+        if (player == null) {
+            return ApiResponse.error("用户不存在");
+        }
+
+        if (!passwordEncoder.matches(password, player.getPassword())) {
+            return ApiResponse.error("密码错误");
+        }
+
+        if (playerRepository.existsByName(newName)) {
+            return ApiResponse.error("该用户名已被使用");
+        }
+
+        player.setName(newName);
+        playerRepository.save(player);
+
+        Map<String, Object> data = new HashMap<>();
+        data.put("name", newName);
+        data.put("role", player.getRole().getDisplayName());
+
+        return ApiResponse.success("修改成功", data);
+    }
+
+    @PostMapping("/change-password")
+    public ApiResponse<Void> changePassword(@RequestBody ChangePasswordRequest request) {
+        String name = request.getName();
+        String oldPassword = request.getOldPassword();
+        String newPassword = request.getNewPassword();
+
+        if (name == null || name.trim().isEmpty()) {
+            return ApiResponse.error("用户名不能为空");
+        }
+
+        if (oldPassword == null || oldPassword.trim().isEmpty()) {
+            return ApiResponse.error("原密码不能为空");
+        }
+
+        if (newPassword == null || newPassword.trim().isEmpty()) {
+            return ApiResponse.error("新密码不能为空");
+        }
+
+        if (newPassword.length() < 6 || newPassword.length() > 32) {
+            return ApiResponse.error("新密码长度需在6-32个字符之间");
+        }
+
+        Player player = playerRepository.findByName(name);
+        if (player == null) {
+            return ApiResponse.error("用户不存在");
+        }
+
+        if (!passwordEncoder.matches(oldPassword, player.getPassword())) {
+            return ApiResponse.error("原密码错误");
+        }
+
+        player.setPassword(passwordEncoder.encode(newPassword));
+        playerRepository.save(player);
+
+        return ApiResponse.success("密码修改成功");
     }
 }

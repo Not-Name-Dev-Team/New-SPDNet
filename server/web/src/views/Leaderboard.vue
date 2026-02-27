@@ -18,7 +18,7 @@
             <th>排名</th>
             <th>玩家</th>
             <th>分数</th>
-            <th>深度</th>
+            <th>最高层数</th>
             <th>挑战</th>
             <th>结果</th>
             <th>角色</th>
@@ -28,19 +28,19 @@
           <tr v-for="(record, index) in records" :key="record.id">
             <td>{{ index + 1 + page * size }}</td>
             <td>
-              <router-link :to="`/player/${record.player?.name}`">
-                {{ record.player?.name || '未知' }}
+              <router-link :to="`/player/${record.player_name}`">
+                {{ record.player_name || '未知' }}
               </router-link>
             </td>
             <td>{{ record.score }}</td>
             <td>{{ record.maxDepth }}</td>
-            <td>{{ record.challengeAmount }}</td>
+            <td>{{ countChallenges(record.challenges) }}</td>
             <td>
               <span :class="['badge', record.win ? 'badge-win' : 'badge-offline']">
                 {{ record.win ? '胜利' : '失败' }}
               </span>
             </td>
-            <td>{{ record.heroClass }}</td>
+            <td>{{ record.class }}</td>
           </tr>
         </tbody>
       </table>
@@ -71,6 +71,17 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { leaderboardApi } from '../api'
+
+const CHALLENGE_MASKS = [128, 256, 1, 2, 4, 8, 16, 32, 64]
+
+function countChallenges(challenges) {
+  if (!challenges) return 0
+  let count = 0
+  for (const mask of CHALLENGE_MASKS) {
+    if ((challenges & mask) !== 0) count++
+  }
+  return count
+}
 
 const records = ref([])
 const loading = ref(true)
