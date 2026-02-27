@@ -1,4 +1,7 @@
-apply plugin: 'java-library'
+plugins {
+    id 'java-library'
+    id 'io.freefair.lombok'
+}
 
 [compileJava, compileTestJava]*.options*.encoding = 'UTF-8'
 java.sourceCompatibility = java.targetCompatibility = appJavaCompatibility
@@ -15,8 +18,4 @@ dependencies {
 
     // Http
     implementation 'org.apache.httpcomponents:httpclient:4.5.14'
-
-    // Lombok
-    compileOnly 'org.projectlombok:lombok:1.18.38'
-    annotationProcessor 'org.projectlombok:lombok:1.18.38'
 }
