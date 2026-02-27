@@ -16,3 +16,6 @@ include ':services'
     //news
     include ':services:news:debugNews'
     include ':services:news:shatteredNews'
+
+//server module
+include ':server'
