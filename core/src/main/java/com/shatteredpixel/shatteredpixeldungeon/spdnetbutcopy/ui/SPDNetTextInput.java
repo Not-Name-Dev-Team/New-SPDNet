@@ -12,6 +12,7 @@ import com.badlogic.gdx.scenes.scene2d.InputListener;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Container;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
+import com.badlogic.gdx.scenes.scene2d.ui.TextArea;
 import com.badlogic.gdx.scenes.scene2d.ui.TextField;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
@@ -87,7 +88,7 @@ public class SPDNetTextInput extends Component {
         style.font = Game.platform.getFont(size, "", false, false);
         style.background = null;
         if (multiline) {
-            textField = new TextField("", style) {
+            textField = new TextArea("", style) {
                 @Override
                 public void cut() {
                     super.cut();
@@ -256,6 +257,22 @@ public class SPDNetTextInput extends Component {
 
         textField.setText(existing.substring(0, cursorIdx) + contents + existing.substring(cursorIdx));
         textField.setCursorPosition(cursorIdx + contents.length());
+    }
+
+    // SPDNet: 添加文本对齐方法用于聊天框
+    public void setTextAlignment(int alignment){
+        textField.setAlignment(alignment);
+    }
+
+    // SPDNet: 添加文本颜色设置方法
+    public void setTextColor(com.badlogic.gdx.graphics.Color color){
+        TextField.TextFieldStyle style = textField.getStyle();
+        style.fontColor = color;
+    }
+
+    // SPDNet: 添加监听器方法
+    public void addlistener(InputListener listener){
+        textField.addListener(listener);
     }
 
     @Override

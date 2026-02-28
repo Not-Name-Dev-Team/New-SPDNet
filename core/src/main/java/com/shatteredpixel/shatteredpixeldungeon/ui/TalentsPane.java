@@ -61,11 +61,13 @@ import java.util.LinkedHashMap;
  * - 第114行：传入 getHero() 给 TalentTierPane
  * - 第201-206行：TalentTierPane 构造函数添加 hero 参数
  * - 第244-247行：TalentTierPane.setupStars() 使用 hero 参数
+ * - 第245-253行：random按钮onSelect中使用 hero 替代 Dungeon.hero
+ * - 第263行：random按钮update中使用 hero 替代 Dungeon.hero
  *
  * 合并注意：
  * - 保留 getHero() 方法及其所有调用
  * - 保留 && false 的徽章检查跳过
- * - 如果上游修改了 Dungeon.hero 相关逻辑，需同步修改为 getHero()
+ * - 如果上游修改了 Dungeon.hero 相关逻辑，需同步修改为 getHero() 或 hero 字段
  */
 public class TalentsPane extends ScrollPane {
 
@@ -242,9 +244,10 @@ public class TalentsPane extends ScrollPane {
 										return;
 									}
 									if (index == 0 || index == 1){
-										while (Dungeon.hero.talentPointsAvailable(tier) > 0){
+										// SPDNet: 使用 hero 替代 Dungeon.hero
+										while (hero.talentPointsAvailable(tier) > 0){
 											TalentButton button = Random.element(buttons);
-											if (Dungeon.hero.pointsInTalent(button.talent) < button.talent.maxPoints()){
+											if (hero.pointsInTalent(button.talent) < button.talent.maxPoints()){
 												button.upgradeTalent();
 												if (index == 1){
 													break;
@@ -260,7 +263,8 @@ public class TalentsPane extends ScrollPane {
 
 						@Override
 						public void update() {
-							if (Dungeon.hero.lvl >= 3 && Statistics.qualifiedForRandomVictoryBadge){
+							// SPDNet: 使用 hero 替代 Dungeon.hero
+							if (hero.lvl >= 3 && Statistics.qualifiedForRandomVictoryBadge){
 								icon.tint(1, 1, 1, (float)Math.abs(Math.cos(1.5f*Math.PI*Game.timeTotal)/2f));
 							}
 							super.update();

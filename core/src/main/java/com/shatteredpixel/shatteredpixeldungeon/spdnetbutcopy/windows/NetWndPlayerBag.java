@@ -149,6 +149,10 @@ public class NetWndPlayerBag extends WndTabbed {
 		layoutTabs();
 	}
 
+	public ItemSelector getSelector() {
+		return selector;
+	}
+
 	public static NetWndPlayerBag lastBag( ItemSelector selector ) {
 
 		if (lastBag != null && NetWndPlayerBag.hero.belongings.backpack.contains( lastBag )) {
