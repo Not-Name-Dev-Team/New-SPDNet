@@ -257,11 +257,14 @@ public class WndJournal extends WndTabbed {
 				ScrollingListPane.ListItem item = new ScrollingListPane.ListItem(
 						Document.ADVENTURERS_GUIDE.pageSprite(page),
 						null,
-						found ? Messages.titleCase(Document.ADVENTURERS_GUIDE.pageTitle(page)) : Messages.titleCase(Messages.get( this, "missing" ))
+						// 显示缺失的页面
+						//found ? Messages.titleCase(Document.ADVENTURERS_GUIDE.pageTitle(page)) : Messages.titleCase(Messages.get( this, "missing" ))
+						true ? Messages.titleCase(Document.ADVENTURERS_GUIDE.pageTitle(page)) : Messages.titleCase(Messages.get( this, "missing" ))
 				){
 					@Override
 					public boolean onClick(float x, float y) {
-						if (inside( x, y ) && found) {
+						// 显示缺失的页面
+						if (inside( x, y ) && true) {
 							ShatteredPixelDungeon.scene().addToFront( new WndStory( Document.ADVENTURERS_GUIDE.pageSprite(page),
 									Document.ADVENTURERS_GUIDE.pageTitle(page),
 									Document.ADVENTURERS_GUIDE.pageBody(page) ));
@@ -324,8 +327,9 @@ public class WndJournal extends WndTabbed {
 				if (Document.ALCHEMY_GUIDE.isPageFound(i)) {
 					pageButtons[i].icon(new ItemSprite(sprites[i], null));
 				} else {
+					//显示缺失的页面
 					pageButtons[i].icon(new ItemSprite(ItemSpriteSheet.SOMETHING, null));
-					pageButtons[i].enable(false);
+					//pageButtons[i].enable(false);
 				}
 				add( pageButtons[i] );
 			}
@@ -375,9 +379,10 @@ public class WndJournal extends WndTabbed {
 		
 		public void updateList() {
 
-			if (currentPageIdx != -1 && !Document.ALCHEMY_GUIDE.isPageFound(currentPageIdx)){
-				currentPageIdx = -1;
-			}
+			// 显示缺失的页面
+//			if (currentPageIdx != -1 && !Document.ALCHEMY_GUIDE.isPageFound(currentPageIdx)){
+//				currentPageIdx = -1;
+//			}
 
 			for (int i = 0; i < NUM_BUTTONS; i++) {
 				if (i == currentPageIdx) {
@@ -726,7 +731,9 @@ public class WndJournal extends WndTabbed {
 						}
 					}
 					if (!doc.anyPagesFound()){
-						grid.addHeader("_???_ (" + totalSeen + "/" + totalItems + "):");
+						//显示未解锁目录
+						//grid.addHeader("_???_ (" + totalSeen + "/" + totalItems + "):");
+						grid.addHeader("_" + Messages.titleCase(doc.title()) + "_ (" + totalSeen + "/" + totalItems + "):");
 					} else {
 						grid.addHeader("_" + Messages.titleCase(doc.title()) + "_ (" + totalSeen + "/" + totalItems + "):");
 					}
@@ -756,7 +763,7 @@ public class WndJournal extends WndTabbed {
 
 				Item item = (Item) Reflection.newInstance(itemClass);
 
-				if (seen) {
+				if (true) { //提前显示物品信息
 					if (item instanceof Ring) {
 						((Ring) item).anonymize();
 					} else if (item instanceof Potion) {
@@ -766,14 +773,47 @@ public class WndJournal extends WndTabbed {
 					}
 				}
 
-				sprite = new ItemSprite(item.image, seen ? item.glowing() : null);
+				sprite = new ItemSprite(item.image, true ? item.glowing() : null); // 提前显示物品信息
 				if (!seen)  {
-					if (item instanceof ExoticPotion){
-						sprite.frame(ItemSpriteSheet.POTION_CRIMSON);
+//					if (item instanceof ExoticPotion){
+//						sprite.frame(ItemSpriteSheet.POTION_CRIMSON);
+//					}
+					// 提前显示全部信息
+					title = Messages.titleCase( item.name() );
+					//some items don't include direct stats, generally when they're not applicable
+					if (item instanceof ClassArmor || item instanceof SpiritBow){
+						desc += item.desc();
+					} else {
+						desc += item.info();
 					}
-					sprite.lightness(0);
-					title = "???";
-					desc = Messages.get(CatalogTab.class, "not_seen_item");
+
+					if (Catalog.useCount(itemClass) > 1) {
+						if (item.isUpgradable() || item instanceof Artifact) {
+							desc += "\n\n" + Messages.get(CatalogTab.class, "upgrade_count", Catalog.useCount(itemClass));
+						} else if (item instanceof Trinket) {
+							desc += "\n\n" + Messages.get(CatalogTab.class, "trinket_count", Catalog.useCount(itemClass));
+						} else if (item instanceof Gold) {
+							desc += "\n\n" + Messages.get(CatalogTab.class, "gold_count", Catalog.useCount(itemClass));
+						} else if (item instanceof EnergyCrystal) {
+							desc += "\n\n" + Messages.get(CatalogTab.class, "energy_count", Catalog.useCount(itemClass));
+						} else {
+							desc += "\n\n" + Messages.get(CatalogTab.class, "use_count", Catalog.useCount(itemClass));
+						}
+					}
+
+					//mage's staff normally has 2 pixels extra at the top for particle effects, we chop that off here
+					if (item instanceof MagesStaff){
+						RectF frame = sprite.frame();
+						frame.top += frame.height()/8f;
+						sprite.frame(frame);
+					}
+
+					if (item.icon != -1) {
+						secondIcon = new Image(Assets.Sprites.ITEM_ICONS);
+						secondIcon.frame(ItemSpriteSheet.Icons.film.get(item.icon));
+					}
+					// 未发现信息
+					desc = desc + "\n\n" + Messages.get(CatalogTab.class, "not_seen_item");
 					desc += "\n\n" + Messages.get(item, "discover_hint");
 				} else {
 					title = Messages.titleCase( item.name() );
@@ -820,10 +860,11 @@ public class WndJournal extends WndTabbed {
 					title = Messages.titleCase(ench.name());
 					desc = ench.desc();
 				} else {
-					sprite = new ItemSprite(ItemSpriteSheet.WORN_SHORTSWORD);
-					sprite.lightness(0f);
-					title = "???";
-					desc = Messages.get(CatalogTab.class, "not_seen_enchantment");
+					//提前显示物品信息
+					sprite = new ItemSprite(ItemSpriteSheet.WORN_SHORTSWORD, ench.glowing());
+					title = Messages.titleCase(ench.name());
+					desc = ench.desc() + "\n\n";
+					desc = desc + Messages.get(CatalogTab.class, "not_seen_enchantment");
 					desc += "\n\n" + Messages.get(ench, "discover_hint");
 				}
 
@@ -836,10 +877,11 @@ public class WndJournal extends WndTabbed {
 					title = Messages.titleCase(glyph.name());
 					desc = glyph.desc();
 				} else {
-					sprite = new ItemSprite(ItemSpriteSheet.ARMOR_CLOTH);
-					sprite.lightness(0f);
-					title = "???";
-					desc = Messages.get(CatalogTab.class, "not_seen_glyph");
+					//提前显示物品信息
+					sprite = new ItemSprite(ItemSpriteSheet.ARMOR_CLOTH, glyph.glowing());
+					title = Messages.titleCase(glyph.name());
+					desc = glyph.desc() + "\n\n";
+					desc = desc + Messages.get(CatalogTab.class, "not_seen_glyph");
 					desc += "\n\n" + Messages.get(glyph, "discover_hint");
 				}
 
@@ -912,14 +954,16 @@ public class WndJournal extends WndTabbed {
 						desc += "\n\n" + Messages.get(CatalogTab.class, "enemy_count", Bestiary.encounterCount(entityCls));
 					}
 				} else {
-					icon.lightness(0f);
-					title = "???";
+					//icon.lightness(0f); 默认显示未解锁物品
+					//title = "???";
+					title = Messages.titleCase(mob.name()); //默认显示名称
+					desc = mob.description() + "\n\n"; //默认显示描述
 					if (mob instanceof WandOfRegrowth.Lotus){
-						desc = Messages.get(CatalogTab.class, "not_seen_plant");
+						desc = desc + Messages.get(CatalogTab.class, "not_seen_plant");//前面加上默认描述
 					} else if (mob.alignment == Char.Alignment.ENEMY){
-						desc = Messages.get(CatalogTab.class, "not_seen_enemy");
+						desc = desc + Messages.get(CatalogTab.class, "not_seen_enemy");//前面加上默认描述
 					} else {
-						desc = Messages.get(CatalogTab.class, "not_seen_ally");
+						desc = desc + Messages.get(CatalogTab.class, "not_seen_ally");//前面加上默认描述
 					}
 					desc += "\n\n" + Messages.get(mob, "discover_hint");
 				}
@@ -952,9 +996,13 @@ public class WndJournal extends WndTabbed {
 						desc += "\n\n" + Messages.get(CatalogTab.class, "trap_count", Bestiary.encounterCount(entityCls));
 					}
 				} else {
-					icon.lightness(0f);
-					title = "???";
-					desc = Messages.get(CatalogTab.class, "not_seen_trap");
+					//显示未解锁物品
+					title = Messages.titleCase(trap.name());
+					desc = trap.desc();
+					if (Bestiary.encounterCount(entityCls) > 1){
+						desc += "\n\n" + Messages.get(CatalogTab.class, "trap_count", Bestiary.encounterCount(entityCls));
+					}
+					desc = desc + "\n\n" + Messages.get(CatalogTab.class, "not_seen_trap");
 					desc += "\n\n" + Messages.get(trap, "discover_hint");
 				}
 
@@ -970,9 +1018,14 @@ public class WndJournal extends WndTabbed {
 						desc += "\n\n" + Messages.get(CatalogTab.class, "plant_count", Bestiary.encounterCount(entityCls));
 					}
 				} else {
-					icon.lightness(0f);
-					title = "???";
-					desc = Messages.get(CatalogTab.class, "not_seen_plant");
+					//icon.lightness(0f); 默认显示未解锁物品
+					//title = "???";
+					title = Messages.titleCase(plant.name()); //默认显示名称
+					desc = plant.desc() + "\n\n"; //默认显示描述
+					if (Bestiary.encounterCount(entityCls) > 1){
+						desc += "\n\n" + Messages.get(CatalogTab.class, "plant_count", Bestiary.encounterCount(entityCls)); //默认显示描述
+					}
+					desc = desc + Messages.get(CatalogTab.class, "not_seen_plant");
 					desc += "\n\n" + Messages.get(plant, "discover_hint");
 				}
 
@@ -1020,7 +1073,7 @@ public class WndJournal extends WndTabbed {
 			boolean read = doc.isPageRead(page);
 
 			if (!seen){
-				sprite.lightness(0f);
+				//sprite.lightness(0f); 默认显示未解锁日志
 			}
 
 			ScrollingGridPane.GridItem gridItem = new ScrollingGridPane.GridItem(sprite) {
@@ -1038,13 +1091,22 @@ public class WndJournal extends WndTabbed {
 							doc.readPage(page);
 							hardLightBG(1, 1, 1);
 						} else {
+							// 显示未解锁日志
 							if (ShatteredPixelDungeon.scene() instanceof GameScene){
-								GameScene.show(new WndJournalItem(sprite, "???",
-										Messages.get(CatalogTab.class, "not_seen_lore") + "\n\n" + doc.discoverHint()));
+								GameScene.show(new WndStory(sprite, doc.pageTitle(page), doc.pageBody(page)
+										+ "\n\n" + Messages.get(CatalogTab.class, "not_seen_lore") + "\n\n" + doc.discoverHint()));
 							} else {
-								ShatteredPixelDungeon.scene().addToFront(new WndJournalItem(sprite, "???",
-										Messages.get(CatalogTab.class, "not_seen_lore") + "\n\n" + doc.discoverHint()));
+								ShatteredPixelDungeon.scene().addToFront(new WndStory(sprite, doc.pageTitle(page), doc.pageBody(page)
+								+"\n\n" + Messages.get(CatalogTab.class, "not_seen_lore") + "\n\n" + doc.discoverHint()));
 							}
+
+//							if (ShatteredPixelDungeon.scene() instanceof GameScene){
+//								GameScene.show(new WndJournalItem(sprite, "???",
+//										Messages.get(CatalogTab.class, "not_seen_lore") + "\n\n" + doc.discoverHint()));
+//							} else {
+//								ShatteredPixelDungeon.scene().addToFront(new WndJournalItem(sprite, "???",
+//										Messages.get(CatalogTab.class, "not_seen_lore") + "\n\n" + doc.discoverHint()));
+//							}
 
 						}
 						return true;
@@ -1062,6 +1124,11 @@ public class WndJournal extends WndTabbed {
 					gridItem.hardLightBG(0.6f, 1f, 2f);
 				}
 			} else {
+				//未解锁日志标号显示
+				BitmapText text = new BitmapText(Integer.toString(doc.pageIdx(page)+1), PixelScene.pixelFont);
+				text.measure();
+				gridItem.addSecondIcon( text );
+
 				gridItem.hardLightBG(2.2f, 1f, 2.2f);
 			}
 			grid.addItem(gridItem);
