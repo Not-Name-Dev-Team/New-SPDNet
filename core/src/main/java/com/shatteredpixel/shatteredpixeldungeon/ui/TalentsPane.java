@@ -57,11 +57,12 @@ public class TalentsPane extends ScrollPane {
 		int tiersAvailable = 1;
 
 		if (mode == TalentButton.Mode.INFO){
-			if (!Badges.isUnlocked(Badges.Badge.LEVEL_REACHED_1)){
+			// SPDNet: 添加 && false 跳过徽章检查，始终显示所有天赋层数
+			if (false && !Badges.isUnlocked(Badges.Badge.LEVEL_REACHED_1)){
 				tiersAvailable = 1;
-			} else if (!Badges.isUnlocked(Badges.Badge.LEVEL_REACHED_2) || !Badges.isUnlocked(Badges.Badge.BOSS_SLAIN_2)){
+			} else if (false && (!Badges.isUnlocked(Badges.Badge.LEVEL_REACHED_2) || !Badges.isUnlocked(Badges.Badge.BOSS_SLAIN_2))){
 				tiersAvailable = 2;
-			} else if (!Badges.isUnlocked(Badges.Badge.BOSS_SLAIN_4)){
+			} else if (false && !Badges.isUnlocked(Badges.Badge.BOSS_SLAIN_4)){
 				tiersAvailable = 3;
 			} else {
 				tiersAvailable = Talent.MAX_TALENT_TIERS;
