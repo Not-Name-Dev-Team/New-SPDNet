@@ -10,6 +10,7 @@ import com.shatteredpixel.shatteredpixeldungeon.scenes.PixelScene;
 import com.shatteredpixel.shatteredpixeldungeon.scenes.TitleScene;
 import com.shatteredpixel.shatteredpixeldungeon.spdnet.Mode;
 import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.GameRecord;
+import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.Net;
 import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.Sender;
 import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.actions.CRequestLeaderboard;
 import com.shatteredpixel.shatteredpixeldungeon.spdnet.windows.NetWndLeaderboardSelect;
@@ -252,7 +253,8 @@ public class NetRankingsScene extends PixelScene {
 			int pos = 0;
 
 			for (GameRecord rec : records) {
-				NetRecordButton row = new NetRecordButton(pos, pos == Rankings.INSTANCE.lastRecord, rec);
+				boolean isLatest = rec.getPlayerName() != null && rec.getPlayerName().equals(Net.name) && pos == 0;
+				NetRecordButton row = new NetRecordButton(pos, isLatest, rec);
 				float offset = 0;
 				if (rowHeight <= 14) {
 					offset = (pos % 2 == 1) ? 5 : -5;
@@ -263,9 +265,7 @@ public class NetRankingsScene extends PixelScene {
 				pos++;
 			}
 
-			if (Rankings.INSTANCE.totalNumber >= Rankings.TABLE_SIZE) {
-				label.text("显示第" + currentPage + "页 共有" + totalPages + "页 共有" + totalElements + "条记录");
-			}
+			label.text("显示第" + currentPage + "页 共有" + totalPages + "页 共有" + totalElements + "条记录");
 		} else {
 			noRec = PixelScene.renderTextBlock("没找到记录", 8);
 			noRec.hardlight(0xCCCCCC);
