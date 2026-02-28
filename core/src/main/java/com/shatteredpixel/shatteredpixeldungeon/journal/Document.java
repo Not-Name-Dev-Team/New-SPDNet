@@ -61,12 +61,14 @@ public enum Document {
 	public static final int NOT_FOUND = 0;
 	public static final int FOUND = 1;
 	public static final int READ = 2;
-	private LinkedHashMap<String, Integer> pagesStates = new LinkedHashMap<>();
+	// SPDNet: 改为包私有，允许 Journal 类访问
+	LinkedHashMap<String, Integer> pagesStates = new LinkedHashMap<>();
 	
 	public boolean findPage( String page ) {
 		if (pagesStates.containsKey(page) && pagesStates.get(page) == NOT_FOUND){
 			pagesStates.put(page, FOUND);
-			Journal.saveNeeded = true;
+			// SPDNet: 云端模式下发送更新到服务器
+			Journal.sendDocumentUpdate(name(), page, true);
 			Badges.validateCatalogBadges();
 			return true;
 		}
@@ -80,7 +82,8 @@ public enum Document {
 	public boolean deletePage( String page ){
 		if (pagesStates.containsKey(page) && pagesStates.get(page) != NOT_FOUND){
 			pagesStates.put(page, NOT_FOUND);
-			Journal.saveNeeded = true;
+			// SPDNet: 云端模式下发送更新到服务器
+			Journal.sendDocumentUpdate(name(), page, false);
 			return true;
 		}
 		return false;
@@ -257,8 +260,8 @@ public enum Document {
 
 	//pages and default states
 	static {
-		// 手动设置以解锁教程书
-		boolean debug = true;
+		//由服务器同步并且始终可读
+		boolean debug = false;
 		//hero gets these when guidebook is collected
 		ADVENTURERS_GUIDE.pagesStates.put(GUIDE_INTRO,          debug ? READ : NOT_FOUND);
 		ADVENTURERS_GUIDE.pagesStates.put(GUIDE_EXAMINING,      debug ? READ : NOT_FOUND);

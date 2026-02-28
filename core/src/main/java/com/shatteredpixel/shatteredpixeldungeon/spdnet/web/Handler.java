@@ -5,6 +5,7 @@ import com.shatteredpixel.shatteredpixeldungeon.Badges;
 import com.shatteredpixel.shatteredpixeldungeon.Dungeon;
 import com.shatteredpixel.shatteredpixeldungeon.ShatteredPixelDungeon;
 import com.shatteredpixel.shatteredpixeldungeon.items.Item;
+import com.shatteredpixel.shatteredpixeldungeon.journal.Journal;
 import com.shatteredpixel.shatteredpixeldungeon.messages.Messages;
 import com.shatteredpixel.shatteredpixeldungeon.scenes.GameScene;
 import com.shatteredpixel.shatteredpixeldungeon.spdnet.Mode;
@@ -38,6 +39,7 @@ import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.events.SPla
 import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.events.SPlayerMove;
 import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.events.SServerMessage;
 import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.events.SViewHero;
+import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.events.SJournals;
 import com.shatteredpixel.shatteredpixeldungeon.spdnet.windows.NetWindow;
 import com.shatteredpixel.shatteredpixeldungeon.spdnetbutcopy.windows.NetWndPlayerInfo;
 import com.watabou.noosa.Game;
@@ -185,6 +187,8 @@ public class Handler {
 		Net.name = init.getName();
 		NetWindow.showMotd(init.getMotd());
 
+		// SPDNet: 从服务器加载云端成就
+		Badges.loadFromCloud(init.getAchievements());
 
 		// TODO 等GUI实现之后来这里更改种子逻辑 目前默认使用服务器给与的第一个种子
 		Enumeration<String> keysEnumeration = Net.seeds.keys();
@@ -278,6 +282,11 @@ public class Handler {
 
 	public static void handleServerMessage(SServerMessage serverMessage) {
 		NetWindow.message(serverMessage.getMessage());
+	}
+
+	public static void handleJournals(SJournals journals) {
+		// SPDNet: 从服务器加载 Journal 数据
+		Journal.loadFromCloud(journals.getCatalogs(), journals.getBestiaries(), journals.getDocuments());
 	}
 
 	public static void handleViewHero(SViewHero viewHero) {

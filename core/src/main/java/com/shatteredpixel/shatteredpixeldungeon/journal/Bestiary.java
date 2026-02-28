@@ -174,9 +174,10 @@ public enum Bestiary {
 	PLANT;
 
 	//tracks whether an entity has been encountered
-	private final LinkedHashMap<Class<?>, Boolean> seen = new LinkedHashMap<>();
+	// SPDNet: 改为包私有，允许 Journal 类访问
+	final LinkedHashMap<Class<?>, Boolean> seen = new LinkedHashMap<>();
 	//tracks enemy kills, trap activations, plant tramples, or just sets to 1 for seen on allies
-	private final LinkedHashMap<Class<?>, Integer> encounterCount = new LinkedHashMap<>();
+	final LinkedHashMap<Class<?>, Integer> encounterCount = new LinkedHashMap<>();
 
 	//should only be used when initializing
 	private void addEntities(Class<?>... classes ){
@@ -292,7 +293,8 @@ public enum Bestiary {
 		for (Bestiary cat : values()) {
 			if (cat.seen.containsKey(cls) && !cat.seen.get(cls)) {
 				cat.seen.put(cls, true);
-				Journal.saveNeeded = true;
+				// SPDNet: 云端模式下发送更新到服务器
+				Journal.sendBestiaryUpdate(cat.name(), cls.getName(), true, encounterCount(cls));
 			}
 		}
 		Badges.validateCatalogBadges();

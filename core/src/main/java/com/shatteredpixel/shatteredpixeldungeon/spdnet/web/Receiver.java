@@ -3,32 +3,15 @@ package com.shatteredpixel.shatteredpixeldungeon.spdnet.web;
 import static com.shatteredpixel.shatteredpixeldungeon.spdnet.web.Net.getSocket;
 
 import com.alibaba.fastjson.JSON;
+import com.shatteredpixel.shatteredpixeldungeon.Badges;
 import com.shatteredpixel.shatteredpixeldungeon.Dungeon;
 import com.shatteredpixel.shatteredpixeldungeon.ShatteredPixelDungeon;
+import com.shatteredpixel.shatteredpixeldungeon.journal.Journal;
 import com.shatteredpixel.shatteredpixeldungeon.scenes.GameScene;
 import com.shatteredpixel.shatteredpixeldungeon.scenes.TitleScene;
 import com.shatteredpixel.shatteredpixeldungeon.spdnetbutcopy.scene.NetRankingsScene;
 import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.Events;
-import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.events.SAchievement;
-import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.events.SAnkhUsed;
-import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.events.SArmorUpdate;
-import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.events.SChatMessage;
-import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.events.SEnterDungeon;
-import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.events.SError;
-import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.events.SExit;
-import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.events.SFloatingText;
-import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.events.SGameEnd;
-import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.events.SGiveItem;
-import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.events.SHero;
-import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.events.SInit;
-import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.events.SJoin;
-import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.events.SLeaderboard;
-import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.events.SLeaveDungeon;
-import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.events.SPlayerChangeFloor;
-import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.events.SPlayerList;
-import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.events.SPlayerMove;
-import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.events.SServerMessage;
-import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.events.SViewHero;
+import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.events.*;
 import com.shatteredpixel.shatteredpixeldungeon.spdnet.windows.NetWindow;
 import com.watabou.noosa.Game;
 
@@ -45,6 +28,9 @@ public class Receiver {
 		Emitter.Listener onConnected = args -> {
 		};
 		Emitter.Listener onDisconnected = args -> {
+			// SPDNet: 断开连接时重置成就系统为本地模式
+			Badges.resetToLocalMode();
+			
 			if (ShatteredPixelDungeon.scene() instanceof GameScene) {
 				try {
 					Dungeon.saveAll();
@@ -121,6 +107,9 @@ public class Receiver {
 		Emitter.Listener onViewHero = args -> {
 			Handler.handleViewHero(JSON.parseObject(args[0].toString(), SViewHero.class));
 		};
+		Emitter.Listener onJournals = args -> {
+			Handler.handleJournals(JSON.parseObject(args[0].toString(), SJournals.class));
+		};
 		getSocket().on(Socket.EVENT_CONNECT, onConnected);
 		getSocket().on(Socket.EVENT_DISCONNECT, onDisconnected);
 		getSocket().on(Socket.EVENT_CONNECT_ERROR, onConnectionError);
@@ -144,6 +133,7 @@ public class Receiver {
 		getSocket().on(Events.PLAYER_MOVE.getName(), onPlayerMove);
 		getSocket().on(Events.SERVER_MESSAGE.getName(), onServerMessage);
 		getSocket().on(Events.VIEW_HERO.getName(), onViewHero);
+		getSocket().on("journals", onJournals);
 	}
 
 	public static void cancelAll() {

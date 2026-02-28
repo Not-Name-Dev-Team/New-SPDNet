@@ -151,9 +151,10 @@ public enum Catalog {
 	MISC_CONSUMABLES;
 
 	//tracks whether an item has been collected while identified
-	private final LinkedHashMap<Class<?>, Boolean> seen = new LinkedHashMap<>();
+	// SPDNet: 改为包私有，允许 Journal 类访问
+	final LinkedHashMap<Class<?>, Boolean> seen = new LinkedHashMap<>();
 	//tracks upgrades spent for equipment, uses for consumables
-	private final LinkedHashMap<Class<?>, Integer> useCount = new LinkedHashMap<>();
+	final LinkedHashMap<Class<?>, Integer> useCount = new LinkedHashMap<>();
 	
 	public Collection<Class<?>> items(){
 		return seen.keySet();
@@ -317,7 +318,8 @@ public enum Catalog {
 		for (Catalog cat : values()) {
 			if (cat.seen.containsKey(cls) && !cat.seen.get(cls)) {
 				cat.seen.put(cls, true);
-				Journal.saveNeeded = true;
+				// SPDNet: 云端模式下发送更新到服务器
+				Journal.sendCatalogUpdate(cat.name(), cls.getName(), true, useCount(cls));
 			}
 		}
 		Badges.validateCatalogBadges();
@@ -343,7 +345,8 @@ public enum Catalog {
 				if (cat.useCount.get(cls) < -1_000_000_000){ //to catch cases of overflow
 					cat.useCount.put(cls, Integer.MAX_VALUE);
 				}
-				Journal.saveNeeded = true;
+				// SPDNet: 云端模式下发送更新到服务器
+				Journal.sendCatalogUpdate(cat.name(), cls.getName(), cat.seen.containsKey(cls) && cat.seen.get(cls), cat.useCount.get(cls));
 			}
 		}
 	}

@@ -41,9 +41,12 @@ import com.shatteredpixel.shatteredpixeldungeon.journal.Catalog;
 import com.shatteredpixel.shatteredpixeldungeon.journal.Document;
 import com.shatteredpixel.shatteredpixeldungeon.messages.Messages;
 import com.shatteredpixel.shatteredpixeldungeon.scenes.PixelScene;
+import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.Sender;
+import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.actions.CAchievement;
 import com.shatteredpixel.shatteredpixeldungeon.utils.GLog;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.FileUtils;
+import lombok.Getter;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -54,6 +57,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Set;
 
 public class Badges {
 
@@ -310,41 +314,51 @@ public class Badges {
 	public static void saveLocal( Bundle bundle ) {
 		store( bundle, local );
 	}
-	
-	public static void loadGlobal() {
-		if (global == null) {
-			try {
-				Bundle bundle = FileUtils.bundleFromFile( BADGES_FILE );
-				global = restore( bundle );
 
-			} catch (IOException e) {
-				global = new HashSet<>();
-			}
-		}
+	// SPDNet: 不再从本地文件加载成就
+	public static void loadGlobal() {
 	}
 
 	public static void saveGlobal(){
 		saveGlobal(false);
 	}
 
+	// SPDNet: 完全云端存储，不保存到本地文件
 	public static void saveGlobal(boolean force) {
-		if (saveNeeded || force) {
-			
-			Bundle bundle = new Bundle();
-			store( bundle, global );
-			
-			try {
-				FileUtils.bundleToFile(BADGES_FILE, bundle);
-				saveNeeded = false;
-			} catch (IOException e) {
-				ShatteredPixelDungeon.reportException(e);
-			}
-		}
+	}
+
+	// SPDNet: 断开连接时重置为空状态
+	public static void resetToLocalMode() {
+		global = new HashSet<>();
 	}
 
 	public static int totalUnlocked(boolean global){
 		if (global) return Badges.global.size();
 		else        return Badges.local.size();
+	}
+
+	// SPDNet: 从云端加载成就数据
+	public static void loadFromCloud( Set<String> cloudAchievements ) {
+		if (cloudAchievements == null) {
+			cloudAchievements = new HashSet<>();
+		}
+
+		global = new HashSet<>();
+
+		for (String badgeName : cloudAchievements) {
+			try {
+				if (renamedBadges.containsKey(badgeName)){
+					badgeName = renamedBadges.get(badgeName);
+				}
+				if (!removedBadges.contains(badgeName)){
+					global.add( Badge.valueOf( badgeName ) );
+				}
+			} catch (Exception e) {
+				ShatteredPixelDungeon.reportException(e);
+			}
+		}
+
+		addReplacedBadges(global);
 	}
 
 	public static void validateMonstersSlain() {
@@ -1201,6 +1215,15 @@ public class Badges {
 		if (!isUnlocked(badge) && (badge.type == BadgeType.JOURNAL || Dungeon.customSeedText.isEmpty())){
 			global.add( badge );
 			saveNeeded = true;
+			
+			// SPDNet: 发送成就到服务器
+			try {
+				Sender.sendAchievement(
+					new CAchievement(badge)
+				);
+			} catch (Exception e) {
+				ShatteredPixelDungeon.reportException(e);
+			}
 		}
 	}
 

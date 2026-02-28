@@ -204,11 +204,11 @@ public class TitleScene extends PixelScene {
 		btnPlayers = new StyledButton(GREY_TR, "在线玩家") {
 			@Override
 			protected void onClick() {
-				if (Net.isConnected()) {
-					Game.runOnRenderThread(() -> ShatteredPixelDungeon.scene().add(new NetWndPlayerList()));
-				} else {
-					NetWindow.error("未连接", "请先连接到服务器 >:(");
+				if (!Net.isConnected()) {
+					NetWindow.showServerInfo();
+					return;
 				}
+				Game.runOnRenderThread(() -> ShatteredPixelDungeon.scene().add(new NetWndPlayerList()));
 			}
 		};
 
@@ -219,6 +219,11 @@ public class TitleScene extends PixelScene {
 		btnRankings = new StyledButton(GREY_TR,Messages.get(this, "rankings")){
 			@Override
 			protected void onClick() {
+				// SPDNet: 检查是否已登录云端，未登录则弹出登录窗口
+				if (!Net.isConnected()) {
+					NetWindow.showServerInfo();
+					return;
+				}
 				ShatteredPixelDungeon.switchNoFade( NetRankingsScene.class );
 			}
 		};
@@ -229,6 +234,11 @@ public class TitleScene extends PixelScene {
 		btnJournal = new StyledButton(GREY_TR, Messages.get(this, "journal")){
 			@Override
 			protected void onClick() {
+				// SPDNet: 检查是否已登录云端，未登录则弹出登录窗口
+				if (!Net.isConnected()) {
+					NetWindow.showServerInfo();
+					return;
+				}
 				ShatteredPixelDungeon.switchNoFade( JournalScene.class );
 			}
 		};

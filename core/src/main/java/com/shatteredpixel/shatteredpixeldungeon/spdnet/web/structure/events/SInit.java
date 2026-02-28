@@ -3,6 +3,7 @@ package com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.events;
 import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.Data;
 
 import java.util.Map;
+import java.util.Set;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -17,4 +18,5 @@ public class SInit extends Data {
 	private String name;
 	private String motd;
 	private Map<String, Long> seeds;
+	private Set<String> achievements;
 }

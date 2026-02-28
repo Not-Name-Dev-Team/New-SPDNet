@@ -96,4 +96,9 @@ public class Sender {
 	public void sendLeaderboard(SocketIOClient client, SLeaderboard data) {
 		client.sendEvent(Events.LEADERBOARD.getName(), data);
 	}
+
+	// SPDNet: 发送 Journal 数据给客户端
+	public void sendJournals(SocketIOClient client, SJournals data) {
+		client.sendEvent("journals", data);
+	}
 }

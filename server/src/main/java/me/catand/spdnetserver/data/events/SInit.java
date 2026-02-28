@@ -7,6 +7,7 @@ import lombok.Setter;
 import me.catand.spdnetserver.data.Data;
 
 import java.util.Map;
+import java.util.Set;
 
 @Getter
 @Setter
@@ -16,4 +17,5 @@ public class SInit extends Data {
 	private String name;
 	private String motd;
 	private Map<String, Long> seeds;
+	private Set<String> achievements;
 }

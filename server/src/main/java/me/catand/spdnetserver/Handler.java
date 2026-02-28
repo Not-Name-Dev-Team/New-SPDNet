@@ -8,8 +8,7 @@ import me.catand.spdnetserver.data.actions.*;
 import me.catand.spdnetserver.data.events.*;
 import me.catand.spdnetserver.entitys.GameRecord;
 import me.catand.spdnetserver.entitys.Player;
-import me.catand.spdnetserver.repositories.GameRecordRepository;
-import me.catand.spdnetserver.repositories.PlayerRepository;
+import me.catand.spdnetserver.repositories.*;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -23,14 +22,23 @@ import java.util.UUID;
 public class Handler {
 	private final PlayerRepository playerRepository;
 	private final GameRecordRepository gameRecordRepository;
+	private final PlayerCatalogRepository playerCatalogRepository;
+	private final PlayerBestiaryRepository playerBestiaryRepository;
+	private final PlayerDocumentRepository playerDocumentRepository;
 	private SocketService socketService;
 	private Sender sender;
 	private Map<UUID, Player> playerMap;
 	private ChatService chatService;
 
-	public Handler(PlayerRepository playerRepository, GameRecordRepository gameRecordRepository, SocketService socketService, Sender sender, Map<UUID, Player> playerMap, ChatService chatService) {
+	public Handler(PlayerRepository playerRepository, GameRecordRepository gameRecordRepository, 
+	               PlayerCatalogRepository playerCatalogRepository, PlayerBestiaryRepository playerBestiaryRepository,
+	               PlayerDocumentRepository playerDocumentRepository,
+	               SocketService socketService, Sender sender, Map<UUID, Player> playerMap, ChatService chatService) {
 		this.playerRepository = playerRepository;
 		this.gameRecordRepository = gameRecordRepository;
+		this.playerCatalogRepository = playerCatalogRepository;
+		this.playerBestiaryRepository = playerBestiaryRepository;
+		this.playerDocumentRepository = playerDocumentRepository;
 		this.socketService = socketService;
 		this.sender = sender;
 		this.playerMap = playerMap;
@@ -38,12 +46,28 @@ public class Handler {
 	}
 
 	public void handleAchievement(Player player, CAchievement cAchievement) {
-		boolean hasAchievement = playerRepository.hasAchievement(player.getName(), cAchievement.getBadgeEnumString());
-		log.info("玩家{}获得了成就{}，是否已经获得：{}", player.getName(), cAchievement.getBadgeEnumString(), hasAchievement);
-		if (!hasAchievement) {
-			player.getAchievements().add(cAchievement.getBadgeEnumString());
-			playerRepository.save(player);
+		// SPDNet: 从数据库重新加载 Player，确保数据最新
+		Player dbPlayer = playerRepository.findByName(player.getName());
+		if (dbPlayer == null) {
+			log.error("玩家{}不存在，无法保存成就", player.getName());
+			return;
 		}
+		
+		// 确保成就集合不为 null
+		if (dbPlayer.getAchievements() == null) {
+			dbPlayer.setAchievements(new java.util.HashSet<>());
+		}
+		
+		boolean hasAchievement = dbPlayer.getAchievements().contains(cAchievement.getBadgeEnumString());
+		log.info("玩家{}获得了成就{}，是否已经获得：{}", player.getName(), cAchievement.getBadgeEnumString(), hasAchievement);
+		
+		if (!hasAchievement) {
+			dbPlayer.getAchievements().add(cAchievement.getBadgeEnumString());
+			playerRepository.save(dbPlayer);
+			// 更新 playerMap 中的 Player 对象
+			player.setAchievements(dbPlayer.getAchievements());
+		}
+		
 		sender.sendBroadcastAchievement(new SAchievement(player.getName(), cAchievement.getBadgeEnumString(), hasAchievement));
 	}
 
@@ -166,5 +190,93 @@ public class Handler {
 				sender.sendViewHero(socketService.getServer().getNamespace("/spdnet").getClient(uuid), new SViewHero(player.getName()));
 			}
 		});
+	}
+
+	// SPDNet: 处理 Catalog 更新
+	public void handleCatalogUpdate(Player player, CCatalogUpdate cCatalogUpdate) {
+		Player dbPlayer = playerRepository.findByName(player.getName());
+		if (dbPlayer == null) {
+			log.error("玩家{}不存在，无法保存 Catalog 数据", player.getName());
+			return;
+		}
+
+		me.catand.spdnetserver.entitys.PlayerCatalog catalog = new me.catand.spdnetserver.entitys.PlayerCatalog();
+		catalog.setPlayerId(dbPlayer.getId());
+		catalog.setCatalogType(cCatalogUpdate.getCatalogType());
+		catalog.setItemClass(cCatalogUpdate.getItemClass());
+		catalog.setSeen(cCatalogUpdate.isSeen());
+		catalog.setUseCount(cCatalogUpdate.getUseCount());
+
+		playerCatalogRepository.save(catalog);
+		log.info("玩家{}更新了 Catalog 数据：{} - {}", player.getName(), cCatalogUpdate.getCatalogType(), cCatalogUpdate.getItemClass());
+	}
+
+	// SPDNet: 处理 Bestiary 更新
+	public void handleBestiaryUpdate(Player player, CBestiaryUpdate cBestiaryUpdate) {
+		Player dbPlayer = playerRepository.findByName(player.getName());
+		if (dbPlayer == null) {
+			log.error("玩家{}不存在，无法保存 Bestiary 数据", player.getName());
+			return;
+		}
+
+		me.catand.spdnetserver.entitys.PlayerBestiary bestiary = new me.catand.spdnetserver.entitys.PlayerBestiary();
+		bestiary.setPlayerId(dbPlayer.getId());
+		bestiary.setBestiaryType(cBestiaryUpdate.getBestiaryType());
+		bestiary.setEntityClass(cBestiaryUpdate.getEntityClass());
+		bestiary.setSeen(cBestiaryUpdate.isSeen());
+		bestiary.setEncountered(cBestiaryUpdate.getEncountered());
+
+		playerBestiaryRepository.save(bestiary);
+		log.info("玩家{}更新了 Bestiary 数据：{} - {}", player.getName(), cBestiaryUpdate.getBestiaryType(), cBestiaryUpdate.getEntityClass());
+	}
+
+	// SPDNet: 处理 Document 更新
+	public void handleDocumentUpdate(Player player, CDocumentUpdate cDocumentUpdate) {
+		Player dbPlayer = playerRepository.findByName(player.getName());
+		if (dbPlayer == null) {
+			log.error("玩家{}不存在，无法保存 Document 数据", player.getName());
+			return;
+		}
+
+		me.catand.spdnetserver.entitys.PlayerDocument document = new me.catand.spdnetserver.entitys.PlayerDocument();
+		document.setPlayerId(dbPlayer.getId());
+		document.setDocumentType(cDocumentUpdate.getDocumentType());
+		document.setPageName(cDocumentUpdate.getPageName());
+		document.setFound(cDocumentUpdate.isFound());
+
+		playerDocumentRepository.save(document);
+		log.info("玩家{}更新了 Document 数据：{} - {}", player.getName(), cDocumentUpdate.getDocumentType(), cDocumentUpdate.getPageName());
+	}
+
+	// SPDNet: 加载玩家的 Journal 数据并发送给客户端
+	public void loadAndSendJournals(SocketIOClient client, Player player) {
+		Player dbPlayer = playerRepository.findByName(player.getName());
+		if (dbPlayer == null) {
+			log.error("玩家{}不存在，无法加载 Journal 数据", player.getName());
+			return;
+		}
+
+		List<me.catand.spdnetserver.entitys.PlayerCatalog> catalogs = playerCatalogRepository.findByPlayerId(dbPlayer.getId());
+		List<me.catand.spdnetserver.entitys.PlayerBestiary> bestiaries = playerBestiaryRepository.findByPlayerId(dbPlayer.getId());
+		List<me.catand.spdnetserver.entitys.PlayerDocument> documents = playerDocumentRepository.findByPlayerId(dbPlayer.getId());
+
+		List<SJournals.CatalogData> catalogDataList = new java.util.ArrayList<>();
+		for (me.catand.spdnetserver.entitys.PlayerCatalog catalog : catalogs) {
+			catalogDataList.add(new SJournals.CatalogData(catalog.getCatalogType(), catalog.getItemClass(), catalog.isSeen(), catalog.getUseCount()));
+		}
+
+		List<SJournals.BestiaryData> bestiaryDataList = new java.util.ArrayList<>();
+		for (me.catand.spdnetserver.entitys.PlayerBestiary bestiary : bestiaries) {
+			bestiaryDataList.add(new SJournals.BestiaryData(bestiary.getBestiaryType(), bestiary.getEntityClass(), bestiary.isSeen(), bestiary.getEncountered()));
+		}
+
+		List<SJournals.DocumentData> documentDataList = new java.util.ArrayList<>();
+		for (me.catand.spdnetserver.entitys.PlayerDocument document : documents) {
+			documentDataList.add(new SJournals.DocumentData(document.getDocumentType(), document.getPageName(), document.isFound()));
+		}
+
+		sender.sendJournals(client, new SJournals(catalogDataList, bestiaryDataList, documentDataList));
+		log.info("玩家{}的 Journal 数据已发送，包含 {} 个 Catalog, {} 个 Bestiary, {} 个 Document",
+			player.getName(), catalogs.size(), bestiaries.size(), documents.size());
 	}
 }

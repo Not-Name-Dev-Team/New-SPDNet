@@ -22,10 +22,16 @@
 package com.shatteredpixel.shatteredpixeldungeon.journal;
 
 import com.shatteredpixel.shatteredpixeldungeon.ShatteredPixelDungeon;
+import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.Net;
+import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.Sender;
+import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.actions.CCatalogUpdate;
+import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.actions.CBestiaryUpdate;
+import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.actions.CDocumentUpdate;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.FileUtils;
 
 import java.io.IOException;
+import java.util.List;
 
 public class Journal {
 	
@@ -34,50 +40,96 @@ public class Journal {
 	private static boolean loaded = false;
 	
 	public static void loadGlobal(){
-		if (loaded){
-			return;
-		}
-		
-		Bundle bundle;
-		try {
-			bundle = FileUtils.bundleFromFile( JOURNAL_FILE );
-			
-		} catch (IOException e){
-			bundle = new Bundle();
-		}
-		
-		Catalog.restore( bundle );
-		Bestiary.restore( bundle );
-		Document.restore( bundle );
-		
-		loaded = true;
 	}
-	
+
+	// SPDNet: 从云端加载 Journal 数据
+	public static void loadFromCloud(List<com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.events.SJournals.CatalogData> catalogs,
+	                                List<com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.events.SJournals.BestiaryData> bestiaries,
+	                                List<com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.events.SJournals.DocumentData> documents) {
+
+		// 加载 Catalog 数据
+		if (catalogs != null) {
+			for (com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.events.SJournals.CatalogData data : catalogs) {
+				try {
+					Catalog cat = Catalog.valueOf(data.getCatalogType());
+					Class<?> itemClass = Class.forName(data.getItemClass());
+					if (cat.seen.containsKey(itemClass)) {
+						cat.seen.put(itemClass, data.isSeen());
+						cat.useCount.put(itemClass, data.getUseCount());
+					}
+				} catch (Exception e) {
+					ShatteredPixelDungeon.reportException(e);
+				}
+			}
+		}
+
+		// 加载 Bestiary 数据
+		if (bestiaries != null) {
+			for (com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.events.SJournals.BestiaryData data : bestiaries) {
+				try {
+					Bestiary cat = Bestiary.valueOf(data.getBestiaryType());
+					Class<?> entityClass = Class.forName(data.getEntityClass());
+					if (cat.seen.containsKey(entityClass)) {
+						cat.seen.put(entityClass, data.isSeen());
+						cat.encounterCount.put(entityClass, data.getEncountered());
+					}
+				} catch (Exception e) {
+					ShatteredPixelDungeon.reportException(e);
+				}
+			}
+		}
+
+		// 加载 Document 数据
+		if (documents != null) {
+			for (com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.events.SJournals.DocumentData data : documents) {
+				try {
+					Document doc = Document.valueOf(data.getDocumentType());
+					if (doc.pagesStates.containsKey(data.getPageName())) {
+						doc.pagesStates.put(data.getPageName(), data.isFound() ? Document.FOUND : Document.NOT_FOUND);
+					}
+				} catch (Exception e) {
+					ShatteredPixelDungeon.reportException(e);
+				}
+			}
+		}
+	}
+
 	//package-private
 	static boolean saveNeeded = false;
+
+
+	// SPDNet: 发送 Catalog 更新到服务器
+	public static void sendCatalogUpdate(String catalogType, String itemClass, boolean seen, int useCount) {
+		try {
+			Sender.sendCatalogUpdate(new CCatalogUpdate(catalogType, itemClass, seen, useCount));
+		} catch (Exception e) {
+			ShatteredPixelDungeon.reportException(e);
+		}
+	}
+
+	// SPDNet: 发送 Bestiary 更新到服务器
+	public static void sendBestiaryUpdate(String bestiaryType, String entityClass, boolean seen, int encountered) {
+		try {
+			Sender.sendBestiaryUpdate(new CBestiaryUpdate(bestiaryType, entityClass, seen, encountered));
+		} catch (Exception e) {
+			ShatteredPixelDungeon.reportException(e);
+		}
+	}
+
+	// SPDNet: 发送 Document 更新到服务器
+	public static void sendDocumentUpdate(String documentType, String pageName, boolean found) {
+		try {
+			Sender.sendDocumentUpdate(new CDocumentUpdate(documentType, pageName, found));
+		} catch (Exception e) {
+			ShatteredPixelDungeon.reportException(e);
+		}
+	}
 
 	public static void saveGlobal(){
 		saveGlobal(false);
 	}
 
 	public static void saveGlobal(boolean force){
-		if (!force && !saveNeeded){
-			return;
-		}
-		
-		Bundle bundle = new Bundle();
-		
-		Catalog.store(bundle);
-		Bestiary.store(bundle);
-		Document.store(bundle);
-		
-		try {
-			FileUtils.bundleToFile( JOURNAL_FILE, bundle );
-			saveNeeded = false;
-		} catch (IOException e) {
-			ShatteredPixelDungeon.reportException(e);
-		}
-		
 	}
 
 }

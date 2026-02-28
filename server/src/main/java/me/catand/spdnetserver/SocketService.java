@@ -14,6 +14,9 @@ import me.catand.spdnetserver.entitys.Player;
 import me.catand.spdnetserver.entitys.UserRole;
 import me.catand.spdnetserver.repositories.GameRecordRepository;
 import me.catand.spdnetserver.repositories.PlayerRepository;
+import me.catand.spdnetserver.repositories.PlayerCatalogRepository;
+import me.catand.spdnetserver.repositories.PlayerBestiaryRepository;
+import me.catand.spdnetserver.repositories.PlayerDocumentRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -36,6 +39,12 @@ public class SocketService {
 	private PlayerRepository playerRepository;
 	@Autowired
 	private GameRecordRepository gameRecordRepository;
+	@Autowired
+	private PlayerCatalogRepository playerCatalogRepository;
+	@Autowired
+	private PlayerBestiaryRepository playerBestiaryRepository;
+	@Autowired
+	private PlayerDocumentRepository playerDocumentRepository;
 	@Autowired
 	private SpdProperties spdProperties;
 	@Autowired
@@ -74,7 +83,9 @@ public class SocketService {
 		server.start();
 		startAll();
 		sender = new Sender(server);
-		handler = new Handler(playerRepository, gameRecordRepository, this, sender, playerMap, chatService);
+		handler = new Handler(playerRepository, gameRecordRepository, 
+		                      playerCatalogRepository, playerBestiaryRepository, playerDocumentRepository,
+		                      this, sender, playerMap, chatService);
 	}
 
 	@PreDestroy
@@ -152,7 +163,15 @@ public class SocketService {
 				return;
 			}
 			playerMap.put(client.getSessionId(), player);
-			sender.sendInit(client, new SInit(player.getName(), spdProperties.getMotd(), seeds));
+			// SPDNet: 确保玩家成就集合不为 null，如果为 null 则初始化并保存到数据库
+			if (player.getAchievements() == null) {
+				player.setAchievements(new java.util.HashSet<>());
+				playerRepository.save(player);
+				log.info("玩家{}成就集合初始化", player.getName());
+			}
+			sender.sendInit(client, new SInit(player.getName(), spdProperties.getMotd(), seeds, player.getAchievements()));
+			// SPDNet: 发送 Journal 数据给客户端
+			handler.loadAndSendJournals(client, player);
 			sender.sendBroadcastJoin(new SJoin(player.getName(), player.getRole().getDisplayName()));
 			sender.sendPlayerList(client, new SPlayerList(playerMap));
 			log.info("玩家已连接: " + player.getName() + ", " + client.getSessionId());
@@ -214,6 +233,17 @@ public class SocketService {
 		});
 		spdNetNamespace.addEventListener(Actions.VIEW_HERO.getName(), String.class, (client, data, ackSender) -> {
 			handler.handleViewHero(playerMap.get(client.getSessionId()), JSON.parseObject(data, CViewHero.class));
+		});
+
+		// SPDNet: Journal 相关事件监听
+		spdNetNamespace.addEventListener("catalogUpdate", String.class, (client, data, ackSender) -> {
+			handler.handleCatalogUpdate(playerMap.get(client.getSessionId()), JSON.parseObject(data, CCatalogUpdate.class));
+		});
+		spdNetNamespace.addEventListener("bestiaryUpdate", String.class, (client, data, ackSender) -> {
+			handler.handleBestiaryUpdate(playerMap.get(client.getSessionId()), JSON.parseObject(data, CBestiaryUpdate.class));
+		});
+		spdNetNamespace.addEventListener("documentUpdate", String.class, (client, data, ackSender) -> {
+			handler.handleDocumentUpdate(playerMap.get(client.getSessionId()), JSON.parseObject(data, CDocumentUpdate.class));
 		});
 
 	}

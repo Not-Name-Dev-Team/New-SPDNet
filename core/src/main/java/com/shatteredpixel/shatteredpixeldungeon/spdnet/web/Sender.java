@@ -9,7 +9,10 @@ import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.Actions;
 import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.actions.CAchievement;
 import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.actions.CAnkhUsed;
 import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.actions.CArmorUpdate;
+import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.actions.CCatalogUpdate;
 import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.actions.CChatMessage;
+import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.actions.CBestiaryUpdate;
+import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.actions.CDocumentUpdate;
 import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.actions.CEnterDungeon;
 import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.actions.CError;
 import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.actions.CFloatingText;
@@ -101,5 +104,20 @@ public class Sender {
 
 	public static void sendViewHero(CViewHero viewHero) {
 		getSocket().emit(Actions.VIEW_HERO.getName(), JSON.toJSONString(viewHero));
+	}
+
+	// SPDNet: 发送 Catalog 更新到服务器
+	public static void sendCatalogUpdate(CCatalogUpdate catalogUpdate) {
+		getSocket().emit("catalogUpdate", JSON.toJSONString(catalogUpdate));
+	}
+
+	// SPDNet: 发送 Bestiary 更新到服务器
+	public static void sendBestiaryUpdate(CBestiaryUpdate bestiaryUpdate) {
+		getSocket().emit("bestiaryUpdate", JSON.toJSONString(bestiaryUpdate));
+	}
+
+	// SPDNet: 发送 Document 更新到服务器
+	public static void sendDocumentUpdate(CDocumentUpdate documentUpdate) {
+		getSocket().emit("documentUpdate", JSON.toJSONString(documentUpdate));
 	}
 }
