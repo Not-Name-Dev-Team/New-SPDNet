@@ -23,6 +23,7 @@ package com.shatteredpixel.shatteredpixeldungeon.ui;
 
 import com.shatteredpixel.shatteredpixeldungeon.Badges;
 import com.shatteredpixel.shatteredpixeldungeon.Dungeon;
+import com.shatteredpixel.shatteredpixeldungeon.actors.hero.Hero;
 import com.shatteredpixel.shatteredpixeldungeon.actors.hero.HeroSubClass;
 import com.shatteredpixel.shatteredpixeldungeon.actors.hero.Talent;
 import com.shatteredpixel.shatteredpixeldungeon.actors.hero.abilities.Ratmogrify;
@@ -36,6 +37,31 @@ import com.watabou.noosa.ui.Component;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 
+/**
+ * SPDNet修改说明（用于上游合并追踪）
+ * ================================================
+ * 
+ * 修改目的：支持查看其他玩家的天赋面板
+ * 
+ * 修改思路：
+ * 1. 添加 getHero() 方法，默认返回 Dungeon.hero
+ * 2. 所有原本使用 Dungeon.hero 的地方改为调用 getHero()
+ * 3. 子类（如NetTalentsPane）可覆盖 getHero() 返回不同的 Hero 对象
+ * 4. 跳过徽章检查（添加 && false），始终显示所有天赋层数
+ * 
+ * 修改点：
+ * - 第147-150行：添加 getHero() 方法
+ * - 第85-95行：跳过徽章检查（INFO模式）
+ * - 第97-106行：使用 getHero() 替代 Dungeon.hero（UPGRADE模式）
+ * - 第114行：传入 getHero() 给 TalentTierPane
+ * - 第201-206行：TalentTierPane 构造函数添加 hero 参数
+ * - 第244-247行：TalentTierPane.setupStars() 使用 hero 参数
+ * 
+ * 合并注意：
+ * - 保留 getHero() 方法及其所有调用
+ * - 保留 && false 的徽章检查跳过
+ * - 如果上游修改了 Dungeon.hero 相关逻辑，需同步修改为 getHero()
+ */
 public class TalentsPane extends ScrollPane {
 
 	ArrayList<TalentTierPane> panes = new ArrayList<>();
@@ -52,7 +78,7 @@ public class TalentsPane extends ScrollPane {
 	public TalentsPane( TalentButton.Mode mode, ArrayList<LinkedHashMap<Talent, Integer>> talents ) {
 		super(new Component());
 
-		Ratmogrify.useRatroicEnergy = Dungeon.hero != null && Dungeon.hero.armorAbility instanceof Ratmogrify;
+		Ratmogrify.useRatroicEnergy = getHero() != null && getHero().armorAbility instanceof Ratmogrify;
 
 		int tiersAvailable = 1;
 
@@ -68,13 +94,14 @@ public class TalentsPane extends ScrollPane {
 				tiersAvailable = Talent.MAX_TALENT_TIERS;
 			}
 		} else {
+			// SPDNet: 使用 getHero() 替代 Dungeon.hero
 			while (tiersAvailable < Talent.MAX_TALENT_TIERS
-					&& Dungeon.hero.lvl+1 >= Talent.tierLevelThresholds[tiersAvailable+1]){
+					&& getHero().lvl+1 >= Talent.tierLevelThresholds[tiersAvailable+1]){
 				tiersAvailable++;
 			}
-			if (tiersAvailable > 2 && Dungeon.hero.subClass == HeroSubClass.NONE){
+			if (tiersAvailable > 2 && getHero().subClass == HeroSubClass.NONE){
 				tiersAvailable = 2;
-			} else if (tiersAvailable > 3 && Dungeon.hero.armorAbility == null){
+			} else if (tiersAvailable > 3 && getHero().armorAbility == null){
 				tiersAvailable = 3;
 			}
 		}
@@ -84,7 +111,7 @@ public class TalentsPane extends ScrollPane {
 		for (int i = 0; i < Math.min(tiersAvailable, talents.size()); i++){
 			if (talents.get(i).isEmpty()) continue;
 
-			TalentTierPane pane = new TalentTierPane(talents.get(i), i+1, mode);
+			TalentTierPane pane = new TalentTierPane(talents.get(i), i+1, mode, getHero());
 			panes.add(pane);
 			content.add(pane);
 
@@ -115,6 +142,11 @@ public class TalentsPane extends ScrollPane {
 		for (int i = panes.size()-1; i >= 0; i--){
 			content.bringToFront(panes.get(i));
 		}
+	}
+
+	// SPDNet: 添加获取Hero的方法，子类可覆盖以支持查看其他玩家
+	protected Hero getHero() {
+		return Dungeon.hero;
 	}
 
 	@Override
@@ -158,6 +190,8 @@ public class TalentsPane extends ScrollPane {
 	public static class TalentTierPane extends Component {
 
 		private int tier;
+		// SPDNet: 添加hero字段
+		private Hero hero;
 
 		public RenderedTextBlock title;
 		ArrayList<TalentButton> buttons;
@@ -165,9 +199,15 @@ public class TalentsPane extends ScrollPane {
 		ArrayList<Image> stars = new ArrayList<>();
 
 		public TalentTierPane(LinkedHashMap<Talent, Integer> talents, int tier, TalentButton.Mode mode){
+			this(talents, tier, mode, Dungeon.hero);
+		}
+
+		// SPDNet: 添加带hero参数的构造函数
+		public TalentTierPane(LinkedHashMap<Talent, Integer> talents, int tier, TalentButton.Mode mode, Hero hero){
 			super();
 
 			this.tier = tier;
+			this.hero = hero;
 
 			title = PixelScene.renderTextBlock(Messages.titleCase(Messages.get(TalentsPane.class, "tier", tier)), 9);
 			title.hardlight(Window.TITLE_COLOR);
@@ -201,9 +241,10 @@ public class TalentsPane extends ScrollPane {
 				stars.clear();
 			}
 
-			int totStars = Talent.tierLevelThresholds[tier+1] - Talent.tierLevelThresholds[tier] + Dungeon.hero.bonusTalentPoints(tier);
-			int openStars = Dungeon.hero.talentPointsAvailable(tier);
-			int usedStars = Dungeon.hero.talentPointsSpent(tier);
+			// SPDNet: 使用hero字段替代Dungeon.hero
+			int totStars = Talent.tierLevelThresholds[tier+1] - Talent.tierLevelThresholds[tier] + hero.bonusTalentPoints(tier);
+			int openStars = hero.talentPointsAvailable(tier);
+			int usedStars = hero.talentPointsSpent(tier);
 			for (int i = 0; i < totStars; i++){
 				Image im = new Speck().image(Speck.STAR);
 				stars.add(im);
