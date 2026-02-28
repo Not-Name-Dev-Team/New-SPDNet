@@ -7,6 +7,8 @@ import me.catand.spdnetserver.entitys.Player;
 import me.catand.spdnetserver.entitys.UserRole;
 import me.catand.spdnetserver.repositories.GameRecordRepository;
 import me.catand.spdnetserver.repositories.PlayerRepository;
+import me.catand.spdnetserver.service.MailService;
+import me.catand.spdnetserver.service.VerificationCodeService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -34,13 +36,57 @@ public class PlayerController {
     @Autowired
     private SocketService socketService;
 
+    @Autowired
+    private VerificationCodeService verificationCodeService;
+
+    @Autowired
+    private MailService mailService;
+
     private BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+
+    @PostMapping("/send-code")
+    public ApiResponse<Map<String, Object>> sendVerificationCode(@RequestBody SendCodeRequest request) {
+        String email = request.getEmail();
+
+        if (email == null || email.trim().isEmpty()) {
+            return ApiResponse.error("邮箱不能为空");
+        }
+
+        if (!email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$")) {
+            return ApiResponse.error("邮箱格式不正确");
+        }
+
+        if (playerRepository.existsByEmail(email)) {
+            return ApiResponse.error("该邮箱已注册");
+        }
+
+        if (!mailService.isEnabled()) {
+            return ApiResponse.error("邮件服务未启用，请联系管理员");
+        }
+
+        // 获取或生成验证码（如果未过期则返回相同的验证码）
+        String code = verificationCodeService.getOrGenerateCode(email);
+        boolean sent = mailService.sendVerificationCode(email, code);
+
+        if (!sent) {
+            return ApiResponse.error("验证码发送失败，请稍后重试");
+        }
+
+        // 存储验证码（如果是已存在的验证码，storeCode会更新过期时间）
+        verificationCodeService.storeCode(email, code);
+
+        Map<String, Object> data = new HashMap<>();
+        data.put("expireMinutes", 5);
+
+        return ApiResponse.success("验证码已发送", data);
+    }
 
     @PostMapping("/register")
     public ApiResponse<Map<String, Object>> register(@RequestBody RegisterRequest request) {
         String name = request.getName();
         String email = request.getEmail();
         String password = request.getPassword();
+        String verificationCode = request.getVerificationCode();
 
         if (name == null || name.trim().isEmpty()) {
             return ApiResponse.error("用户名不能为空");
@@ -66,12 +112,20 @@ public class PlayerController {
             return ApiResponse.error("密码长度需在6-32个字符之间");
         }
 
+        if (verificationCode == null || verificationCode.trim().isEmpty()) {
+            return ApiResponse.error("验证码不能为空");
+        }
+
         if (playerRepository.existsByName(name)) {
             return ApiResponse.error("用户名已存在");
         }
 
         if (playerRepository.existsByEmail(email)) {
             return ApiResponse.error("该邮箱已注册");
+        }
+
+        if (!verificationCodeService.verifyCode(email, verificationCode)) {
+            return ApiResponse.error("验证码错误或已过期");
         }
 
         Player player = new Player();
@@ -81,6 +135,7 @@ public class PlayerController {
         player.setRole(UserRole.USER);
 
         playerRepository.save(player);
+        verificationCodeService.removeCode(email);
 
         Map<String, Object> data = new HashMap<>();
         data.put("name", name);

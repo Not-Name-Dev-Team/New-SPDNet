@@ -13,6 +13,10 @@ export const playerApi = {
     return api.post('/register', data)
   },
 
+  sendCode(data) {
+    return api.post('/send-code', data)
+  },
+
   login(data) {
     return api.post('/login', data)
   },

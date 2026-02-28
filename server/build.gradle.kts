@@ -36,6 +36,9 @@ dependencies {
 
     // BCrypt for password encoding
     implementation("org.springframework.security:spring-security-crypto:6.4.4")
+
+    // Mail
+    implementation("org.springframework.boot:spring-boot-starter-mail")
 }
 
 tasks.withType<Test> {

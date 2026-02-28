@@ -14,3 +14,22 @@ spd:
   version: 3.3.6
   netVersion: 0.0.1
   motd: 不欢迎  >:^(
+  mail:
+    # 是否启用邮件功能
+    enabled: true
+    # SMTP 服务器地址 (126邮箱)
+    host: smtp.126.com
+    # SMTP 端口 (126邮箱使用SSL端口465)
+    port: 465
+    # 邮箱账号
+    username: JDSALing@126.com
+    # 邮箱授权码 (注意：不是登录密码，是SMTP授权码)
+    password: HJOHDUYCGDQOZYMH
+    # 发件人邮箱
+    from: JDSALing@126.com
+    # 发件人名称
+    fromName: SPDNet
+    # 验证码过期时间（分钟）
+    codeExpireMinutes: 5
+    # 验证码长度
+    codeLength: 6
