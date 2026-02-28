@@ -221,7 +221,7 @@ public class TalentsPane extends ScrollPane {
 
 			if (mode == TalentButton.Mode.UPGRADE) {
 				setupStars();
-				if (getHero().talentPointsAvailable(tier) > 0){
+				if (this.hero.talentPointsAvailable(tier) > 0){
 
 					random = new IconButton(Icons.SHUFFLE.get()){
 						@Override

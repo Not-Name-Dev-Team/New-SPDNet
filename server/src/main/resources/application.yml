@@ -11,6 +11,6 @@ spring:
     hibernate:
       ddl-auto: update
 spd:
-  version: 3.2.5
+  version: 3.3.6
   netVersion: 0.0.1
   motd: 不欢迎  >:^(
