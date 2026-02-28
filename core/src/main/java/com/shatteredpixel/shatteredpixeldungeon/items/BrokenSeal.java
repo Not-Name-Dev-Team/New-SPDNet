@@ -260,12 +260,13 @@ public class BrokenSeal extends Item {
 
 		private int cooldown = 0;
 		private float turnsSinceEnemies = 0;
+		private int initialShield = 0;
 
 		private static int COOLDOWN_START = 150;
 
 		@Override
 		public int icon() {
-			if (coolingDown() || shielding() > 0){
+			if (coolingDown() || shielding() > 0 || cooldown < 0){
 				return BuffIndicator.SEAL_SHIELD;
 			} else {
 				return BuffIndicator.NONE;
@@ -274,19 +275,22 @@ public class BrokenSeal extends Item {
 
 		@Override
 		public void tintIcon(Image icon) {
+			icon.resetColor();
 			if (coolingDown() && shielding() == 0){
 				icon.brightness(0.3f);
-			} else {
-				icon.resetColor();
+			} else if (cooldown < 0) {
+				icon.invert();
 			}
 		}
 
 		@Override
 		public float iconFadePercent() {
 			if (shielding() > 0){
-				return GameMath.gate(0, 1f - shielding()/(float)maxShield(), 1);
+				return GameMath.gate(0, 1f - shielding()/(float)initialShield, 1);
 			} else if (coolingDown()){
 				return GameMath.gate(0, cooldown / (float)COOLDOWN_START, 1);
+			} else if (cooldown < 0) {
+				return GameMath.gate(0, (COOLDOWN_START+cooldown) / (float)COOLDOWN_START, 1);
 			} else {
 				return 0;
 			}
@@ -296,7 +300,7 @@ public class BrokenSeal extends Item {
 		public String iconTextDisplay() {
 			if (shielding() > 0){
 				return Integer.toString(shielding());
-			} else if (coolingDown()){
+			} else if (coolingDown() || cooldown < 0){
 				return Integer.toString(cooldown);
 			} else {
 				return "";
@@ -305,8 +309,10 @@ public class BrokenSeal extends Item {
 
 		@Override
 		public String desc() {
-			if (shielding() > 0){
+			if (shielding() > 0) {
 				return Messages.get(this, "desc_active", shielding(), cooldown);
+			} else if (cooldown < 0) {
+				return Messages.get(this, "desc_negative_cooldown", cooldown);
 			} else {
 				return Messages.get(this, "desc_cooldown", cooldown);
 			}
@@ -323,7 +329,7 @@ public class BrokenSeal extends Item {
 					turnsSinceEnemies += HoldFast.buffDecayFactor(target);
 					if (turnsSinceEnemies >= 5){
 						if (cooldown > 0) {
-							float percentLeft = shielding() / (float)maxShield();
+							float percentLeft = shielding() / (float)initialShield;
 							//max of 50% cooldown refund
 							cooldown = Math.max(0, (int)(cooldown - COOLDOWN_START * (percentLeft / 2f)));
 						}
@@ -346,6 +352,7 @@ public class BrokenSeal extends Item {
 			incShield(maxShield());
 			cooldown = Math.max(0, cooldown+COOLDOWN_START);
 			turnsSinceEnemies = 0;
+			initialShield = maxShield();
 		}
 
 		public boolean coolingDown(){
@@ -376,12 +383,14 @@ public class BrokenSeal extends Item {
 
 		public static final String COOLDOWN = "cooldown";
 		public static final String TURNS_SINCE_ENEMIES = "turns_since_enemies";
+		public static final String INITIAL_SHIELD = "initial_shield";
 
 		@Override
 		public void storeInBundle(Bundle bundle) {
 			super.storeInBundle(bundle);
 			bundle.put(COOLDOWN, cooldown);
 			bundle.put(TURNS_SINCE_ENEMIES, turnsSinceEnemies);
+			bundle.put(INITIAL_SHIELD, initialShield);
 		}
 
 		@Override
@@ -390,10 +399,12 @@ public class BrokenSeal extends Item {
 			if (bundle.contains(COOLDOWN)) {
 				cooldown = bundle.getInt(COOLDOWN);
 				turnsSinceEnemies = bundle.getFloat(TURNS_SINCE_ENEMIES);
+				initialShield = bundle.getInt(INITIAL_SHIELD);
 
 			//if we have shield from pre-3.1, have it last a bit
 			} else if (shielding() > 0) {
 				turnsSinceEnemies = -100;
+				initialShield = shielding();
 			}
 		}
 	}

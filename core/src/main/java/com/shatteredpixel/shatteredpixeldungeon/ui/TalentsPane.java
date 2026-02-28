@@ -23,16 +23,21 @@ package com.shatteredpixel.shatteredpixeldungeon.ui;
 
 import com.shatteredpixel.shatteredpixeldungeon.Badges;
 import com.shatteredpixel.shatteredpixeldungeon.Dungeon;
+import com.shatteredpixel.shatteredpixeldungeon.Statistics;
 import com.shatteredpixel.shatteredpixeldungeon.actors.hero.Hero;
 import com.shatteredpixel.shatteredpixeldungeon.actors.hero.HeroSubClass;
 import com.shatteredpixel.shatteredpixeldungeon.actors.hero.Talent;
 import com.shatteredpixel.shatteredpixeldungeon.actors.hero.abilities.Ratmogrify;
 import com.shatteredpixel.shatteredpixeldungeon.effects.Speck;
 import com.shatteredpixel.shatteredpixeldungeon.messages.Messages;
+import com.shatteredpixel.shatteredpixeldungeon.scenes.GameScene;
 import com.shatteredpixel.shatteredpixeldungeon.scenes.PixelScene;
+import com.shatteredpixel.shatteredpixeldungeon.windows.WndOptions;
 import com.watabou.noosa.ColorBlock;
+import com.watabou.noosa.Game;
 import com.watabou.noosa.Image;
 import com.watabou.noosa.ui.Component;
+import com.watabou.utils.Random;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -40,15 +45,15 @@ import java.util.LinkedHashMap;
 /**
  * SPDNet修改说明（用于上游合并追踪）
  * ================================================
- * 
+ *
  * 修改目的：支持查看其他玩家的天赋面板
- * 
+ *
  * 修改思路：
  * 1. 添加 getHero() 方法，默认返回 Dungeon.hero
  * 2. 所有原本使用 Dungeon.hero 的地方改为调用 getHero()
  * 3. 子类（如NetTalentsPane）可覆盖 getHero() 返回不同的 Hero 对象
  * 4. 跳过徽章检查（添加 && false），始终显示所有天赋层数
- * 
+ *
  * 修改点：
  * - 第147-150行：添加 getHero() 方法
  * - 第85-95行：跳过徽章检查（INFO模式）
@@ -56,7 +61,7 @@ import java.util.LinkedHashMap;
  * - 第114行：传入 getHero() 给 TalentTierPane
  * - 第201-206行：TalentTierPane 构造函数添加 hero 参数
  * - 第244-247行：TalentTierPane.setupStars() 使用 hero 参数
- * 
+ *
  * 合并注意：
  * - 保留 getHero() 方法及其所有调用
  * - 保留 && false 的徽章检查跳过
@@ -197,6 +202,7 @@ public class TalentsPane extends ScrollPane {
 		ArrayList<TalentButton> buttons;
 
 		ArrayList<Image> stars = new ArrayList<>();
+		IconButton random;
 
 		public TalentTierPane(LinkedHashMap<Talent, Integer> talents, int tier, TalentButton.Mode mode){
 			this(talents, tier, mode, Dungeon.hero);
@@ -213,7 +219,56 @@ public class TalentsPane extends ScrollPane {
 			title.hardlight(Window.TITLE_COLOR);
 			add(title);
 
-			if (mode == TalentButton.Mode.UPGRADE) setupStars();
+			if (mode == TalentButton.Mode.UPGRADE) {
+				setupStars();
+				if (getHero().talentPointsAvailable(tier) > 0){
+
+					random = new IconButton(Icons.SHUFFLE.get()){
+						@Override
+						protected void onClick() {
+							super.onClick();
+							GameScene.show(new WndOptions(
+									Icons.SHUFFLE.get(),
+									Messages.get(TalentsPane.class, "random_title"),
+									Messages.get(TalentsPane.class, "random_sure"),
+									Messages.get(TalentsPane.class, "random_yes"),
+									Messages.get(TalentsPane.class, "random_one"),
+									Messages.get(TalentsPane.class, "random_no")) {
+								@Override
+								protected void onSelect(int index) {
+									super.onSelect(index);
+									//safety check to ensure previous UI is still there
+									if (TalentTierPane.this.parent == null){
+										return;
+									}
+									if (index == 0 || index == 1){
+										while (Dungeon.hero.talentPointsAvailable(tier) > 0){
+											TalentButton button = Random.element(buttons);
+											if (Dungeon.hero.pointsInTalent(button.talent) < button.talent.maxPoints()){
+												button.upgradeTalent();
+												if (index == 1){
+													break;
+												}
+											}
+										};
+										setupStars();
+										TalentTierPane.this.layout();
+									}
+								}
+							});
+						};
+
+						@Override
+						public void update() {
+							if (Dungeon.hero.lvl >= 3 && Statistics.qualifiedForRandomVictoryBadge){
+								icon.tint(1, 1, 1, (float)Math.abs(Math.cos(1.5f*Math.PI*Game.timeTotal)/2f));
+							}
+							super.update();
+						}
+					};
+					add(random);
+				}
+			}
 
 			buttons = new ArrayList<>();
 			for (Talent talent : talents.keySet()){
@@ -255,6 +310,12 @@ public class TalentsPane extends ScrollPane {
 					im.tint(0f, 0f, 0f, 0.9f);
 				}
 			}
+
+			if (random != null && openStars == 0){
+				random.killAndErase();
+				random.destroy();
+				random = null;
+			}
 		}
 
 		@Override
@@ -282,6 +343,10 @@ public class TalentsPane extends ScrollPane {
 					starTop += 6;
 					left = title.right() + 2;
 				}
+			}
+
+			if (random != null){
+				random.setRect(width - 16, y-2, 16, 14);
 			}
 
 			float gap = (width - buttons.size()*TalentButton.WIDTH)/(buttons.size()+1);

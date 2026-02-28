@@ -33,6 +33,7 @@ import com.shatteredpixel.shatteredpixeldungeon.actors.mobs.Mob;
 import com.shatteredpixel.shatteredpixeldungeon.effects.ShadowBox;
 import com.shatteredpixel.shatteredpixeldungeon.items.Item;
 import com.shatteredpixel.shatteredpixeldungeon.items.LostBackpack;
+import com.shatteredpixel.shatteredpixeldungeon.items.artifacts.SkeletonKey;
 import com.shatteredpixel.shatteredpixeldungeon.journal.Document;
 import com.shatteredpixel.shatteredpixeldungeon.journal.Notes;
 import com.shatteredpixel.shatteredpixeldungeon.levels.Level;
@@ -652,7 +653,12 @@ public class InterlevelScene extends PixelScene {
 			Level level = Dungeon.newLevel();
 			Dungeon.switchLevel( level, -1 );
 		} else {
-			Mob.holdAllies( Dungeon.level );
+			if (curTransition.destBranch != Dungeon.branch && Dungeon.depth >= 16 && Dungeon.depth <= 20) {
+				//FIXME avoids holding allies when entering city quest area, this is very sloppy though
+				// perhaps holding allies could be a property of the transition?
+			} else {
+				Mob.holdAllies(Dungeon.level);
+			}
 			Dungeon.saveAll();
 
 			Level level;
@@ -691,7 +697,12 @@ public class InterlevelScene extends PixelScene {
 	}
 
 	private void ascend() throws IOException {
-		Mob.holdAllies( Dungeon.level );
+		if (curTransition.destBranch != Dungeon.branch && Dungeon.depth >= 16 && Dungeon.depth <= 20) {
+			//FIXME avoids holding allies when entering city quest area, this is very sloppy though
+			// perhaps holding allies could be a property of the transition?
+		} else {
+			Mob.holdAllies(Dungeon.level);
+		}
 		Dungeon.saveAll();
 
 		Level level;
@@ -762,6 +773,11 @@ public class InterlevelScene extends PixelScene {
 			int pos = level.randomRespawnCell(null);
 			if (pos == -1) pos = level.entrance();
 			level.drop(new LostBackpack(), pos);
+
+			//need to reset key replacement tracking as well
+			if (Dungeon.hero.buff(SkeletonKey.KeyReplacementTracker.class) != null){
+				Dungeon.hero.buff(SkeletonKey.KeyReplacementTracker.class).clearDepth();
+			}
 
 		} else {
 			level = Dungeon.level;
