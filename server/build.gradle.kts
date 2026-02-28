@@ -32,7 +32,7 @@ dependencies {
     implementation("com.alibaba.fastjson2:fastjson2:2.0.48")
 
     // Socket.io
-    implementation("com.corundumstudio.socketio:netty-socketio:2.0.8")
+    implementation("com.corundumstudio.socketio:netty-socketio:2.0.14")
 
     // BCrypt for password encoding
     implementation("org.springframework.security:spring-security-crypto:6.4.4")
