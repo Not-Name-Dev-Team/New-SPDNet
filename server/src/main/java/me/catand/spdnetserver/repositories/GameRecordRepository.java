@@ -26,8 +26,14 @@ public interface GameRecordRepository extends JpaRepository<GameRecord, Long> {
     Page<GameRecord> findByWinFalse(Pageable pageable);
     List<GameRecord> findByPlayerOrderByScoreDesc(Player player);
     Page<GameRecord> findByPlayerOrderByScoreDesc(Player player, Pageable pageable);
+    Page<GameRecord> findByPlayer(Player player, Pageable pageable);
     long countByPlayer(Player player);
     long countByPlayerAndWinTrue(Player player);
     long countByWinTrue();
     void deleteByPlayer(Player player);
+
+    // 新增查询方法
+    Page<GameRecord> findByChallengeAmount(int challengeAmount, Pageable pageable);
+    Page<GameRecord> findByGameMode(String gameMode, Pageable pageable);
+    Page<GameRecord> findByWinTrueAndGameMode(String gameMode, Pageable pageable);
 }

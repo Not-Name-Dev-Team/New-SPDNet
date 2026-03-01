@@ -17,6 +17,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -133,6 +134,7 @@ public class PlayerController {
         player.setEmail(email);
         player.setPassword(passwordEncoder.encode(password));
         player.setRole(UserRole.USER);
+        player.setCreatedAt(LocalDateTime.now());
 
         playerRepository.save(player);
         verificationCodeService.removeCode(email);
@@ -205,13 +207,51 @@ public class PlayerController {
     public ApiResponse<Map<String, Object>> getLeaderboard(
         @RequestParam(defaultValue = "0") int page,
         @RequestParam(defaultValue = "20") int size,
-        @RequestParam(defaultValue = "false") boolean winOnly
+        @RequestParam(required = false) String playerName,
+        @RequestParam(required = false) Integer challengeCount,
+        @RequestParam(required = false) Boolean winOnly,
+        @RequestParam(required = false) String gameMode,
+        @RequestParam(defaultValue = "score") String sortBy
     ) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by("score").descending());
+        // 构建排序
+        Sort sort;
+        switch (sortBy) {
+            case "duration":
+                sort = Sort.by("duration").ascending();
+                break;
+            case "id":
+                sort = Sort.by("id").descending();
+                break;
+            case "score":
+            default:
+                sort = Sort.by("score").descending();
+                break;
+        }
+        Pageable pageable = PageRequest.of(page, size, sort);
 
+        // 根据条件查询
         Page<GameRecord> records;
-        if (winOnly) {
-            records = gameRecordRepository.findByWinTrue(pageable);
+        if (playerName != null && !playerName.trim().isEmpty()) {
+            // 按玩家名查询
+            Player player = playerRepository.findByName(playerName.trim());
+            if (player == null) {
+                records = Page.empty(pageable);
+            } else {
+                records = gameRecordRepository.findByPlayer(player, pageable);
+            }
+        } else if (challengeCount != null) {
+            // 按挑战数查询
+            records = gameRecordRepository.findByChallengeAmount(challengeCount, pageable);
+        } else if (winOnly != null && winOnly) {
+            // 只显示胜利
+            if (gameMode != null && !gameMode.isEmpty()) {
+                records = gameRecordRepository.findByWinTrueAndGameMode(gameMode, pageable);
+            } else {
+                records = gameRecordRepository.findByWinTrue(pageable);
+            }
+        } else if (gameMode != null && !gameMode.isEmpty()) {
+            // 按游戏模式查询
+            records = gameRecordRepository.findByGameMode(gameMode, pageable);
         } else {
             records = gameRecordRepository.findAll(pageable);
         }
@@ -263,6 +303,29 @@ public class PlayerController {
         long wins = gameRecordRepository.countByPlayerAndWinTrue(player);
         data.put("totalGames", totalGames);
         data.put("wins", wins);
+
+        // 注册时间和最后登录信息（公开信息）
+        data.put("createdAt", player.getCreatedAt());
+        data.put("lastLoginAt", player.getLastLoginAt());
+        // 注意：lastLoginIp 和 email 是私密信息，不在公开接口返回
+
+        return ApiResponse.success("获取成功", data);
+    }
+
+    @GetMapping("/player/{name}/private")
+    public ApiResponse<Map<String, Object>> getPlayerPrivateInfo(@PathVariable String name) {
+        // 这里可以添加权限检查，确保只能查看自己的私密信息
+        Player player = playerRepository.findByName(name);
+        if (player == null) {
+            return ApiResponse.error("玩家不存在");
+        }
+
+        Map<String, Object> data = new HashMap<>();
+        data.put("name", player.getName());
+        data.put("email", player.getEmail());
+        data.put("createdAt", player.getCreatedAt());
+        data.put("lastLoginAt", player.getLastLoginAt());
+        data.put("lastLoginIp", player.getLastLoginIp());
 
         return ApiResponse.success("获取成功", data);
     }

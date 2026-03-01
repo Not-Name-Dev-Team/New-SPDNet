@@ -8,6 +8,7 @@ import lombok.Getter;
 import lombok.Setter;
 import me.catand.spdnetserver.data.Status;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Set;
 
@@ -51,4 +52,19 @@ public class Player {
 	@JsonIgnore
 	@JSONField(serialize = false, deserialize = false)
 	private Set<String> achievements;
+
+	// 注册时间
+	@JsonIgnore
+	@JSONField(serialize = false, deserialize = false)
+	private LocalDateTime createdAt;
+
+	// 最后登录时间
+	@JsonIgnore
+	@JSONField(serialize = false, deserialize = false)
+	private LocalDateTime lastLoginAt;
+
+	// 最后登录IP
+	@JsonIgnore
+	@JSONField(serialize = false, deserialize = false)
+	private String lastLoginIp;
 }

@@ -55,8 +55,22 @@ public class AdminController {
             players = playerRepository.findAll(pageable);
         }
 
+        // 转换为包含额外信息的DTO
+        List<Map<String, Object>> playerList = players.getContent().stream()
+            .map(player -> {
+                Map<String, Object> playerInfo = new HashMap<>();
+                playerInfo.put("id", player.getId());
+                playerInfo.put("name", player.getName());
+                playerInfo.put("role", player.getRole().name());
+                playerInfo.put("createdAt", player.getCreatedAt());
+                playerInfo.put("lastLoginAt", player.getLastLoginAt());
+                playerInfo.put("lastLoginIp", player.getLastLoginIp());
+                return playerInfo;
+            })
+            .collect(java.util.stream.Collectors.toList());
+
         Map<String, Object> data = new HashMap<>();
-        data.put("players", players.getContent());
+        data.put("players", playerList);
         data.put("totalElements", players.getTotalElements());
         data.put("totalPages", players.getTotalPages());
         data.put("currentPage", page);

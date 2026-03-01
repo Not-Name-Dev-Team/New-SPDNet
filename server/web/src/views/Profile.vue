@@ -12,6 +12,22 @@
           <span class="label">身份:</span>
           <span class="value">{{ authStore.user?.role }}</span>
         </div>
+        <div class="info-item">
+          <span class="label">邮箱:</span>
+          <span class="value">{{ userInfo.email || '-' }}</span>
+        </div>
+        <div class="info-item">
+          <span class="label">注册时间:</span>
+          <span class="value">{{ userInfo.createdAt ? formatDate(userInfo.createdAt) : '-' }}</span>
+        </div>
+        <div class="info-item">
+          <span class="label">最后登录:</span>
+          <span class="value">{{ userInfo.lastLoginAt ? formatDate(userInfo.lastLoginAt) : '从未登录过' }}</span>
+        </div>
+        <div class="info-item">
+          <span class="label">登录IP:</span>
+          <span class="value">{{ userInfo.lastLoginIp || '从未登录过' }}</span>
+        </div>
       </div>
     </div>
 
@@ -111,12 +127,14 @@
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { playerApi } from '../api'
 import { authStore } from '../store/auth'
 
 const router = useRouter()
+
+const userInfo = ref({})
 
 const nameForm = reactive({
   newName: '',
@@ -136,6 +154,29 @@ const nameSuccess = ref(false)
 const pwdLoading = ref(false)
 const pwdMessage = ref('')
 const pwdSuccess = ref(false)
+
+// 获取用户详细信息（包含私密信息）
+async function loadUserInfo() {
+  if (!authStore.user?.name) return
+  try {
+    const res = await playerApi.getPlayerPrivateInfo(authStore.user.name)
+    if (res.data.success) {
+      userInfo.value = res.data.data
+    }
+  } catch (error) {
+    console.error('获取用户信息失败:', error)
+  }
+}
+
+onMounted(() => {
+  loadUserInfo()
+})
+
+function formatDate(dateStr) {
+  if (!dateStr) return '-'
+  const date = new Date(dateStr)
+  return date.toLocaleString('zh-CN')
+}
 
 async function handleChangeName() {
   if (!nameForm.newName.trim()) {

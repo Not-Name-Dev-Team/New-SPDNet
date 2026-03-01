@@ -29,6 +29,17 @@
             <div class="stat-label">身份</div>
           </div>
         </div>
+
+        <div class="player-meta">
+          <div class="meta-item">
+            <span class="meta-label">注册时间:</span>
+            <span class="meta-value">{{ formatDate(playerInfo.createdAt) }} ({{ timeAgo(playerInfo.createdAt) }})</span>
+          </div>
+          <div class="meta-item" v-if="playerInfo.lastLoginAt">
+            <span class="meta-label">最后登录:</span>
+            <span class="meta-value">{{ formatDate(playerInfo.lastLoginAt) }} ({{ timeAgo(playerInfo.lastLoginAt) }})</span>
+          </div>
+        </div>
       </div>
 
       <div class="card">
@@ -88,6 +99,33 @@ function countChallenges(challenges) {
   return count
 }
 
+function formatDate(dateStr) {
+  if (!dateStr) return '-'
+  const date = new Date(dateStr)
+  return date.toLocaleString('zh-CN')
+}
+
+function timeAgo(dateStr) {
+  if (!dateStr) return ''
+  const date = new Date(dateStr)
+  const now = new Date()
+  const diff = now.getTime() - date.getTime()
+
+  const seconds = Math.floor(diff / 1000)
+  const minutes = Math.floor(seconds / 60)
+  const hours = Math.floor(minutes / 60)
+  const days = Math.floor(hours / 24)
+  const months = Math.floor(days / 30)
+  const years = Math.floor(days / 365)
+
+  if (years > 0) return `${years}年前`
+  if (months > 0) return `${months}个月前`
+  if (days > 0) return `${days}天前`
+  if (hours > 0) return `${hours}小时前`
+  if (minutes > 0) return `${minutes}分钟前`
+  return '刚刚'
+}
+
 const route = useRoute()
 const playerInfo = ref(null)
 const records = ref([])
@@ -133,5 +171,26 @@ watch(() => route.params.name, () => {
   display: flex;
   align-items: center;
   gap: 1rem;
+}
+
+.player-meta {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border-color);
+}
+
+.meta-item {
+  display: flex;
+  padding: 0.5rem 0;
+}
+
+.meta-label {
+  width: 80px;
+  color: var(--text-secondary);
+}
+
+.meta-value {
+  flex: 1;
+  color: var(--text-color);
 }
 </style>

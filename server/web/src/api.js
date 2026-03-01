@@ -33,6 +33,10 @@ export const playerApi = {
     return api.get(`/player/${name}`)
   },
 
+  getPlayerPrivateInfo(name) {
+    return api.get(`/player/${name}/private`)
+  },
+
   getPlayerRecords(name) {
     return api.get(`/player/${name}/records`)
   },
@@ -51,9 +55,9 @@ export const playerApi = {
 }
 
 export const leaderboardApi = {
-  getLeaderboard(page = 0, size = 20, winOnly = false) {
+  getLeaderboard(page = 0, size = 20, filters = {}) {
     return api.get('/leaderboard', {
-      params: { page, size, winOnly }
+      params: { page, size, ...filters }
     })
   }
 }

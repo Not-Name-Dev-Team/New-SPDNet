@@ -163,6 +163,10 @@ public class SocketService {
 				return;
 			}
 			playerMap.put(client.getSessionId(), player);
+			// SPDNet: 更新最后登录时间和IP
+			player.setLastLoginAt(LocalDateTime.now());
+			player.setLastLoginIp(getClientIp(client));
+			playerRepository.save(player);
 			// SPDNet: 确保玩家成就集合不为 null，如果为 null 则初始化并保存到数据库
 			if (player.getAchievements() == null) {
 				player.setAchievements(new java.util.HashSet<>());
@@ -280,5 +284,31 @@ public class SocketService {
 
 	public void broadcastChatMessage(String name, String message) {
 		sender.sendBroadcastChatMessage(new SChatMessage(name, message));
+	}
+
+	// SPDNet: 获取客户端IP地址
+	private String getClientIp(SocketIOClient client) {
+		if (client.getHandshakeData() == null) {
+			return "unknown";
+		}
+		String ip = client.getHandshakeData().getHttpHeaders().get("X-Forwarded-For");
+		if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+			ip = client.getHandshakeData().getHttpHeaders().get("Proxy-Client-IP");
+		}
+		if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+			ip = client.getHandshakeData().getHttpHeaders().get("WL-Proxy-Client-IP");
+		}
+		if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+			ip = client.getRemoteAddress().toString();
+			// 移除端口号
+			if (ip != null && ip.contains(":")) {
+				ip = ip.substring(0, ip.lastIndexOf(":"));
+			}
+		}
+		// 如果有多个IP，取第一个
+		if (ip != null && ip.contains(",")) {
+			ip = ip.split(",")[0].trim();
+		}
+		return ip;
 	}
 }

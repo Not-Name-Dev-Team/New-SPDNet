@@ -130,6 +130,9 @@
               <th>ID</th>
               <th>用户名</th>
               <th>身份</th>
+              <th>注册时间</th>
+              <th>最后登录</th>
+              <th>登录IP</th>
               <th>操作</th>
             </tr>
           </thead>
@@ -140,6 +143,9 @@
               <td>
                 <span :class="['badge', getRoleBadgeClass(player.role)]">{{ player.role }}</span>
               </td>
+              <td>{{ formatDate(player.createdAt) }}</td>
+              <td>{{ formatDate(player.lastLoginAt) }}</td>
+              <td>{{ player.lastLoginIp || '-' }}</td>
               <td class="actions">
                 <select v-model="player.role" @change="changeRole(player)" class="role-select">
                   <option value="USER">玩家</option>
@@ -258,6 +264,12 @@ function countChallenges(challenges) {
     if ((challenges & mask) !== 0) count++
   }
   return count
+}
+
+function formatDate(dateStr) {
+  if (!dateStr) return '-'
+  const date = new Date(dateStr)
+  return date.toLocaleString('zh-CN')
 }
 
 function getStatusText(status) {
