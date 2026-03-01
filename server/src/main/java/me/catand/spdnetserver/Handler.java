@@ -9,6 +9,7 @@ import me.catand.spdnetserver.data.events.*;
 import me.catand.spdnetserver.entitys.GameRecord;
 import me.catand.spdnetserver.entitys.Player;
 import me.catand.spdnetserver.repositories.*;
+import me.catand.spdnetserver.service.PlayerPrefixService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -25,24 +26,31 @@ public class Handler {
 	private final PlayerCatalogRepository playerCatalogRepository;
 	private final PlayerBestiaryRepository playerBestiaryRepository;
 	private final PlayerDocumentRepository playerDocumentRepository;
+	private final PlayerPrefixService playerPrefixService;
 	private SocketService socketService;
 	private Sender sender;
 	private Map<UUID, Player> playerMap;
 	private ChatService chatService;
 
-	public Handler(PlayerRepository playerRepository, GameRecordRepository gameRecordRepository, 
+	public Handler(PlayerRepository playerRepository, GameRecordRepository gameRecordRepository,
 	               PlayerCatalogRepository playerCatalogRepository, PlayerBestiaryRepository playerBestiaryRepository,
-	               PlayerDocumentRepository playerDocumentRepository,
+	               PlayerDocumentRepository playerDocumentRepository, PlayerPrefixService playerPrefixService,
 	               SocketService socketService, Sender sender, Map<UUID, Player> playerMap, ChatService chatService) {
 		this.playerRepository = playerRepository;
 		this.gameRecordRepository = gameRecordRepository;
 		this.playerCatalogRepository = playerCatalogRepository;
 		this.playerBestiaryRepository = playerBestiaryRepository;
 		this.playerDocumentRepository = playerDocumentRepository;
+		this.playerPrefixService = playerPrefixService;
 		this.socketService = socketService;
 		this.sender = sender;
 		this.playerMap = playerMap;
 		this.chatService = chatService;
+	}
+
+	// SPDNet: 获取玩家当前激活的前缀名称
+	private String getPlayerPrefixName(String playerName) {
+		return playerPrefixService.getActivePrefixName(playerName);
 	}
 
 	public void handleAchievement(Player player, CAchievement cAchievement) {
@@ -52,38 +60,42 @@ public class Handler {
 			log.error("玩家{}不存在，无法保存成就", player.getName());
 			return;
 		}
-		
+
 		// 确保成就集合不为 null
 		if (dbPlayer.getAchievements() == null) {
 			dbPlayer.setAchievements(new java.util.HashSet<>());
 		}
-		
+
 		boolean hasAchievement = dbPlayer.getAchievements().contains(cAchievement.getBadgeEnumString());
 		log.info("玩家{}获得了成就{}，是否已经获得：{}", player.getName(), cAchievement.getBadgeEnumString(), hasAchievement);
-		
+
 		if (!hasAchievement) {
 			dbPlayer.getAchievements().add(cAchievement.getBadgeEnumString());
 			playerRepository.save(dbPlayer);
 			// 更新 playerMap 中的 Player 对象
 			player.setAchievements(dbPlayer.getAchievements());
 		}
-		
-		sender.sendBroadcastAchievement(new SAchievement(player.getName(), cAchievement.getBadgeEnumString(), hasAchievement));
+
+		String prefixName = getPlayerPrefixName(player.getName());
+		sender.sendBroadcastAchievement(new SAchievement(player.getName(), cAchievement.getBadgeEnumString(), hasAchievement, prefixName));
 	}
 
 	public void handleAnkhUsed(Player player, CAnkhUsed cAnkhUsed) {
-		sender.sendBroadcastAnkhUsed(new SAnkhUsed(player.getName(), cAnkhUsed.getCause(), cAnkhUsed.getUnusedBlessedAnkh(), cAnkhUsed.getUnusedUnblessedAnkh()));
+		String prefixName = getPlayerPrefixName(player.getName());
+		sender.sendBroadcastAnkhUsed(new SAnkhUsed(player.getName(), cAnkhUsed.getCause(), cAnkhUsed.getUnusedBlessedAnkh(), cAnkhUsed.getUnusedUnblessedAnkh(), prefixName));
 	}
 
 	public void handleArmorUpdate(Player player, CArmorUpdate cArmorUpdate) {
 		log.info("玩家{}装备了{}级护甲", player.getName(), cArmorUpdate.getArmorTier());
-		sender.sendBroadcastArmorUpdate(new SArmorUpdate(player.getName(), cArmorUpdate.getArmorTier()));
+		String prefixName = getPlayerPrefixName(player.getName());
+		sender.sendBroadcastArmorUpdate(new SArmorUpdate(player.getName(), cArmorUpdate.getArmorTier(), prefixName));
 	}
 
 	public void handleChatMessage(Player player, CChatMessage cChatMessage) {
 		log.info("玩家{}发送了消息：{}", player.getName(), cChatMessage.getMessage());
 		// SPDNet: 使用客户端传来的时间，如果没有则使用服务端时间
-		SChatMessage chatMessage = new SChatMessage(player.getName(), cChatMessage.getMessage(), cChatMessage.getTime());
+		String prefixName = getPlayerPrefixName(player.getName());
+		SChatMessage chatMessage = new SChatMessage(player.getName(), cChatMessage.getMessage(), cChatMessage.getTime(), prefixName);
 		chatService.addMessage(player.getName(), cChatMessage.getMessage(), cChatMessage.getTime());
 		sender.sendBroadcastChatMessage(chatMessage);
 	}
@@ -92,7 +104,8 @@ public class Handler {
 		Status status = cEnterDungeon.getStatus();
 		player.setStatus(status);
 		playerMap.put(client.getSessionId(), player);
-		sender.sendBroadcastEnterDungeon(new SEnterDungeon(player.getName(), status));
+		String prefixName = getPlayerPrefixName(player.getName());
+		sender.sendBroadcastEnterDungeon(new SEnterDungeon(player.getName(), status, prefixName));
 		log.info("玩家{}以{}挑进入了{}地牢第{}层", player.getName(), Challenges.countActiveChallenges(status.getChallenges()), status.getSeed(), status.getDepth());
 	}
 
@@ -100,6 +113,7 @@ public class Handler {
 	}
 
 	public void handleFloatingText(Player player, CFloatingText cFloatingText) {
+		String prefixName = getPlayerPrefixName(player.getName());
 		sender.sendBroadcastFloatingText(new SFloatingText(
 				player.getName(),
 				cFloatingText.getColor(),
@@ -107,7 +121,8 @@ public class Handler {
 				cFloatingText.getIcon(),
 				cFloatingText.getHeroHP(),
 				cFloatingText.getHeroShield(),
-				cFloatingText.getHeroHT()));
+				cFloatingText.getHeroHT(),
+				prefixName));
 	}
 
 	public void handleGameEnd(Player player, CGameEnd cGameEnd) {
@@ -115,35 +130,41 @@ public class Handler {
 		GameRecord gameRecord = cGameEnd.getRecord();
 		gameRecord.setPlayer(player);
 		gameRecordRepository.save(gameRecord);
-		sender.sendBroadcastGameEnd(new SGameEnd(player.getName(), gameRecord));
+		String prefixName = getPlayerPrefixName(player.getName());
+		sender.sendBroadcastGameEnd(new SGameEnd(player.getName(), gameRecord, prefixName));
 	}
 
 	public void handleGiveItem(Player player, CGiveItem cGiveItem) {
+		String prefixName = getPlayerPrefixName(player.getName());
 		playerMap.forEach((uuid, player1) -> {
 			if (player1.getName().equals(cGiveItem.getTargetName())) {
-				sender.sendGiveItem(socketService.getServer().getNamespace("/spdnet").getClient(uuid), new SGiveItem(player.getName(), cGiveItem.getItem()));
+				sender.sendGiveItem(socketService.getServer().getNamespace("/spdnet").getClient(uuid), new SGiveItem(player.getName(), cGiveItem.getItem(), prefixName));
 			}
 		});
 	}
 
 	public void handleHero(Player player, CHero cHero) {
+		String prefixName = getPlayerPrefixName(player.getName());
 		playerMap.forEach((uuid, player1) -> {
 			if (player1.getName().equals(cHero.getSourceName())) {
-				sender.sendHero(socketService.getServer().getNamespace("/spdnet").getClient(uuid), new SHero(player.getName(), cHero.getHero()));
+				sender.sendHero(socketService.getServer().getNamespace("/spdnet").getClient(uuid), new SHero(player.getName(), cHero.getHero(), prefixName));
 			}
 		});
 	}
 
 	public void handleLeaveDungeon(Player player, CLeaveDungeon cLeaveDungeon) {
-		sender.sendBroadcastLeaveDungeon(new SLeaveDungeon(player.getName()));
+		String prefixName = getPlayerPrefixName(player.getName());
+		sender.sendBroadcastLeaveDungeon(new SLeaveDungeon(player.getName(), prefixName));
 	}
 
 	public void handlePlayerChangeFloor(Player player, CPlayerChangeFloor cPlayerChangeFloor) {
-		sender.sendBroadcastPlayerChangeFloor(new SPlayerChangeFloor(player.getName(), cPlayerChangeFloor.getDepth()));
+		String prefixName = getPlayerPrefixName(player.getName());
+		sender.sendBroadcastPlayerChangeFloor(new SPlayerChangeFloor(player.getName(), cPlayerChangeFloor.getDepth(), prefixName));
 	}
 
 	public void handlePlayerMove(Player player, CPlayerMove cPlayerMove) {
-		sender.sendBroadcastPlayerMove(new SPlayerMove(player.getName(), cPlayerMove.getPos()));
+		String prefixName = getPlayerPrefixName(player.getName());
+		sender.sendBroadcastPlayerMove(new SPlayerMove(player.getName(), cPlayerMove.getPos(), prefixName));
 		log.info("玩家{}移动到了{}", player.getName(), cPlayerMove.getPos());
 	}
 
@@ -186,9 +207,10 @@ public class Handler {
 
 	public void handleViewHero(Player player, CViewHero cViewHero) {
 		log.info("玩家{}请求查看玩家{}", player.getName(), cViewHero.getTargetName());
+		String prefixName = getPlayerPrefixName(player.getName());
 		playerMap.forEach((uuid, player1) -> {
 			if (player1.getName().equals(cViewHero.getTargetName())) {
-				sender.sendViewHero(socketService.getServer().getNamespace("/spdnet").getClient(uuid), new SViewHero(player.getName()));
+				sender.sendViewHero(socketService.getServer().getNamespace("/spdnet").getClient(uuid), new SViewHero(player.getName(), prefixName));
 			}
 		});
 	}

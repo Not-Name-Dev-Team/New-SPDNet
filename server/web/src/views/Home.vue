@@ -119,7 +119,10 @@
             <span class="online-indicator"></span>
           </div>
           <div class="player-info">
-            <span class="player-name">{{ player.name }}</span>
+            <span class="player-name">
+              <span v-if="player.prefix" class="player-prefix" :style="getPrefixStyle(player.prefix)">{{ player.prefix.displayText }}</span>
+              {{ player.name }}
+            </span>
             <el-tag :type="getRoleType(player.role)" size="small" effect="dark" round>
               {{ player.role }}
             </el-tag>
@@ -250,6 +253,20 @@ const getRoleType = (role) => {
     '玩家': 'primary'
   }
   return types[role] || 'primary'
+}
+
+// SPDNet: 前缀系统 - 获取前缀样式
+const getPrefixStyle = (prefix) => {
+  return {
+    color: prefix.color || '#ffffff',
+    backgroundColor: prefix.backgroundColor || 'rgba(139, 92, 246, 0.8)',
+    padding: '2px 8px',
+    borderRadius: '4px',
+    fontSize: '12px',
+    fontWeight: 'bold',
+    marginRight: '4px',
+    display: 'inline-block'
+  }
 }
 
 const loadData = async () => {
@@ -649,6 +666,10 @@ onMounted(() => {
   font-weight: 600;
   font-size: 0.9375rem;
   color: var(--text-primary);
+}
+
+.player-prefix {
+  display: inline-block;
 }
 
 .arrow-icon {

@@ -7,12 +7,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-/**
- * 玩家加入事件
- * 
- * 修改：移除qq字段，将power改为role以匹配服务端
- * 服务端字段：name, role
- */
 @Getter
 @Setter
 @AllArgsConstructor
@@ -20,4 +14,11 @@ import lombok.Setter;
 public class SJoin extends Data {
 	private String name;
 	private String role;
+	// SPDNet: 前缀系统 - 玩家前缀
+	private String prefix;
+
+	public SJoin(String name, String role) {
+		this.name = name;
+		this.role = role;
+	}
 }

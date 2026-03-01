@@ -13,4 +13,10 @@ import lombok.Setter;
 @NoArgsConstructor
 public class SLeaveDungeon extends Data {
 	private String name;
+	// SPDNet: 前缀系统 - 玩家前缀
+	private String prefix;
+
+	public SLeaveDungeon(String name) {
+		this.name = name;
+	}
 }

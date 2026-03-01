@@ -15,9 +15,16 @@ import me.catand.spdnetserver.entitys.GameRecord;
 public class SGameEnd extends Data {
 	private String name;
 	private String record;
+	// SPDNet: 前缀系统 - 玩家前缀
+	private String prefix;
 
 	public SGameEnd(String name, GameRecord record) {
 		this.name = name;
 		this.record = JSON.toJSONString(record);
+	}
+
+	public SGameEnd(String name, GameRecord record, String prefix) {
+		this(name, record);
+		this.prefix = prefix;
 	}
 }

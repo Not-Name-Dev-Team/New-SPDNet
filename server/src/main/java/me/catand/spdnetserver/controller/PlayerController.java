@@ -5,6 +5,7 @@ import me.catand.spdnetserver.controller.dto.*;
 import me.catand.spdnetserver.entitys.*;
 import me.catand.spdnetserver.repositories.*;
 import me.catand.spdnetserver.service.MailService;
+import me.catand.spdnetserver.service.PlayerPrefixService;
 import me.catand.spdnetserver.service.VerificationCodeService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -51,7 +52,13 @@ public class PlayerController {
     @Autowired
     private MailService mailService;
 
+    @Autowired
+    private PlayerPrefixService playerPrefixService;
+
     private BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+
+    // SPDNet: 验证码重发冷却时间（秒）
+    private static final int VERIFICATION_CODE_COOLDOWN = 10;
 
     @PostMapping("/send-code")
     public ApiResponse<Map<String, Object>> sendVerificationCode(@RequestBody SendCodeRequest request) {
@@ -73,6 +80,12 @@ public class PlayerController {
             return ApiResponse.error("邮件服务未启用，请联系管理员");
         }
 
+        // 检查是否在冷却时间内
+        if (!verificationCodeService.canSendCode(email, VERIFICATION_CODE_COOLDOWN)) {
+            long remainingSeconds = verificationCodeService.getRemainingCooldown(email, VERIFICATION_CODE_COOLDOWN);
+            return ApiResponse.error("请等待 " + remainingSeconds + " 秒后重试");
+        }
+
         // 获取或生成验证码（如果未过期则返回相同的验证码）
         String code = verificationCodeService.getOrGenerateCode(email);
         boolean sent = mailService.sendVerificationCode(email, code);
@@ -81,11 +94,13 @@ public class PlayerController {
             return ApiResponse.error("验证码发送失败，请稍后重试");
         }
 
-        // 存储验证码（如果是已存在的验证码，storeCode会更新过期时间）
+        // 存储验证码并更新发送时间
         verificationCodeService.storeCode(email, code);
+        verificationCodeService.updateSendTime(email);
 
         Map<String, Object> data = new HashMap<>();
         data.put("expireMinutes", 5);
+        data.put("cooldownSeconds", VERIFICATION_CODE_COOLDOWN);
 
         return ApiResponse.success("验证码已发送", data);
     }
@@ -190,7 +205,8 @@ public class PlayerController {
     public ApiResponse<List<PlayerInfo>> getOnlinePlayers() {
         Map<?, Player> playerMap = socketService.getPlayerMap();
         List<PlayerInfo> onlinePlayers = playerMap.values().stream()
-            .map(p -> new PlayerInfo(p.getName(), p.getRole().getDisplayName(), true))
+            .map(p -> new PlayerInfo(p.getName(), p.getRole().getDisplayName(), true,
+                playerPrefixService.getActivePrefixDTO(p.getName())))
             .collect(Collectors.toList());
         return ApiResponse.success("获取成功", onlinePlayers);
     }
@@ -204,7 +220,8 @@ public class PlayerController {
             .map(p -> new PlayerInfo(
                 p.getName(),
                 p.getRole().getDisplayName(),
-                onlineMap.values().stream().anyMatch(op -> op.getName().equals(p.getName()))
+                onlineMap.values().stream().anyMatch(op -> op.getName().equals(p.getName())),
+                playerPrefixService.getActivePrefixDTO(p.getName())
             ))
             .collect(Collectors.toList());
 
@@ -294,6 +311,8 @@ public class PlayerController {
         data.put("name", player.getName());
         data.put("role", player.getRole().getDisplayName());
         data.put("online", isOnline);
+        // SPDNet: 前缀系统 - 添加前缀完整信息
+        data.put("prefix", playerPrefixService.getActivePrefixDTO(player.getName()));
 
         // 成就数量和列表
         Set<String> achievements = player.getAchievements();

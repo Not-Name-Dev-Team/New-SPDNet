@@ -67,4 +67,14 @@ public class Player {
 	@JsonIgnore
 	@JSONField(serialize = false, deserialize = false)
 	private String lastLoginIp;
+
+	// SPDNet: 前缀系统 - 玩家拥有的前缀列表（不直接序列化，通过DTO返回）
+	@OneToMany(mappedBy = "player", fetch = FetchType.LAZY)
+	@JsonIgnore
+	@JSONField(serialize = false, deserialize = false)
+	private List<PlayerPrefixAssignment> prefixAssignments;
+
+	// SPDNet: 获取当前激活的前缀名称（用于网络传输）
+	@Transient
+	private String prefixName;
 }

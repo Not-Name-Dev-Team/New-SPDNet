@@ -14,4 +14,11 @@ import lombok.Setter;
 public class SGameEnd extends Data {
 	private String name;
 	private String record;
+	// SPDNet: 前缀系统 - 玩家前缀
+	private String prefix;
+
+	public SGameEnd(String name, String record) {
+		this.name = name;
+		this.record = record;
+	}
 }

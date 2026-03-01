@@ -17,6 +17,7 @@ import me.catand.spdnetserver.repositories.PlayerRepository;
 import me.catand.spdnetserver.repositories.PlayerCatalogRepository;
 import me.catand.spdnetserver.repositories.PlayerBestiaryRepository;
 import me.catand.spdnetserver.repositories.PlayerDocumentRepository;
+import me.catand.spdnetserver.service.PlayerPrefixService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -48,8 +49,10 @@ public class SocketService {
 	@Autowired
 	private SpdProperties spdProperties;
 	@Autowired
-	private ChatService chatService;
-	private SocketIOServer server;
+private ChatService chatService;
+@Autowired
+private PlayerPrefixService playerPrefixService;
+private SocketIOServer server;
 	private Map<UUID, Player> playerMap = new ConcurrentHashMap<>();
 	private Sender sender;
 	private Handler handler;
@@ -83,9 +86,9 @@ public class SocketService {
 		server.start();
 		startAll();
 		sender = new Sender(server);
-		handler = new Handler(playerRepository, gameRecordRepository, 
+		handler = new Handler(playerRepository, gameRecordRepository,
 		                      playerCatalogRepository, playerBestiaryRepository, playerDocumentRepository,
-		                      this, sender, playerMap, chatService);
+		                      playerPrefixService, this, sender, playerMap, chatService);
 	}
 
 	@PreDestroy
@@ -176,7 +179,10 @@ public class SocketService {
 			sender.sendInit(client, new SInit(player.getName(), spdProperties.getMotd(), seeds, player.getAchievements()));
 			// SPDNet: 发送 Journal 数据给客户端
 			handler.loadAndSendJournals(client, player);
-			sender.sendBroadcastJoin(new SJoin(player.getName(), player.getRole().getDisplayName()));
+			// SPDNet: 获取玩家当前激活的前缀
+			String activePrefixName = playerPrefixService.getActivePrefixName(player.getName());
+			player.setPrefixName(activePrefixName);
+			sender.sendBroadcastJoin(new SJoin(player.getName(), player.getRole().getDisplayName(), activePrefixName));
 			sender.sendPlayerList(client, new SPlayerList(playerMap));
 			log.info("玩家已连接: " + player.getName() + ", " + client.getSessionId());
 		});
@@ -184,7 +190,9 @@ public class SocketService {
 			Player player = playerMap.get(client.getSessionId());
 			if (player != null) {
 				playerMap.remove(client.getSessionId());
-				sender.sendBroadcastExit(new SExit(player.getName()));
+				// SPDNet: 获取玩家当前激活的前缀
+				String activePrefixName = playerPrefixService.getActivePrefixName(player.getName());
+				sender.sendBroadcastExit(new SExit(player.getName(), activePrefixName));
 				log.info("玩家已断开连接: " + player.getName() + ", " + client.getSessionId());
 			}
 		});

@@ -22,16 +22,43 @@ public class VerificationCodeService {
 	public static class VerificationCode {
 		private final String code;
 		private final LocalDateTime expireTime;
+		private LocalDateTime lastSendTime;
 		private boolean verified;
 
 		public VerificationCode(String code, int expireMinutes) {
 			this.code = code;
 			this.expireTime = LocalDateTime.now().plusMinutes(expireMinutes);
+			this.lastSendTime = LocalDateTime.now();
 			this.verified = false;
 		}
 
 		public boolean isExpired() {
 			return LocalDateTime.now().isAfter(expireTime);
+		}
+
+		/**
+		 * 检查是否在冷却时间内（10秒）
+		 */
+		public boolean isInCooldown(int cooldownSeconds) {
+			return LocalDateTime.now().isBefore(lastSendTime.plusSeconds(cooldownSeconds));
+		}
+
+		/**
+		 * 获取剩余冷却时间（秒）
+		 */
+		public long getRemainingCooldown(int cooldownSeconds) {
+			LocalDateTime cooldownEnd = lastSendTime.plusSeconds(cooldownSeconds);
+			if (LocalDateTime.now().isAfter(cooldownEnd)) {
+				return 0;
+			}
+			return java.time.Duration.between(LocalDateTime.now(), cooldownEnd).getSeconds();
+		}
+
+		/**
+		 * 更新最后发送时间
+		 */
+		public void updateLastSendTime() {
+			this.lastSendTime = LocalDateTime.now();
 		}
 
 		public void markVerified() {
@@ -62,6 +89,41 @@ public class VerificationCodeService {
 		}
 		// 生成新验证码
 		return generateCode();
+	}
+
+	/**
+	 * 检查是否可以发送验证码（是否在冷却时间外）
+	 * @param email 邮箱
+	 * @param cooldownSeconds 冷却时间（秒）
+	 * @return 如果可以发送返回true，否则返回false
+	 */
+	public boolean canSendCode(String email, int cooldownSeconds) {
+		VerificationCode existing = codeStorage.get(email);
+		if (existing == null || existing.isExpired()) {
+			return true;
+		}
+		return !existing.isInCooldown(cooldownSeconds);
+	}
+
+	/**
+	 * 获取剩余冷却时间（秒）
+	 */
+	public long getRemainingCooldown(String email, int cooldownSeconds) {
+		VerificationCode existing = codeStorage.get(email);
+		if (existing == null || existing.isExpired()) {
+			return 0;
+		}
+		return existing.getRemainingCooldown(cooldownSeconds);
+	}
+
+	/**
+	 * 更新验证码的最后发送时间
+	 */
+	public void updateSendTime(String email) {
+		VerificationCode existing = codeStorage.get(email);
+		if (existing != null) {
+			existing.updateLastSendTime();
+		}
 	}
 
 	public void storeCode(String email, String code) {

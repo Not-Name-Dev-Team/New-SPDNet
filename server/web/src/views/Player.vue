@@ -10,7 +10,10 @@
             <div class="avatar-glow"></div>
           </div>
           <div class="player-info">
-            <h1 class="player-name">{{ playerInfo?.name || '加载中...' }}</h1>
+            <h1 class="player-name">
+              <span v-if="playerInfo?.prefix" class="player-prefix" :style="getPrefixStyle(playerInfo.prefix)">{{ playerInfo.prefix.displayText }}</span>
+              {{ playerInfo?.name || '加载中...' }}
+            </h1>
             <div class="player-badges">
               <el-tag :type="getRoleType(playerInfo?.role)" effect="dark" round size="large">
                 {{ playerInfo?.role || '玩家' }}
@@ -410,6 +413,20 @@ const getRoleType = (role) => {
   return types[role] || 'primary'
 }
 
+// SPDNet: 前缀系统 - 获取前缀样式
+const getPrefixStyle = (prefix) => {
+  return {
+    color: prefix.color || '#ffffff',
+    backgroundColor: prefix.backgroundColor || 'rgba(139, 92, 246, 0.8)',
+    padding: '4px 12px',
+    borderRadius: '6px',
+    fontSize: '14px',
+    fontWeight: 'bold',
+    marginRight: '8px',
+    display: 'inline-block'
+  }
+}
+
 const getResultClass = (result) => {
   const classes = {
     '胜利': 'success',
@@ -592,6 +609,10 @@ onMounted(() => {
   font-weight: 700;
   margin: 0;
   color: var(--text-primary);
+}
+
+.player-prefix {
+  display: inline-block;
 }
 
 .player-badges {

@@ -12,6 +12,7 @@ import com.shatteredpixel.shatteredpixeldungeon.spdnet.Mode;
 import com.shatteredpixel.shatteredpixeldungeon.spdnet.NetInProgress;
 import com.shatteredpixel.shatteredpixeldungeon.spdnetbutcopy.scene.NetRankingsScene;
 import com.shatteredpixel.shatteredpixeldungeon.spdnet.utils.NLog;
+import com.shatteredpixel.shatteredpixeldungeon.spdnet.utils.PrefixUtils;
 import com.shatteredpixel.shatteredpixeldungeon.spdnet.utils.SPDUtils;
 import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.actors.NetHero;
 import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.sprites.NetHeroSprite;
@@ -19,27 +20,7 @@ import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.Player;
 import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.Status;
 import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.actions.CHero;
 import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.actions.CRequestPlayerList;
-import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.events.SAchievement;
-import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.events.SAnkhUsed;
-import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.events.SArmorUpdate;
-import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.events.SChatMessage;
-import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.events.SEnterDungeon;
-import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.events.SError;
-import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.events.SExit;
-import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.events.SFloatingText;
-import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.events.SGameEnd;
-import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.events.SGiveItem;
-import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.events.SHero;
-import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.events.SInit;
-import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.events.SJoin;
-import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.events.SLeaderboard;
-import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.events.SLeaveDungeon;
-import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.events.SPlayerChangeFloor;
-import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.events.SPlayerList;
-import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.events.SPlayerMove;
-import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.events.SServerMessage;
-import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.events.SViewHero;
-import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.events.SJournals;
+import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.events.*;
 import com.shatteredpixel.shatteredpixeldungeon.spdnet.windows.NetWindow;
 import com.shatteredpixel.shatteredpixeldungeon.spdnetbutcopy.windows.NetWndPlayerInfo;
 import com.watabou.noosa.Game;
@@ -57,10 +38,11 @@ import java.util.concurrent.ConcurrentHashMap;
 public class Handler {
 	public static void handleAchievement(SAchievement achievement) {
 		Badges.Badge badge = achievement.getBadge();
+		String displayName = PrefixUtils.formatNameWithPrefix(achievement.getName(), achievement.getPrefix());
 		if (achievement.isUnique()) {
-			NLog.h(achievement.getName() + Messages.get(Badges.class, "new", badge.title() + " (" + badge.desc() + ")"));
+			NLog.h(displayName + Messages.get(Badges.class, "new", badge.title() + " (" + badge.desc() + ")"));
 		} else {
-			NLog.h(achievement.getName() + Messages.get(Badges.class, "endorsed", badge.title()));
+			NLog.h(displayName + Messages.get(Badges.class, "endorsed", badge.title()));
 		}
 	}
 
@@ -75,10 +57,11 @@ public class Handler {
 			if (player1 != null) {
 				player1.useAnkh(true, ankhUsed.getUnusedBlessedAnkh(), ankhUsed.getUnusedUnblessedAnkh());
 			}
+			String displayName = PrefixUtils.formatNameWithPrefix(ankhUsed.getName(), ankhUsed.getPrefix());
 			if (ankhUsed.getUnusedBlessedAnkh() + ankhUsed.getUnusedUnblessedAnkh() == 0) {
-				NLog.w(ankhUsed.getName() + "因为" + ankhUsed.getCause() + "用掉了他的最后一个十字架");
+				NLog.w(displayName + "因为" + ankhUsed.getCause() + "用掉了他的最后一个十字架");
 			}
-			NLog.w(ankhUsed.getName() + "因为" + ankhUsed.getCause() + "用掉了他的十字架，" + "剩余十字架: " + (ankhUsed.getUnusedBlessedAnkh() + ankhUsed.getUnusedUnblessedAnkh()));
+			NLog.w(displayName + "因为" + ankhUsed.getCause() + "用掉了他的十字架，" + "剩余十字架: " + (ankhUsed.getUnusedBlessedAnkh() + ankhUsed.getUnusedUnblessedAnkh()));
 		}
 	}
 
@@ -113,8 +96,9 @@ public class Handler {
 	}
 
 	public static void handleChatMessage(SChatMessage chatMessage) {
-		// SPDNet: 使用服务端传来的时间显示聊天消息
-		NLog.chat(chatMessage.getName(), chatMessage.getMessage(), chatMessage.getTime());
+		// SPDNet: 使用服务端传来的时间显示聊天消息，并显示前缀
+		String displayName = PrefixUtils.formatNameWithPrefix(chatMessage.getName(), chatMessage.getPrefix());
+		NLog.chat(displayName, chatMessage.getMessage(), chatMessage.getTime());
 	}
 
 	public static void handleEnterDungeon(SEnterDungeon enterDungeon) {
@@ -125,9 +109,11 @@ public class Handler {
 				return;
 			}
 			player.setStatus(enterDungeon.getStatus());
+			player.setPrefix(enterDungeon.getPrefix());
 			Net.playerList.put(enterDungeon.getName(), player);
 			NetHero.addPlayerToDungeon(player);
-			NLog.h(player.getName() + "以" +
+			String displayName = PrefixUtils.formatNameWithPrefix(enterDungeon.getName(), enterDungeon.getPrefix());
+			NLog.h(displayName + "以" +
 					enterDungeon.getStatus().getGameModeEnum().getName().substring(0, 2) + "模式, " +
 					SPDUtils.activeChallenges(enterDungeon.getStatus().getChallenges()) + "挑进入了地牢");
 		}
@@ -145,7 +131,8 @@ public class Handler {
 				Net.playerList.remove(exit.getName());
 				NetHero.removePlayerFromDungeon(exit.getName());
 			}
-			NLog.h(exit.getName() + " 下线了");
+			String displayName = PrefixUtils.formatNameWithPrefix(exit.getName(), exit.getPrefix());
+			NLog.h(displayName + " 下线了");
 		}
 	}
 
@@ -153,11 +140,13 @@ public class Handler {
 		Item item = giveItem.getItemObject();
 		if (item != null && ShatteredPixelDungeon.scene() instanceof GameScene) {
 			if (NetInProgress.mode == Mode.IRONMAN) {
-				NLog.h(giveItem.getName() + "想给你 " + item.name() + ", 可惜你是铁人");
+				String displayName = PrefixUtils.formatNameWithPrefix(giveItem.getName(), giveItem.getPrefix());
+				NLog.h(displayName + "想给你 " + item.name() + ", 可惜你是铁人");
 				return;
 			}
 			item.doPickUp(Dungeon.hero);
-			NLog.h(giveItem.getName() + "给了你" + item.name());
+			String displayName = PrefixUtils.formatNameWithPrefix(giveItem.getName(), giveItem.getPrefix());
+			NLog.h(displayName + "给了你" + item.name());
 		}
 	}
 
@@ -179,7 +168,8 @@ public class Handler {
 
 	public static void handleGameEnd(SGameEnd gameEnd) {
 		GameRecord record = JSON.parseObject(gameEnd.getRecord(), GameRecord.class);
-		NLog.w(gameEnd.getName() + "在" + Mode.valueOf(record.getGameMode()).getName() + record.getChallengeAmount() + "挑" + (record.isWin() ? "胜利" : "死亡, 到达了第" + record.getDepth() + "层"));
+		String displayName = PrefixUtils.formatNameWithPrefix(gameEnd.getName(), gameEnd.getPrefix());
+		NLog.w(displayName + "在" + Mode.valueOf(record.getGameMode()).getName() + record.getChallengeAmount() + "挑" + (record.isWin() ? "胜利" : "死亡, 到达了第" + record.getDepth() + "层"));
 
 	}
 
@@ -202,8 +192,11 @@ public class Handler {
 
 	public static void handleJoin(SJoin join) {
 		if (!join.getName().equals(Net.name)) {
-			Net.playerList.put(join.getName(), new Player(join.getName(), join.getRole(), null));
-			NLog.h(join.getName() + " 上线了");
+			Player player = new Player(join.getName(), join.getRole(), null);
+			player.setPrefix(join.getPrefix());
+			Net.playerList.put(join.getName(), player);
+			String displayName = PrefixUtils.formatNameWithPrefix(join.getName(), join.getPrefix());
+			NLog.h(displayName + " 上线了");
 		}
 	}
 
@@ -296,7 +289,8 @@ public class Handler {
 			Dungeon.hero.storeInBundle(heroBundle);
 			Sender.sendHero(new CHero(viewHero.getSourceName(), heroBundle.toString()));
 		}
-		NLog.h("你被" + viewHero.getSourceName() + "查看了");
+		String displayName = PrefixUtils.formatNameWithPrefix(viewHero.getSourceName(), viewHero.getPrefix());
+		NLog.h("你被" + displayName + "查看了");
 	}
 
 	/**

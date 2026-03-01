@@ -26,7 +26,12 @@ public class SPlayerList extends Data {
 		players = new ArrayList<>();
 		for (Player player : playerArrayList) {
 			String jsonString = JSON.toJSONString(player);
-			players.add(JSONObject.parseObject(jsonString));
+			JSONObject playerJson = JSONObject.parseObject(jsonString);
+			// SPDNet: 前缀系统 - 确保前缀字段被包含
+			if (player.getPrefixName() != null) {
+				playerJson.put("prefix", player.getPrefixName());
+			}
+			players.add(playerJson);
 		}
 	}
 }

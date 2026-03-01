@@ -116,7 +116,10 @@
                     <div :class="['online-indicator', row.online ? 'online' : 'offline']"></div>
                   </div>
                   <div class="player-info">
-                    <span class="player-name">{{ row.name }}</span>
+                    <span class="player-name">
+                      <span v-if="row.prefix" class="player-prefix" :style="getPrefixStyle(row.prefix)">{{ row.prefix.displayText }}</span>
+                      {{ row.name }}
+                    </span>
                     <span class="player-id">ID: {{ row.id }}</span>
                   </div>
                 </div>
@@ -273,6 +276,9 @@
           </div>
         </div>
       </div>
+
+      <!-- Prefix Management Section -->
+      <PlayerPrefix :players="players" />
     </div>
   </div>
 </template>
@@ -289,6 +295,7 @@ import {
 } from '@element-plus/icons-vue'
 import { playerApi, adminApi } from '../api'
 import { authStore } from '../store/auth'
+import PlayerPrefix from '../components/PlayerPrefix.vue'
 
 const router = useRouter()
 const loading = ref(false)
@@ -357,6 +364,20 @@ const getRoleDisplay = (role) => {
     'BANNED': '已封禁'
   }
   return displays[role] || role
+}
+
+// SPDNet: 前缀系统 - 获取前缀样式
+const getPrefixStyle = (prefix) => {
+  return {
+    color: prefix.color || '#ffffff',
+    backgroundColor: prefix.backgroundColor || 'rgba(139, 92, 246, 0.8)',
+    padding: '2px 8px',
+    borderRadius: '4px',
+    fontSize: '12px',
+    fontWeight: 'bold',
+    marginRight: '4px',
+    display: 'inline-block'
+  }
 }
 
 const formatDate = (dateStr) => {
@@ -904,6 +925,12 @@ onMounted(() => {
 .player-name {
   font-weight: 600;
   color: var(--text-primary);
+}
+
+.player-prefix {
+  color: #fbbf24;
+  font-weight: bold;
+  margin-right: 4px;
 }
 
 .player-id {

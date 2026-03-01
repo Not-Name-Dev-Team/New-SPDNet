@@ -13,6 +13,8 @@ public class SChatMessage extends Data {
 	private String name;
 	private String message;
 	private String time;
+	// SPDNet: 前缀系统 - 玩家前缀
+	private String prefix;
 
 	public SChatMessage(String name, String message, String time) {
 		this.name = name;
@@ -23,5 +25,11 @@ public class SChatMessage extends Data {
 		} else {
 			this.time = time;
 		}
+	}
+
+	// SPDNet: 前缀系统 - 带前缀的构造方法
+	public SChatMessage(String name, String message, String time, String prefix) {
+		this(name, message, time);
+		this.prefix = prefix;
 	}
 }

@@ -13,4 +13,11 @@ import me.catand.spdnetserver.data.Data;
 public class SJoin extends Data {
 	private String name;
 	private String role;
+	// SPDNet: 前缀系统 - 玩家前缀
+	private String prefix;
+
+	public SJoin(String name, String role) {
+		this.name = name;
+		this.role = role;
+	}
 }

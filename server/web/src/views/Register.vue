@@ -64,6 +64,40 @@
               </div>
             </el-form-item>
 
+            <el-form-item prop="email">
+              <div class="input-wrapper">
+                <el-icon class="input-icon"><Message /></el-icon>
+                <el-input
+                  v-model="form.email"
+                  placeholder="请输入邮箱"
+                  size="large"
+                  class="auth-input"
+                />
+              </div>
+            </el-form-item>
+
+            <el-form-item prop="verificationCode">
+              <div class="input-wrapper verification-wrapper">
+                <el-icon class="input-icon"><Key /></el-icon>
+                <el-input
+                  v-model="form.verificationCode"
+                  placeholder="请输入验证码"
+                  size="large"
+                  class="auth-input verification-input"
+                />
+                <el-button
+                  type="primary"
+                  size="large"
+                  class="send-code-btn"
+                  :loading="sendingCode"
+                  :disabled="codeCountdown > 0"
+                  @click="handleSendCode"
+                >
+                  {{ codeCountdown > 0 ? `${codeCountdown}s` : '获取验证码' }}
+                </el-button>
+              </div>
+            </el-form-item>
+
             <el-form-item prop="password">
               <div class="input-wrapper">
                 <el-icon class="input-icon"><Lock /></el-icon>
@@ -126,7 +160,7 @@ import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import {
-  User, Lock, Right, ArrowLeft, Connection
+  User, Lock, Right, ArrowLeft, Connection, Message, Key
 } from '@element-plus/icons-vue'
 import { playerApi } from '../api'
 import { authStore } from '../store/auth'
@@ -134,9 +168,14 @@ import { authStore } from '../store/auth'
 const router = useRouter()
 const formRef = ref()
 const loading = ref(false)
+const sendingCode = ref(false)
+const codeCountdown = ref(0)
+let countdownTimer = null
 
 const form = reactive({
   name: '',
+  email: '',
+  verificationCode: '',
   password: '',
   confirmPassword: ''
 })
@@ -151,19 +190,73 @@ const validatePass = (rule, value, callback) => {
   }
 }
 
+const validateEmail = (rule, value, callback) => {
+  const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/
+  if (value === '') {
+    callback(new Error('请输入邮箱'))
+  } else if (!emailRegex.test(value)) {
+    callback(new Error('邮箱格式不正确'))
+  } else {
+    callback()
+  }
+}
+
 const rules = {
   name: [
     { required: true, message: '请输入用户名', trigger: 'blur' },
-    { min: 3, max: 20, message: '长度在 3 到 20 个字符', trigger: 'blur' }
+    { min: 2, max: 16, message: '长度在 2 到 16 个字符', trigger: 'blur' }
+  ],
+  email: [
+    { required: true, validator: validateEmail, trigger: 'blur' }
+  ],
+  verificationCode: [
+    { required: true, message: '请输入验证码', trigger: 'blur' }
   ],
   password: [
     { required: true, message: '请输入密码', trigger: 'blur' },
-    { min: 6, max: 20, message: '长度在 6 到 20 个字符', trigger: 'blur' }
+    { min: 6, max: 32, message: '长度在 6 到 32 个字符', trigger: 'blur' }
   ],
   confirmPassword: [
     { required: true, message: '请确认密码', trigger: 'blur' },
     { validator: validatePass, trigger: 'blur' }
   ]
+}
+
+const handleSendCode = async () => {
+  // 验证邮箱格式
+  const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/
+  if (!form.email) {
+    ElMessage.warning('请输入邮箱')
+    return
+  }
+  if (!emailRegex.test(form.email)) {
+    ElMessage.warning('邮箱格式不正确')
+    return
+  }
+
+  sendingCode.value = true
+  try {
+    const res = await playerApi.sendCode({ email: form.email })
+    if (res.data.success) {
+      ElMessage.success('验证码已发送')
+      // 开始倒计时，使用后端返回的冷却时间（默认10秒）
+      const cooldownSeconds = res.data.data?.cooldownSeconds || 10
+      codeCountdown.value = cooldownSeconds
+      countdownTimer = setInterval(() => {
+        codeCountdown.value--
+        if (codeCountdown.value <= 0) {
+          clearInterval(countdownTimer)
+        }
+      }, 1000)
+    } else {
+      ElMessage.error(res.data.message || '验证码发送失败')
+    }
+  } catch (error) {
+    console.error('发送验证码失败:', error)
+    ElMessage.error('发送验证码失败，请检查网络连接')
+  } finally {
+    sendingCode.value = false
+  }
 }
 
 const handleRegister = async () => {
@@ -175,7 +268,9 @@ const handleRegister = async () => {
       try {
         const res = await playerApi.register({
           name: form.name,
-          password: form.password
+          email: form.email,
+          password: form.password,
+          verificationCode: form.verificationCode
         })
         if (res.data.success) {
           ElMessage.success('注册成功')
@@ -409,6 +504,34 @@ onMounted(() => {
 
 .input-wrapper:focus-within .input-icon {
   color: var(--primary-400);
+}
+
+.verification-wrapper {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.verification-input {
+  flex: 1;
+}
+
+.verification-input :deep(.el-input__wrapper) {
+  padding-left: 40px;
+}
+
+.send-code-btn {
+  height: 48px;
+  min-width: 120px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border-radius: var(--radius-md);
+  white-space: nowrap;
+}
+
+.send-code-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .submit-btn {

@@ -10,7 +10,10 @@
             <div class="avatar-glow"></div>
           </div>
           <div class="user-info">
-            <h1 class="user-name">{{ userInfo?.name || '加载中...' }}</h1>
+            <h1 class="user-name">
+              <span v-if="userInfo?.prefix" class="user-prefix" :style="getPrefixStyle(userInfo.prefix)">{{ userInfo.prefix.displayText }}</span>
+              {{ userInfo?.name || '加载中...' }}
+            </h1>
             <div class="user-badges">
               <el-tag :type="getRoleType(userInfo?.role)" effect="dark" round size="large">
                 {{ userInfo?.role || '玩家' }}
@@ -92,6 +95,9 @@
 
         <!-- Right Column -->
         <div class="right-column">
+          <!-- My Prefix Selector -->
+          <MyPrefixSelector />
+
           <!-- Account Settings -->
           <div class="info-card">
             <div class="card-header">
@@ -220,10 +226,11 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import {
-  UserFilled, User, Calendar, Tools, View, Lock, ArrowRight, Edit, Setting
+  UserFilled, User, Calendar, Tools, View, Lock, ArrowRight, Edit, Setting, Medal
 } from '@element-plus/icons-vue'
 import { playerApi } from '../api'
 import { authStore } from '../store/auth'
+import MyPrefixSelector from '../components/MyPrefixSelector.vue'
 
 const router = useRouter()
 const userInfo = ref(null)
@@ -285,6 +292,20 @@ const getRoleType = (role) => {
     '玩家': 'primary'
   }
   return types[role] || 'primary'
+}
+
+// SPDNet: 前缀系统 - 获取前缀样式
+const getPrefixStyle = (prefix) => {
+  return {
+    color: prefix.color || '#ffffff',
+    backgroundColor: prefix.backgroundColor || 'rgba(139, 92, 246, 0.8)',
+    padding: '4px 12px',
+    borderRadius: '6px',
+    fontSize: '14px',
+    fontWeight: 'bold',
+    marginRight: '8px',
+    display: 'inline-block'
+  }
 }
 
 const formatDate = (time) => {
@@ -501,6 +522,10 @@ onMounted(() => {
   font-weight: 700;
   margin: 0;
   color: var(--text-primary);
+}
+
+.user-prefix {
+  display: inline-block;
 }
 
 .user-badges {

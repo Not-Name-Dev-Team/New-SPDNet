@@ -12,4 +12,10 @@ import me.catand.spdnetserver.data.Data;
 @NoArgsConstructor
 public class SExit extends Data {
 	private String name;
+	// SPDNet: 前缀系统 - 玩家前缀
+	private String prefix;
+
+	public SExit(String name) {
+		this.name = name;
+	}
 }
