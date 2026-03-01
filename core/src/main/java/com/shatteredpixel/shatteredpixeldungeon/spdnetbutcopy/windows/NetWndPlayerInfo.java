@@ -7,6 +7,7 @@ import com.shatteredpixel.shatteredpixeldungeon.Statistics;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Buff;
 import com.shatteredpixel.shatteredpixeldungeon.actors.hero.Hero;
 import com.shatteredpixel.shatteredpixeldungeon.items.EquipableItem;
+import com.shatteredpixel.shatteredpixeldungeon.items.Heap;
 import com.shatteredpixel.shatteredpixeldungeon.items.Item;
 import com.shatteredpixel.shatteredpixeldungeon.items.bags.Bag;
 import com.shatteredpixel.shatteredpixeldungeon.items.quest.CorpseDust;
@@ -271,15 +272,24 @@ public class NetWndPlayerInfo extends WndTabbed {
 									if (player == null || player.getStatus() == null) {
 										return;
 									}
-								if (player.getStatus().getGameModeEnum() == Mode.IRONMAN) {
-									NLog.h(hero.name + "是铁人，不能接受你的" + item.name());
-									return;
-								}
-								Sender.sendGiveItem(new CGiveItem(hero.name, item));
-								if (item instanceof EquipableItem && item.isEquipped(Dungeon.hero)) {
-									((EquipableItem) item).doUnequip(Dungeon.hero, false);
-								}
-								item.detach(Dungeon.hero.belongings.backpack);
+									if (player.getStatus().getGameModeEnum() == Mode.IRONMAN) {
+										NLog.h(hero.name + "是铁人，不能接受你的" + item.name());
+										return;
+									}
+									Sender.sendGiveItem(new CGiveItem(hero.name, item));
+									if (item instanceof EquipableItem && item.isEquipped(Dungeon.hero)) {
+										((EquipableItem) item).doUnequip(Dungeon.hero, true);
+									}
+									// 尝试从背包移除，如果失败（物品在地上），从地上移除
+									if (item.detach(Dungeon.hero.belongings.backpack) == null) {
+										// 物品不在背包中，可能掉落在地上
+										for (Heap heap : Dungeon.level.heaps.valueList()) {
+											if (heap.items.contains(item)) {
+												heap.remove(item);
+												break;
+											}
+										}
+									}
 								}
 							}
 						});
