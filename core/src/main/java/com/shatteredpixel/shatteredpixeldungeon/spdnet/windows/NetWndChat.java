@@ -21,6 +21,10 @@ import com.watabou.noosa.TextInput;
 import com.watabou.noosa.ui.Component;
 import com.watabou.utils.DeviceCompat;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Locale;
+
 public class NetWndChat extends NetWindow {
 
 	private static final int MARGIN = 2;
@@ -75,9 +79,17 @@ public class NetWndChat extends NetWindow {
 		public static final float BOXHEIGHT = 100;
 
 		private float lastMessagePos;
+		private SimpleDateFormat timeFormat;
 
 		public Chat() {
 			super();
+			// SPDNet: 初始化时间格式化器
+			timeFormat = new SimpleDateFormat("HH:mm:ss", Locale.getDefault());
+		}
+
+		// SPDNet: 获取当前时间字符串
+		private String getCurrentTime() {
+			return timeFormat.format(new Date());
 		}
 
 		@Override
@@ -95,7 +107,8 @@ public class NetWndChat extends NetWindow {
 				@Override
 				public boolean keyDown(InputEvent event, int keycode) {
 					if (keycode == Input.Keys.ENTER) {
-						Sender.sendChatMessage(new CChatMessage(textInput.getText()));
+						// SPDNet: 发送消息时带上客户端当前时间
+						Sender.sendChatMessage(new CChatMessage(textInput.getText(), getCurrentTime()));
 						textInput.setText("");
 					}
 					return super.keyDown(event, keycode);
@@ -115,7 +128,8 @@ public class NetWndChat extends NetWindow {
 					String msg = textInput.getText();
 					if (!msg.equals(lastMessage)
 							&& !msg.isEmpty()) {
-						Sender.sendChatMessage(new CChatMessage(msg));
+						// SPDNet: 发送消息时带上客户端当前时间
+						Sender.sendChatMessage(new CChatMessage(msg, getCurrentTime()));
 						lastMessage = msg;
 						textInput.setText("");
 					}

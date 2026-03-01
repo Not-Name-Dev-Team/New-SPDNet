@@ -82,8 +82,9 @@ public class Handler {
 
 	public void handleChatMessage(Player player, CChatMessage cChatMessage) {
 		log.info("玩家{}发送了消息：{}", player.getName(), cChatMessage.getMessage());
-		SChatMessage chatMessage = new SChatMessage(player.getName(), cChatMessage.getMessage());
-		chatService.addMessage(player.getName(), cChatMessage.getMessage());
+		// SPDNet: 使用客户端传来的时间，如果没有则使用服务端时间
+		SChatMessage chatMessage = new SChatMessage(player.getName(), cChatMessage.getMessage(), cChatMessage.getTime());
+		chatService.addMessage(player.getName(), cChatMessage.getMessage(), cChatMessage.getTime());
 		sender.sendBroadcastChatMessage(chatMessage);
 	}
 

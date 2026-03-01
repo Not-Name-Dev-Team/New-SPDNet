@@ -2,7 +2,6 @@ package com.shatteredpixel.shatteredpixeldungeon.spdnet.utils;
 
 import com.shatteredpixel.shatteredpixeldungeon.messages.Messages;
 import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.Net;
-import com.shatteredpixel.shatteredpixeldungeon.spdnet.windows.NetWndChat;
 import com.watabou.utils.DeviceCompat;
 import com.watabou.utils.Signal;
 
@@ -52,10 +51,17 @@ public class NLog {
 		i(HIGHLIGHT + text, args);
 	}
 
-	public static void chat(String name, String text) {
+	// SPDNet: 带时间的聊天消息显示
+	public static void chat(String name, String text, String time) {
+		String prefix = "";
 		if (Net.name.equals(name)) {
-			name = POSITIVE + name;
+			prefix = POSITIVE;
 		}
-		i(name + ": " + text);
+		// 如果时间不为空，则在消息前显示时间
+		if (time != null && !time.isEmpty()) {
+			i(prefix + "[" + time + "] " + name + ": " + text);
+		} else {
+			i(prefix + name + ": " + text);
+		}
 	}
 }

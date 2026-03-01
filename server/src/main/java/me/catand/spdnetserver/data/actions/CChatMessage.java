@@ -12,4 +12,5 @@ import me.catand.spdnetserver.data.Data;
 @NoArgsConstructor
 public class CChatMessage extends Data {
 	private String message;
+	private String time;
 }

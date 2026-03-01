@@ -113,7 +113,8 @@ public class Handler {
 	}
 
 	public static void handleChatMessage(SChatMessage chatMessage) {
-		NLog.chat(chatMessage.getName(), chatMessage.getMessage());
+		// SPDNet: 使用服务端传来的时间显示聊天消息
+		NLog.chat(chatMessage.getName(), chatMessage.getMessage(), chatMessage.getTime());
 	}
 
 	public static void handleEnterDungeon(SEnterDungeon enterDungeon) {

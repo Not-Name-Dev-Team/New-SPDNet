@@ -283,7 +283,8 @@ public class SocketService {
 	}
 
 	public void broadcastChatMessage(String name, String message) {
-		sender.sendBroadcastChatMessage(new SChatMessage(name, message));
+		// SPDNet: 使用服务端时间作为系统广播消息的时间
+		sender.sendBroadcastChatMessage(new SChatMessage(name, message, ""));
 	}
 
 	// SPDNet: 获取客户端IP地址

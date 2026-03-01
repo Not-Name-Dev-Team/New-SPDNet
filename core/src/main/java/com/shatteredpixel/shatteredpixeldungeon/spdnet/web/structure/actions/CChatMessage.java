@@ -13,4 +13,5 @@ import lombok.Setter;
 @NoArgsConstructor
 public class CChatMessage extends Data {
 	private String message;
+	private String time;
 }

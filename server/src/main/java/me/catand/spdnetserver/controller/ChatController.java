@@ -43,7 +43,8 @@ public class ChatController {
             return ApiResponse.error("消息内容不能超过500字符");
         }
 
-        chatService.addMessage(name, message);
+        // SPDNet: 系统广播消息使用服务端时间
+        chatService.addMessage(name, message, "");
         socketService.broadcastChatMessage(name, message);
 
         return ApiResponse.success("发送成功");
