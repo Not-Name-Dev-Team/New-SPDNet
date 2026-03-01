@@ -29,7 +29,7 @@ export const playerApi = {
     return api.get('/players')
   },
 
-  getPlayerInfo(name) {
+  getPlayerPublicInfo(name) {
     return api.get(`/player/${name}`)
   },
 
@@ -51,6 +51,14 @@ export const playerApi = {
 
   changePassword(data) {
     return api.post('/change-password', data)
+  },
+
+  getChatHistory(count = 50) {
+    return api.get('/chat/messages', { params: { count } })
+  },
+
+  sendMessage(name, message) {
+    return api.post('/chat/send', { name, message })
   }
 }
 
@@ -70,6 +78,12 @@ export const adminApi = {
   getPlayers(page = 0, size = 20, role = null, search = null) {
     return api.get('/admin/players', {
       params: { page, size, role, search }
+    })
+  },
+
+  getAllPlayers() {
+    return api.get('/admin/players', {
+      params: { page: 0, size: 1000 }
     })
   },
 

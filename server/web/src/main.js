@@ -22,7 +22,7 @@ const routes = [
   { path: '/login', component: Login, meta: { title: '登录' } },
   { path: '/leaderboard', component: Leaderboard, meta: { title: '排行榜' } },
   { path: '/player/:name', component: Player, meta: { title: '玩家详情' } },
-  { path: '/profile', component: Profile, meta: { title: '个人中心' } },
+  { path: '/dashboard', component: Profile, meta: { title: '个人中心' } },
   { path: '/admin', component: Admin, meta: { title: '后台管理' } },
   { path: '/chat', component: Chat, meta: { title: '聊天室' } }
 ]

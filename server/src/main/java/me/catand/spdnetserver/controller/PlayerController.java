@@ -15,9 +15,11 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @RestController
@@ -235,29 +237,18 @@ public class PlayerController {
         }
         Pageable pageable = PageRequest.of(page, size, sort);
 
-        // 根据条件查询
+        // 根据条件查询 - 使用组合筛选
         Page<GameRecord> records;
-        if (playerName != null && !playerName.trim().isEmpty()) {
-            // 按玩家名查询
-            Player player = playerRepository.findByName(playerName.trim());
-            if (player == null) {
-                records = Page.empty(pageable);
-            } else {
-                records = gameRecordRepository.findByPlayer(player, pageable);
-            }
-        } else if (challengeCount != null) {
-            // 按挑战数查询
-            records = gameRecordRepository.findByChallengeAmount(challengeCount, pageable);
-        } else if (winOnly != null && winOnly) {
-            // 只显示胜利
-            if (gameMode != null && !gameMode.isEmpty()) {
-                records = gameRecordRepository.findByWinTrueAndGameMode(gameMode, pageable);
-            } else {
-                records = gameRecordRepository.findByWinTrue(pageable);
-            }
-        } else if (gameMode != null && !gameMode.isEmpty()) {
-            // 按游戏模式查询
-            records = gameRecordRepository.findByGameMode(gameMode, pageable);
+        if ((playerName != null && !playerName.trim().isEmpty()) ||
+            challengeCount != null ||
+            (winOnly != null && winOnly) ||
+            (gameMode != null && !gameMode.isEmpty())) {
+            // 使用组合筛选查询
+            String username = (playerName != null && !playerName.trim().isEmpty()) ? playerName.trim() : null;
+            Boolean win = (winOnly != null && winOnly) ? true : null;
+            String mode = (gameMode != null && !gameMode.isEmpty()) ? gameMode : null;
+            Integer challenge = challengeCount;
+            records = gameRecordRepository.findWithFilters(username, win, mode, challenge, pageable);
         } else {
             records = gameRecordRepository.findAll(pageable);
         }
@@ -304,8 +295,11 @@ public class PlayerController {
         data.put("role", player.getRole().getDisplayName());
         data.put("online", isOnline);
 
-        // 成就数量
-        data.put("achievementCount", player.getAchievements() != null ? player.getAchievements().size() : 0);
+        // 成就数量和列表
+        Set<String> achievements = player.getAchievements();
+        data.put("achievementCount", achievements != null ? achievements.size() : 0);
+        data.put("achievementTotal", 94); // 总成就数量（来自Badges.java）
+        data.put("achievements", achievements != null ? new ArrayList<>(achievements) : new ArrayList<>());
 
         // 游戏统计
         long totalGames = gameRecordRepository.countByPlayer(player);
@@ -322,9 +316,30 @@ public class PlayerController {
         int maxScore = allRecords.isEmpty() ? 0 : allRecords.get(0).getScore();
         int maxDepth = allRecords.stream().mapToInt(GameRecord::getMaxDepth).max().orElse(0);
         int maxLevel = allRecords.stream().mapToInt(r -> r.getLevel() > 0 ? r.getLevel() : 1).max().orElse(1);
+        // 历史最高通关挑战数量（只统计获胜的记录）
+        int maxChallengeAmount = allRecords.stream()
+            .filter(GameRecord::isWin)
+            .mapToInt(GameRecord::getChallengeAmount)
+            .max()
+            .orElse(0);
         data.put("maxScore", maxScore);
         data.put("maxDepth", maxDepth);
         data.put("maxLevel", maxLevel);
+        data.put("maxChallengeAmount", maxChallengeAmount);
+
+        // 最近游戏记录（取前5条）
+        List<Map<String, Object>> recentGames = allRecords.stream()
+            .limit(5)
+            .map(r -> {
+                Map<String, Object> game = new HashMap<>();
+                game.put("score", r.getScore());
+                game.put("floor", r.getMaxDepth());
+                game.put("result", r.isWin() ? "胜利" : "失败");
+                game.put("endTime", r.getDate());
+                return game;
+            })
+            .collect(Collectors.toList());
+        data.put("recentGames", recentGames);
 
         // 注册时间和最后登录信息（公开信息）
         data.put("createdAt", player.getCreatedAt());
@@ -335,19 +350,19 @@ public class PlayerController {
         List<PlayerCatalog> catalogList = catalogRepository.findByPlayerId(player.getId());
         List<PlayerDocument> documentList = documentRepository.findByPlayerId(player.getId());
 
-        // 图鉴统计
+        // 图鉴统计 (Bestiary总数量 = 136个实体，来自core模块)
         long bestiarySeen = bestiaryList.stream().filter(PlayerBestiary::isSeen).count();
-        data.put("bestiaryTotal", bestiaryList.size());
+        data.put("bestiaryTotal", 136);
         data.put("bestiarySeen", bestiarySeen);
 
-        // 物品图鉴统计
+        // 物品图鉴统计 (Catalog总数量，来自core模块Generator定义)
         long catalogSeen = catalogList.stream().filter(PlayerCatalog::isSeen).count();
-        data.put("catalogTotal", catalogList.size());
+        data.put("catalogTotal", 285); // 基于Generator中定义的物品总数
         data.put("catalogSeen", catalogSeen);
 
-        // 文档统计
+        // 文档统计 (Document总页面数 = 58页，来自core模块)
         long documentFound = documentList.stream().filter(PlayerDocument::isFound).count();
-        data.put("documentTotal", documentList.size());
+        data.put("documentTotal", 58);
         data.put("documentFound", documentFound);
 
         // 详细列表（可选，如果需要展示具体项目）
@@ -405,6 +420,8 @@ public class PlayerController {
         data.put("netVersion", "0.0.1");
         data.put("onlineCount", socketService.getPlayerMap().size());
         data.put("totalPlayers", playerRepository.count());
+        data.put("adminCount", playerRepository.countByRole(UserRole.ADMIN));
+        data.put("bannedCount", playerRepository.countByRole(UserRole.BANNED));
         return ApiResponse.success("获取成功", data);
     }
 

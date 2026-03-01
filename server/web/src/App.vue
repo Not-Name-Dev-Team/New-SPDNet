@@ -1,5 +1,12 @@
 <template>
   <div class="app-wrapper">
+    <!-- Aurora Background -->
+    <div class="aurora-bg">
+      <div class="aurora aurora-1"></div>
+      <div class="aurora aurora-2"></div>
+      <div class="aurora aurora-3"></div>
+    </div>
+
     <!-- Particle Background -->
     <ParticleBackground />
 
@@ -10,7 +17,7 @@
         <router-link to="/" class="brand">
           <div class="brand-icon-wrapper">
             <div class="brand-icon-glow"></div>
-            <el-icon class="brand-icon" :size="22"><Connection /></el-icon>
+            <el-icon class="brand-icon" :size="20"><Connection /></el-icon>
           </div>
           <span class="brand-text">
             <span class="gradient-text">SPD</span>Net
@@ -25,8 +32,8 @@
             :to="item.path"
             :class="['nav-link', { active: $route.path === item.path }]"
           >
-            <div class="nav-link-bg"></div>
-            <el-icon :size="18"><component :is="item.icon" /></el-icon>
+            <span class="nav-indicator"></span>
+            <el-icon :size="16"><component :is="item.icon" /></el-icon>
             <span>{{ item.label }}</span>
           </router-link>
         </nav>
@@ -47,7 +54,7 @@
             <el-dropdown @command="handleCommand" trigger="click" popper-class="user-dropdown-menu">
               <div class="user-trigger">
                 <div class="user-avatar-wrapper">
-                  <el-avatar :size="36" :icon="UserFilled" class="user-avatar" />
+                  <el-avatar :size="34" :icon="UserFilled" class="user-avatar" />
                   <span class="status-indicator online"></span>
                 </div>
                 <span class="user-name">{{ authStore.user?.name }}</span>
@@ -93,7 +100,7 @@
       <div class="footer-container">
         <div class="footer-brand">
           <div class="footer-icon">
-            <el-icon :size="20"><Connection /></el-icon>
+            <el-icon :size="18"><Connection /></el-icon>
           </div>
           <span>联机破碎地牢 SPDNet</span>
         </div>
@@ -147,7 +154,7 @@ onUnmounted(() => {
 const handleCommand = (command) => {
   switch (command) {
     case 'profile':
-      router.push('/profile')
+      router.push('/dashboard')
       break
     case 'player':
       router.push(`/player/${authStore.user?.name}`)
@@ -183,6 +190,65 @@ const handleCommand = (command) => {
   position: relative;
 }
 
+/* Aurora Background */
+.aurora-bg {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.aurora {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.15;
+  animation: aurora 20s ease-in-out infinite;
+}
+
+.aurora-1 {
+  width: 600px;
+  height: 600px;
+  background: linear-gradient(135deg, #9333ea, #a855f7);
+  top: -200px;
+  left: -100px;
+  animation-delay: 0s;
+}
+
+.aurora-2 {
+  width: 500px;
+  height: 500px;
+  background: linear-gradient(135deg, #06b6d4, #3b82f6);
+  top: 20%;
+  right: -150px;
+  animation-delay: -7s;
+}
+
+.aurora-3 {
+  width: 400px;
+  height: 400px;
+  background: linear-gradient(135deg, #ec4899, #f43f5e);
+  bottom: 10%;
+  left: 20%;
+  animation-delay: -14s;
+}
+
+@keyframes aurora {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+  }
+  25% {
+    transform: translate(50px, -30px) scale(1.1);
+  }
+  50% {
+    transform: translate(-30px, 50px) scale(0.95);
+  }
+  75% {
+    transform: translate(-50px, -20px) scale(1.05);
+  }
+}
+
 /* Header */
 .app-header {
   position: fixed;
@@ -191,7 +257,7 @@ const handleCommand = (command) => {
   right: 0;
   z-index: 100;
   height: var(--header-height);
-  background: rgba(3, 3, 7, 0.6);
+  background: rgba(10, 10, 15, 0.5);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border-bottom: 1px solid var(--border-subtle);
@@ -199,7 +265,7 @@ const handleCommand = (command) => {
 }
 
 .app-header.scrolled {
-  background: rgba(3, 3, 7, 0.85);
+  background: rgba(10, 10, 15, 0.85);
   box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
 }
 
@@ -217,15 +283,15 @@ const handleCommand = (command) => {
 .brand {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--space-2);
   text-decoration: none;
   position: relative;
 }
 
 .brand-icon-wrapper {
   position: relative;
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   border-radius: var(--radius-md);
   background: var(--gradient-primary);
   display: flex;
@@ -239,7 +305,7 @@ const handleCommand = (command) => {
   border-radius: var(--radius-md);
   background: var(--gradient-primary);
   filter: blur(8px);
-  opacity: 0.5;
+  opacity: 0.4;
   animation: glow-pulse 2s ease-in-out infinite;
 }
 
@@ -250,8 +316,8 @@ const handleCommand = (command) => {
 }
 
 .brand-text {
-  font-size: 1.5rem;
-  font-weight: 800;
+  font-size: 1.25rem;
+  font-weight: 700;
   color: var(--text-primary);
   letter-spacing: -0.5px;
 }
@@ -261,6 +327,10 @@ const handleCommand = (command) => {
   display: flex;
   align-items: center;
   gap: var(--space-1);
+  background: var(--surface-1);
+  padding: var(--space-1);
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border-subtle);
 }
 
 .nav-link {
@@ -269,37 +339,36 @@ const handleCommand = (command) => {
   align-items: center;
   gap: var(--space-2);
   padding: var(--space-2) var(--space-4);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-full);
   color: var(--text-secondary);
   text-decoration: none;
   font-weight: 500;
+  font-size: 0.875rem;
   transition: all var(--transition-fast);
   overflow: hidden;
 }
 
-.nav-link-bg {
+.nav-indicator {
   position: absolute;
   inset: 0;
   background: var(--gradient-primary);
+  border-radius: var(--radius-full);
   opacity: 0;
-  transition: opacity var(--transition-fast);
-  border-radius: var(--radius-md);
+  transform: scale(0.8);
+  transition: all var(--transition-fast);
 }
 
 .nav-link:hover {
   color: var(--text-primary);
 }
 
-.nav-link:hover .nav-link-bg {
-  opacity: 0.1;
-}
-
 .nav-link.active {
-  color: var(--primary-400);
+  color: white;
 }
 
-.nav-link.active .nav-link-bg {
-  opacity: 0.15;
+.nav-link.active .nav-indicator {
+  opacity: 1;
+  transform: scale(1);
 }
 
 .nav-link .el-icon,
@@ -312,17 +381,18 @@ const handleCommand = (command) => {
 .user-section {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--space-2);
 }
 
 .btn-login,
 .btn-register {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-2) var(--space-4);
-  border-radius: var(--radius-md);
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-full);
   font-weight: 500;
+  font-size: 0.875rem;
   text-decoration: none;
   transition: all var(--transition-fast);
 }
@@ -352,15 +422,18 @@ const handleCommand = (command) => {
 .user-trigger {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-2);
-  border-radius: var(--radius-lg);
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-2) var(--space-1) var(--space-1);
+  border-radius: var(--radius-full);
   cursor: pointer;
   transition: all var(--transition-fast);
+  background: var(--surface-1);
+  border: 1px solid var(--border-subtle);
 }
 
 .user-trigger:hover {
   background: var(--surface-2);
+  border-color: var(--border-default);
 }
 
 .user-avatar-wrapper {
@@ -375,19 +448,20 @@ const handleCommand = (command) => {
   position: absolute;
   bottom: 0;
   right: 0;
-  width: 10px;
-  height: 10px;
+  width: 8px;
+  height: 8px;
   border-radius: var(--radius-full);
   border: 2px solid var(--bg-primary);
 }
 
 .status-indicator.online {
   background: var(--accent-emerald);
-  box-shadow: 0 0 8px var(--accent-emerald);
+  box-shadow: 0 0 6px var(--accent-emerald);
 }
 
 .user-name {
   font-weight: 500;
+  font-size: 0.875rem;
   color: var(--text-primary);
 }
 
@@ -412,9 +486,9 @@ const handleCommand = (command) => {
 .app-footer {
   position: relative;
   z-index: 1;
-  padding: var(--space-8) 0;
+  padding: var(--space-6) 0;
   border-top: 1px solid var(--border-subtle);
-  background: rgba(3, 3, 7, 0.6);
+  background: rgba(10, 10, 15, 0.5);
   backdrop-filter: blur(10px);
 }
 
@@ -425,21 +499,21 @@ const handleCommand = (command) => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--space-4);
+  gap: var(--space-3);
 }
 
 .footer-brand {
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  font-size: 1.125rem;
+  font-size: 0.9375rem;
   font-weight: 600;
   color: var(--text-primary);
 }
 
 .footer-icon {
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   border-radius: var(--radius-md);
   background: var(--gradient-primary);
   display: flex;
@@ -459,6 +533,7 @@ const handleCommand = (command) => {
   gap: var(--space-1);
   color: var(--text-secondary);
   text-decoration: none;
+  font-size: 0.875rem;
   transition: color var(--transition-fast);
 }
 
@@ -468,7 +543,7 @@ const handleCommand = (command) => {
 
 .footer-copy {
   color: var(--text-tertiary);
-  font-size: 0.875rem;
+  font-size: 0.75rem;
 }
 
 /* Page Transition */
@@ -494,7 +569,7 @@ const handleCommand = (command) => {
     transform: scale(1);
   }
   50% {
-    opacity: 0.6;
+    opacity: 0.5;
     transform: scale(1.05);
   }
 }
@@ -506,7 +581,7 @@ const handleCommand = (command) => {
   }
 
   .brand-text {
-    font-size: 1.25rem;
+    font-size: 1.125rem;
   }
 
   .user-name {
@@ -551,7 +626,7 @@ const handleCommand = (command) => {
 }
 
 .user-dropdown-menu .el-dropdown-menu__item .el-icon {
-  font-size: 18px;
+  font-size: 16px;
 }
 
 .user-dropdown-menu .el-dropdown-menu__item--divided {

@@ -1,186 +1,132 @@
 <template>
   <div class="chat-page">
-    <div class="chat-container">
-      <!-- Chat Header -->
-      <div class="chat-header">
-        <div class="header-main">
-          <div class="header-icon">
-            <el-icon :size="28"><ChatDotRound /></el-icon>
-            <div class="icon-glow"></div>
+    <div class="chat-wrapper">
+      <!-- Sidebar - Online Users -->
+      <aside class="chat-sidebar">
+        <div class="sidebar-header">
+          <div class="header-title">
+            <el-icon><UserFilled /></el-icon>
+            <span>在线玩家</span>
           </div>
-          <div class="header-text">
-            <h2>聊天室</h2>
-            <div class="header-meta">
-              <span class="status-indicator">
-                <span class="status-dot"></span>
-                <span class="status-text">{{ onlineCount }} 人在线</span>
-              </span>
-              <span class="divider">|</span>
-              <span class="message-count">{{ messages.length }} 条消息</span>
+          <el-tag type="success" effect="dark" round size="small">
+            {{ onlineUsers.length }}
+          </el-tag>
+        </div>
+
+        <div class="users-list" v-if="onlineUsers.length > 0">
+          <router-link
+            v-for="user in onlineUsers"
+            :key="user.name"
+            :to="`/player/${user.name}`"
+            class="user-item"
+          >
+            <div class="user-avatar-wrapper">
+              <el-avatar :size="36" :icon="UserFilled" class="user-avatar" />
+              <span class="online-dot"></span>
+            </div>
+            <div class="user-info">
+              <span class="user-name">{{ user.name }}</span>
+              <el-tag :type="getRoleType(user.role)" size="small" effect="dark" round>
+                {{ user.role }}
+              </el-tag>
+            </div>
+          </router-link>
+        </div>
+
+        <div v-else class="empty-users">
+          <el-icon :size="32"><User /></el-icon>
+          <span>暂无在线玩家</span>
+        </div>
+      </aside>
+
+      <!-- Main Chat Area -->
+      <main class="chat-main">
+        <!-- Header -->
+        <header class="chat-header">
+          <div class="header-info">
+            <div class="header-icon-wrapper">
+              <el-icon :size="20"><ChatDotRound /></el-icon>
+            </div>
+            <div class="header-text">
+              <h2>公共聊天室</h2>
+              <p>与在线玩家实时交流</p>
             </div>
           </div>
-        </div>
-        <div class="header-actions">
-          <el-tooltip content="自动刷新" placement="bottom">
-            <el-switch
-              v-model="autoRefresh"
-              active-text="自动"
-              class="auto-refresh-switch"
-            />
-          </el-tooltip>
-          <el-button
-            type="primary"
-            :icon="Refresh"
-            @click="loadMessages"
-            :loading="loading"
-            circle
-            class="refresh-btn"
-          />
-        </div>
-      </div>
-
-      <!-- Messages Area -->
-      <div class="messages-area" ref="chatContainer" v-loading="loading">
-        <!-- Welcome Message -->
-        <div class="welcome-message" v-if="!loading">
-          <div class="welcome-line"></div>
-          <div class="welcome-content">
-            <el-icon><ChatLineRound /></el-icon>
-            <span>欢迎来到 SPDNet 聊天室</span>
+          <div class="header-actions">
+            <el-button
+              type="primary"
+              text
+              :icon="Refresh"
+              @click="loadOnlineUsers"
+              :loading="loading"
+            >
+              刷新
+            </el-button>
           </div>
-          <div class="welcome-line"></div>
-        </div>
+        </header>
 
-        <div v-if="!loading && messages.length === 0" class="empty-state">
-          <div class="empty-visual">
-            <div class="empty-glow"></div>
-            <el-icon :size="56"><ChatLineRound /></el-icon>
+        <!-- Messages Area - 使用独立滚动区域 -->
+        <div class="messages-wrapper" ref="messagesWrapper">
+          <div v-if="messages.length === 0" class="empty-messages">
+            <div class="empty-icon">
+              <el-icon :size="48"><ChatDotRound /></el-icon>
+            </div>
+            <p>暂无消息</p>
+            <span>发送第一条消息开始聊天吧！</span>
           </div>
-          <h3>暂无消息</h3>
-          <p>来发送第一条消息，开启冒险交流之旅！</p>
-        </div>
 
-        <div v-else class="messages-list">
           <div
             v-for="(msg, index) in messages"
             :key="index"
-            :class="['message-item', { 'message-own': isOwnMessage(msg) }]"
+            class="message-item"
+            :class="{ 'self': isSelfMessage(msg) }"
           >
-            <div class="message-time" v-if="showTime(index)">
-              {{ formatTime(msg.time) }}
-            </div>
-            <div class="message-body">
-              <div class="message-avatar-wrapper">
-                <el-avatar
-                  :size="44"
-                  :icon="UserFilled"
-                  class="message-avatar"
-                  :class="{ 'own-avatar': isOwnMessage(msg) }"
-                />
-                <div v-if="isOwnMessage(msg)" class="online-badge"></div>
+            <router-link :to="`/player/${msg.name}`" class="message-avatar">
+              <el-avatar :size="40" :icon="UserFilled" />
+            </router-link>
+            <div class="message-content">
+              <div class="message-header">
+                <router-link :to="`/player/${msg.name}`" class="message-author">
+                  {{ msg.name }}
+                </router-link>
+                <span class="message-time">{{ formatTime(msg.time) }}</span>
               </div>
-              <div class="message-content">
-                <div class="message-header">
-                  <router-link :to="`/player/${msg.name}`" class="message-author">
-                    {{ msg.name }}
-                  </router-link>
-                  <el-tag
-                    v-if="isOwnMessage(msg)"
-                    size="small"
-                    type="success"
-                    effect="dark"
-                    round
-                    class="own-tag"
-                  >
-                    我
-                  </el-tag>
-                  <el-tag
-                    v-else-if="msg.isAdmin"
-                    size="small"
-                    type="danger"
-                    effect="dark"
-                    round
-                    class="admin-tag"
-                  >
-                    管理员
-                  </el-tag>
-                </div>
-                <div class="message-bubble">
-                  <p class="message-text">{{ msg.message }}</p>
-                </div>
+              <div class="message-bubble">
+                <p>{{ msg.message }}</p>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- Scroll to bottom button -->
-        <transition name="fade">
-          <div
-            v-if="showScrollBtn"
-            class="scroll-to-bottom"
-            @click="scrollToBottom"
-          >
-            <el-icon><ArrowDown /></el-icon>
-            <span v-if="unreadCount > 0" class="unread-badge">{{ unreadCount }}</span>
-          </div>
-        </transition>
-      </div>
-
-      <!-- Input Area -->
-      <div class="input-area">
-        <div v-if="!authStore.isLoggedIn" class="login-prompt">
-          <div class="prompt-icon">
-            <el-icon><Lock /></el-icon>
-          </div>
-          <div class="prompt-content">
-            <span class="prompt-title">需要登录</span>
-            <span class="prompt-desc">登录后即可参与聊天，与其他冒险者交流</span>
-          </div>
-          <router-link to="/login" class="login-btn">
-            <el-icon><ArrowRight /></el-icon>
-            去登录
-          </router-link>
-        </div>
-        <div v-else class="input-wrapper">
-          <div class="input-toolbar">
-            <el-tooltip content="表情" placement="top">
-              <button class="toolbar-btn" @click="showEmoji = !showEmoji">
-                <el-icon><ChatLineRound /></el-icon>
-              </button>
-            </el-tooltip>
-            <el-tooltip content="图片" placement="top">
-              <button class="toolbar-btn">
-                <el-icon><Picture /></el-icon>
-              </button>
-            </el-tooltip>
-            <span class="toolbar-divider"></span>
-            <span class="input-hint">按 Enter 发送，Shift + Enter 换行</span>
-          </div>
-          <div class="input-main">
+        <!-- Input Area - 固定在底部 -->
+        <footer class="chat-footer">
+          <div class="input-wrapper">
             <el-input
-              v-model="newMessage"
+              v-model="messageText"
               type="textarea"
               :rows="2"
-              placeholder="分享你的冒险故事..."
-              maxlength="500"
-              show-word-limit
+              placeholder="输入消息..."
               resize="none"
-              @keyup.enter.prevent="handleEnter"
-              class="message-input"
+              @keyup.enter.prevent="sendMessage"
+              :disabled="!authStore.isLoggedIn"
             />
             <el-button
               type="primary"
               :icon="Promotion"
+              :disabled="!canSend"
               :loading="sending"
-              :disabled="!newMessage.trim()"
               @click="sendMessage"
               class="send-btn"
             >
               发送
             </el-button>
           </div>
-        </div>
-      </div>
+          <div v-if="!authStore.isLoggedIn" class="login-tip">
+            <el-icon><InfoFilled /></el-icon>
+            <span>请先 <router-link to="/login">登录</router-link> 后发送消息</span>
+          </div>
+        </footer>
+      </main>
     </div>
   </div>
 </template>
@@ -189,679 +135,456 @@
 import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import {
-  ChatDotRound, Refresh, ChatLineRound, UserFilled, Promotion,
-  Lock, ArrowRight, ArrowDown, Picture
+  UserFilled, User, ChatDotRound, Refresh, Promotion, InfoFilled
 } from '@element-plus/icons-vue'
-import { chatApi } from '../api'
+import { playerApi, chatApi } from '../api'
 import { authStore } from '../store/auth'
 
+const onlineUsers = ref([])
 const messages = ref([])
+const messageText = ref('')
 const loading = ref(false)
 const sending = ref(false)
-const newMessage = ref('')
-const chatContainer = ref(null)
-const autoRefresh = ref(true)
-const showScrollBtn = ref(false)
-const unreadCount = ref(0)
-const onlineCount = ref(1)
-const showEmoji = ref(false)
+const messagesWrapper = ref(null)
 let refreshInterval = null
 
-const isOwnMessage = (msg) => msg.name === authStore.user?.name
+const canSend = computed(() => {
+  return authStore.isLoggedIn && messageText.value.trim() && !sending.value
+})
 
-const showTime = (index) => {
-  if (index === 0) return true
-  const prev = messages.value[index - 1]
-  const curr = messages.value[index]
-  if (!prev.time || !curr.time) return false
-  return new Date(curr.time) - new Date(prev.time) > 5 * 60 * 1000
+const getRoleType = (role) => {
+  const types = {
+    '管理员': 'danger',
+    '玩家': 'primary'
+  }
+  return types[role] || 'primary'
+}
+
+const isSelfMessage = (msg) => {
+  return msg.name === authStore.user?.name
 }
 
 const formatTime = (time) => {
   if (!time) return ''
   const date = new Date(time)
-  return date.toLocaleString('zh-CN', {
-    month: 'short',
-    day: 'numeric',
+  if (isNaN(date.getTime())) {
+    return typeof time === 'string' ? time.split('T')[1]?.substring(0, 5) || '' : ''
+  }
+  return date.toLocaleTimeString('zh-CN', {
     hour: '2-digit',
     minute: '2-digit'
   })
 }
 
-const handleEnter = (e) => {
-  if (!e.shiftKey) {
-    sendMessage()
-  }
+const scrollToBottom = () => {
+  nextTick(() => {
+    if (messagesWrapper.value) {
+      messagesWrapper.value.scrollTop = messagesWrapper.value.scrollHeight
+    }
+  })
 }
 
-const loadMessages = async () => {
+const loadOnlineUsers = async () => {
   loading.value = true
   try {
-    const res = await chatApi.getMessages(100)
-    if (res.data.success) {
-      const oldLength = messages.value.length
-      messages.value = res.data.data || []
-      onlineCount.value = res.data.onlineCount || Math.floor(Math.random() * 50) + 10
-
-      await nextTick()
-      if (oldLength < messages.value.length) {
-        const isNearBottom = chatContainer.value &&
-          chatContainer.value.scrollHeight - chatContainer.value.scrollTop - chatContainer.value.clientHeight < 100
-        if (isNearBottom) {
-          scrollToBottom()
-        } else {
-          unreadCount.value += messages.value.length - oldLength
-          showScrollBtn.value = true
-        }
-      }
-    }
+    const res = await playerApi.getOnline()
+    onlineUsers.value = res.data.data || []
   } catch (error) {
-    console.error('加载消息失败:', error)
-    ElMessage.error('加载消息失败')
+    console.error('获取在线用户失败:', error)
   } finally {
     loading.value = false
   }
 }
 
+const loadMessages = async () => {
+  try {
+    const res = await chatApi.getMessages(50)
+    if (res.data.success) {
+      const newMessages = res.data.data || []
+      const reversedMessages = [...newMessages].reverse()
+      if (JSON.stringify(reversedMessages) !== JSON.stringify(messages.value)) {
+        messages.value = reversedMessages
+        scrollToBottom()
+      }
+    }
+  } catch (error) {
+    console.error('获取聊天记录失败:', error)
+  }
+}
+
 const sendMessage = async () => {
-  if (!newMessage.value.trim()) return
+  if (!canSend.value) return
+
+  const content = messageText.value.trim()
+  if (!content) return
 
   sending.value = true
   try {
-    const res = await chatApi.send(authStore.user.name, newMessage.value.trim())
+    const res = await chatApi.send(authStore.user?.name, content)
     if (res.data.success) {
-      messages.value.push({
-        name: authStore.user.name,
-        message: newMessage.value.trim(),
-        time: new Date().toISOString()
-      })
-      newMessage.value = ''
-      await nextTick()
-      scrollToBottom()
-      unreadCount.value = 0
+      messageText.value = ''
+      await loadMessages()
     } else {
-      ElMessage.error(res.data.message)
+      ElMessage.error(res.data.message || '发送失败')
     }
   } catch (error) {
-    ElMessage.error(error.response?.data?.message || '发送失败')
+    console.error('发送消息失败:', error)
+    ElMessage.error('发送失败，请检查网络连接')
   } finally {
     sending.value = false
   }
 }
 
-const scrollToBottom = () => {
-  if (chatContainer.value) {
-    chatContainer.value.scrollTo({
-      top: chatContainer.value.scrollHeight,
-      behavior: 'smooth'
-    })
-    showScrollBtn.value = false
-    unreadCount.value = 0
-  }
-}
-
-const handleScroll = () => {
-  if (!chatContainer.value) return
-  const { scrollHeight, scrollTop, clientHeight } = chatContainer.value
-  const isNearBottom = scrollHeight - scrollTop - clientHeight < 100
-  showScrollBtn.value = !isNearBottom && unreadCount.value > 0
-}
-
-watch(autoRefresh, (val) => {
-  if (val) {
-    refreshInterval = setInterval(loadMessages, 10000)
-  } else {
-    clearInterval(refreshInterval)
-  }
-})
+watch(messages, () => {
+  scrollToBottom()
+}, { deep: true })
 
 onMounted(() => {
+  loadOnlineUsers()
   loadMessages()
-  refreshInterval = setInterval(loadMessages, 10000)
-  if (chatContainer.value) {
-    chatContainer.value.addEventListener('scroll', handleScroll)
-  }
+
+  refreshInterval = setInterval(() => {
+    loadOnlineUsers()
+    loadMessages()
+  }, 5000)
 })
 
 onUnmounted(() => {
   if (refreshInterval) {
     clearInterval(refreshInterval)
   }
-  if (chatContainer.value) {
-    chatContainer.value.removeEventListener('scroll', handleScroll)
-  }
 })
 </script>
 
 <style scoped>
+/* 外层容器 - 正常文档流布局 */
 .chat-page {
-  max-width: 1000px;
+  max-width: var(--max-width);
   margin: 0 auto;
   padding: var(--space-6) var(--content-padding);
-  height: calc(100vh - var(--header-height) - var(--space-12));
-  min-height: 600px;
+  min-height: calc(100vh - var(--header-height) - 200px); /* 确保最小高度 */
 }
 
-.chat-container {
+/* 聊天包装器 */
+.chat-wrapper {
   display: flex;
-  flex-direction: column;
-  height: 100%;
+  height: calc(100vh - var(--header-height) - var(--space-12) - 200px); /* 视口高度减去header、padding和footer空间 */
+  min-height: 500px;
   background: var(--surface-1);
   border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-2xl);
+  border-radius: var(--radius-xl);
   overflow: hidden;
-  box-shadow: var(--shadow-xl);
 }
 
-/* Chat Header */
+/* Sidebar */
+.chat-sidebar {
+  width: 280px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface-2);
+  border-right: 1px solid var(--border-subtle);
+}
+
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-4);
+  border-bottom: 1px solid var(--border-subtle);
+  flex-shrink: 0;
+}
+
+.header-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.users-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-2);
+}
+
+.user-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2);
+  border-radius: var(--radius-md);
+  text-decoration: none;
+  transition: all var(--transition-fast);
+}
+
+.user-item:hover {
+  background: var(--surface-3);
+}
+
+.user-avatar-wrapper {
+  position: relative;
+}
+
+.user-avatar {
+  background: var(--gradient-primary);
+}
+
+.online-dot {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 10px;
+  height: 10px;
+  border-radius: var(--radius-full);
+  background: var(--accent-emerald);
+  border: 2px solid var(--surface-2);
+  box-shadow: 0 0 6px var(--accent-emerald);
+}
+
+.user-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.user-name {
+  display: block;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.empty-users {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-8);
+  color: var(--text-tertiary);
+}
+
+/* Main Chat Area */
+.chat-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: var(--surface-1);
+}
+
+/* Header */
 .chat-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--space-5) var(--space-6);
-  background: linear-gradient(135deg, rgba(20, 20, 35, 0.9), rgba(30, 30, 50, 0.9));
+  padding: var(--space-4);
   border-bottom: 1px solid var(--border-subtle);
-  position: relative;
+  flex-shrink: 0;
+  background: var(--surface-1);
 }
 
-.chat-header::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(6, 182, 212, 0.5), transparent);
-}
-
-.header-main {
+.header-info {
   display: flex;
   align-items: center;
-  gap: var(--space-4);
+  gap: var(--space-3);
 }
 
-.header-icon {
-  position: relative;
-  width: 52px;
-  height: 52px;
-  border-radius: var(--radius-lg);
+.header-icon-wrapper {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-md);
   background: linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%);
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
-  box-shadow: 0 0 20px rgba(6, 182, 212, 0.4);
-}
-
-.icon-glow {
-  position: absolute;
-  inset: -4px;
-  background: radial-gradient(circle, rgba(6, 182, 212, 0.4) 0%, transparent 70%);
-  border-radius: var(--radius-lg);
-  animation: pulse-glow 2s ease-in-out infinite;
-}
-
-@keyframes pulse-glow {
-  0%, 100% { opacity: 0.5; transform: scale(1); }
-  50% { opacity: 0.8; transform: scale(1.05); }
 }
 
 .header-text h2 {
-  font-size: 1.25rem;
-  font-weight: 700;
+  font-size: 1.125rem;
+  font-weight: 600;
   margin: 0;
   color: var(--text-primary);
 }
 
-.header-meta {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  margin-top: var(--space-1);
-}
-
-.status-indicator {
-  display: flex;
-  align-items: center;
-  gap: var(--space-1);
-}
-
-.status-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: #10b981;
-  box-shadow: 0 0 8px #10b981;
-  animation: pulse-dot 2s ease-in-out infinite;
-}
-
-@keyframes pulse-dot {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
-}
-
-.status-text {
-  font-size: 0.8125rem;
+.header-text p {
   color: var(--text-secondary);
-}
-
-.divider {
-  color: var(--text-muted);
-}
-
-.message-count {
-  font-size: 0.8125rem;
-  color: var(--text-secondary);
-}
-
-.header-actions {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-}
-
-.auto-refresh-switch :deep(.el-switch__label) {
-  color: var(--text-secondary);
+  margin: 2px 0 0;
   font-size: 0.8125rem;
 }
 
-.refresh-btn {
-  background: rgba(139, 92, 246, 0.2);
-  border: 1px solid rgba(139, 92, 246, 0.3);
-  color: #a78bfa;
-}
-
-.refresh-btn:hover {
-  background: rgba(139, 92, 246, 0.3);
-  border-color: rgba(139, 92, 246, 0.5);
-}
-
-/* Messages Area */
-.messages-area {
+/* Messages Wrapper - 独立滚动区域 */
+.messages-wrapper {
   flex: 1;
   overflow-y: auto;
-  padding: var(--space-5);
-  background: rgba(3, 3, 7, 0.5);
-  position: relative;
-}
-
-.welcome-message {
-  display: flex;
-  align-items: center;
-  gap: var(--space-4);
-  margin-bottom: var(--space-6);
-  padding: 0 var(--space-4);
-}
-
-.welcome-line {
-  flex: 1;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(139, 92, 246, 0.3), transparent);
-}
-
-.welcome-content {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  color: var(--text-tertiary);
-  font-size: 0.8125rem;
-  white-space: nowrap;
-}
-
-.welcome-content .el-icon {
-  color: #a78bfa;
-}
-
-.messages-list {
+  padding: var(--space-4);
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
+  min-height: 0;
+}
+
+.empty-messages {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-8);
+  color: var(--text-tertiary);
+}
+
+.empty-icon {
+  width: 80px;
+  height: 80px;
+  border-radius: var(--radius-xl);
+  background: var(--surface-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.empty-messages p {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
 }
 
 .message-item {
   display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-  animation: fadeInUp 0.3s ease;
-}
-
-.message-time {
-  text-align: center;
-  color: var(--text-tertiary);
-  font-size: 0.75rem;
-  margin: var(--space-2) 0;
-}
-
-.message-body {
-  display: flex;
   gap: var(--space-3);
-  align-items: flex-start;
+  animation: fadeInUp 0.3s ease-out;
 }
 
-.message-item.message-own .message-body {
+.message-item.self {
   flex-direction: row-reverse;
 }
 
-.message-avatar-wrapper {
-  position: relative;
+.message-avatar {
   flex-shrink: 0;
 }
 
-.message-avatar {
-  background: linear-gradient(135deg, #8b5cf6, #a855f7);
-  border: 2px solid rgba(139, 92, 246, 0.3);
-  transition: all 0.3s ease;
-}
-
-.message-avatar.own-avatar {
-  background: linear-gradient(135deg, #10b981, #34d399);
-  border-color: rgba(16, 185, 129, 0.3);
-}
-
-.online-badge {
-  position: absolute;
-  bottom: 0;
-  right: 0;
-  width: 12px;
-  height: 12px;
-  background: #10b981;
-  border: 2px solid var(--surface-1);
-  border-radius: 50%;
+.message-avatar :deep(.el-avatar) {
+  background: var(--gradient-primary);
 }
 
 .message-content {
   max-width: 70%;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
 }
 
-.message-item.message-own .message-content {
-  align-items: flex-end;
+.message-item.self .message-content {
+  text-align: right;
 }
 
 .message-header {
   display: flex;
   align-items: center;
   gap: var(--space-2);
+  margin-bottom: var(--space-1);
+}
+
+.message-item.self .message-header {
+  justify-content: flex-end;
 }
 
 .message-author {
-  color: #a78bfa;
+  font-weight: 500;
+  color: var(--primary-400);
   text-decoration: none;
-  font-weight: 600;
   font-size: 0.875rem;
-  transition: all 0.2s;
 }
 
 .message-author:hover {
-  color: #c084fc;
   text-decoration: underline;
 }
 
-.own-tag {
-  background: rgba(16, 185, 129, 0.2);
-  border-color: rgba(16, 185, 129, 0.3);
-}
-
-.admin-tag {
-  background: rgba(239, 68, 68, 0.2);
-  border-color: rgba(239, 68, 68, 0.3);
+.message-time {
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
 }
 
 .message-bubble {
-  background: rgba(30, 30, 50, 0.8);
-  border: 1px solid rgba(139, 92, 246, 0.2);
+  display: inline-block;
+  padding: var(--space-3) var(--space-4);
+  background: var(--surface-2);
+  border: 1px solid var(--border-default);
   border-radius: var(--radius-lg);
   border-top-left-radius: 4px;
-  padding: var(--space-3) var(--space-4);
-  color: var(--text-primary);
-  word-break: break-word;
-  line-height: 1.6;
-  position: relative;
+  text-align: left;
 }
 
-.message-item.message-own .message-bubble {
-  background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(52, 211, 153, 0.1));
-  border-color: rgba(16, 185, 129, 0.3);
+.message-item.self .message-bubble {
+  background: linear-gradient(135deg, rgba(147, 51, 234, 0.15) 0%, rgba(147, 51, 234, 0.08) 100%);
+  border-color: rgba(147, 51, 234, 0.25);
   border-top-left-radius: var(--radius-lg);
   border-top-right-radius: 4px;
 }
 
-.message-text {
+.message-bubble p {
   margin: 0;
-}
-
-/* Scroll to bottom button */
-.scroll-to-bottom {
-  position: absolute;
-  bottom: var(--space-4);
-  right: var(--space-4);
-  width: 44px;
-  height: 44px;
-  background: linear-gradient(135deg, #8b5cf6, #a855f7);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  cursor: pointer;
-  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
-  transition: all 0.3s ease;
-}
-
-.scroll-to-bottom:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(139, 92, 246, 0.5);
-}
-
-.unread-badge {
-  position: absolute;
-  top: -4px;
-  right: -4px;
-  min-width: 18px;
-  height: 18px;
-  padding: 0 5px;
-  background: #ef4444;
-  border-radius: 9px;
-  font-size: 0.6875rem;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-/* Empty State */
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-4);
-  padding: var(--space-16);
-  text-align: center;
-}
-
-.empty-visual {
-  position: relative;
-  width: 100px;
-  height: 100px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--text-tertiary);
-}
-
-.empty-glow {
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(circle, rgba(139, 92, 246, 0.2) 0%, transparent 70%);
-  animation: pulse 2s ease-in-out infinite;
-}
-
-.empty-state h3 {
-  font-size: 1.25rem;
-  font-weight: 600;
   color: var(--text-primary);
-  margin: 0;
+  line-height: 1.5;
+  word-break: break-word;
 }
 
-.empty-state p {
-  color: var(--text-secondary);
-  margin: 0;
-}
-
-/* Input Area */
-.input-area {
-  padding: var(--space-4) var(--space-5);
-  background: linear-gradient(135deg, rgba(20, 20, 35, 0.9), rgba(30, 30, 50, 0.9));
+/* Footer - 固定在底部 */
+.chat-footer {
+  padding: var(--space-4);
   border-top: 1px solid var(--border-subtle);
-}
-
-.login-prompt {
-  display: flex;
-  align-items: center;
-  gap: var(--space-4);
-  padding: var(--space-4) var(--space-5);
-  background: rgba(245, 158, 11, 0.1);
-  border: 1px solid rgba(245, 158, 11, 0.2);
-  border-radius: var(--radius-lg);
-}
-
-.prompt-icon {
-  width: 44px;
-  height: 44px;
-  background: rgba(245, 158, 11, 0.2);
-  border-radius: var(--radius-md);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #fbbf24;
-}
-
-.prompt-content {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.prompt-title {
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.prompt-desc {
-  font-size: 0.8125rem;
-  color: var(--text-secondary);
-}
-
-.login-btn {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-2) var(--space-4);
-  background: linear-gradient(135deg, #f59e0b, #fbbf24);
-  border-radius: var(--radius-md);
-  color: white;
-  font-weight: 600;
-  text-decoration: none;
-  transition: all 0.3s ease;
-}
-
-.login-btn:hover {
-  transform: translateX(4px);
-  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+  background: var(--surface-2);
+  flex-shrink: 0;
 }
 
 .input-wrapper {
   display: flex;
-  flex-direction: column;
   gap: var(--space-3);
 }
 
-.input-toolbar {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-}
-
-.toolbar-btn {
-  width: 36px;
-  height: 36px;
-  background: rgba(139, 92, 246, 0.1);
-  border: 1px solid rgba(139, 92, 246, 0.2);
-  border-radius: var(--radius-md);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #a78bfa;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.toolbar-btn:hover {
-  background: rgba(139, 92, 246, 0.2);
-  border-color: rgba(139, 92, 246, 0.4);
-}
-
-.toolbar-divider {
-  width: 1px;
-  height: 20px;
-  background: var(--border-subtle);
-  margin: 0 var(--space-2);
-}
-
-.input-hint {
-  font-size: 0.75rem;
-  color: var(--text-tertiary);
-  margin-left: auto;
-}
-
-.input-main {
-  display: flex;
-  gap: var(--space-3);
-  align-items: flex-end;
-}
-
-.message-input {
-  flex: 1;
-}
-
-.message-input :deep(.el-textarea__inner) {
-  background: rgba(15, 15, 25, 0.6);
-  border: 1px solid rgba(139, 92, 246, 0.2);
+.input-wrapper :deep(.el-textarea__inner) {
+  background: var(--surface-1);
+  border-color: var(--border-default);
   color: var(--text-primary);
-  border-radius: var(--radius-lg);
-  padding: var(--space-3);
-  transition: all 0.3s;
+  resize: none;
 }
 
-.message-input :deep(.el-textarea__inner:focus) {
-  border-color: rgba(139, 92, 246, 0.5);
-  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
-}
-
-.message-input :deep(.el-input__count) {
-  background: transparent;
-  color: var(--text-tertiary);
+.input-wrapper :deep(.el-textarea__inner:focus) {
+  border-color: var(--primary-500);
 }
 
 .send-btn {
-  height: 52px;
-  padding: 0 var(--space-6);
-  font-weight: 600;
-  background: linear-gradient(135deg, #8b5cf6, #a855f7);
-  border: none;
+  align-self: flex-end;
+  height: 54px;
+  padding: 0 var(--space-5);
 }
 
-.send-btn:hover:not(:disabled) {
-  background: linear-gradient(135deg, #7c3aed, #9333ea);
-  box-shadow: 0 0 20px rgba(139, 92, 246, 0.4);
+.login-tip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+  padding: var(--space-3);
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.15);
+  border-radius: var(--radius-md);
+  color: var(--accent-amber);
+  font-size: 0.875rem;
 }
 
-.send-btn:disabled {
-  background: rgba(139, 92, 246, 0.3);
-  opacity: 0.6;
+.login-tip a {
+  color: var(--primary-400);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.login-tip a:hover {
+  text-decoration: underline;
 }
 
 /* Animations */
@@ -876,59 +599,34 @@ onUnmounted(() => {
   }
 }
 
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.3s, transform 0.3s;
-}
-
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
-  transform: translateY(10px);
-}
-
 /* Responsive */
-@media (max-width: 768px) {
+@media (max-width: 900px) {
+  .chat-sidebar {
+    display: none;
+  }
+}
+
+@media (max-width: 640px) {
   .chat-page {
-    padding: var(--space-4);
-    height: calc(100vh - var(--header-height) - var(--space-8));
+    top: 56px;
+    padding: var(--space-2);
   }
 
-  .chat-header {
-    padding: var(--space-4);
-  }
-
-  .header-icon {
-    width: 44px;
-    height: 44px;
-  }
-
-  .header-text h2 {
-    font-size: 1.125rem;
+  .chat-wrapper {
+    border-radius: var(--radius-lg);
   }
 
   .message-content {
-    max-width: 80%;
+    max-width: 85%;
   }
 
-  .input-main {
+  .input-wrapper {
     flex-direction: column;
   }
 
   .send-btn {
     width: 100%;
-    height: 44px;
-  }
-
-  .login-prompt {
-    flex-direction: column;
-    text-align: center;
-    gap: var(--space-3);
-  }
-
-  .login-btn {
-    width: 100%;
-    justify-content: center;
+    height: 40px;
   }
 }
 </style>

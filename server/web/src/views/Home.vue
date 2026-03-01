@@ -4,7 +4,7 @@
     <section class="hero-section">
       <div class="hero-content">
         <div class="hero-badge animate-fadeInUp">
-          <span class="badge-glow"></span>
+          <span class="badge-pulse"></span>
           <el-icon><CircleCheck /></el-icon>
           <span>在线联机版</span>
         </div>
@@ -33,7 +33,7 @@
             </router-link>
           </template>
           <template v-else>
-            <router-link to="/profile" class="btn-primary btn-lg">
+            <router-link to="/dashboard" class="btn-primary btn-lg">
               <el-icon><User /></el-icon>
               <span>个人中心</span>
             </router-link>
@@ -51,11 +51,11 @@
           <div class="visual-ring ring-2"></div>
           <div class="visual-ring ring-3"></div>
           <div class="visual-core">
-            <el-icon class="visual-icon" :size="64"><Connection /></el-icon>
+            <el-icon class="visual-icon" :size="56"><Connection /></el-icon>
           </div>
         </div>
         <div class="floating-icons">
-          <div class="float-icon" v-for="(icon, i) in floatingIcons" :key="i" :style="{ '--delay': `${i * 0.3}s`, '--x': icon.x, '--y': icon.y }">
+          <div class="float-icon" v-for="(icon, i) in floatingIcons" :key="i" :style="{ '--delay': `${i * 0.4}s`, '--x': icon.x, '--y': icon.y }">
             <el-icon :size="icon.size"><component :is="icon.name" /></el-icon>
           </div>
         </div>
@@ -72,7 +72,7 @@
       >
         <div class="stat-glow" :style="{ background: stat.glow }"></div>
         <div class="stat-icon-wrapper" :style="{ background: stat.gradient }">
-          <el-icon :size="24" color="white"><component :is="stat.icon" /></el-icon>
+          <el-icon :size="22" color="white"><component :is="stat.icon" /></el-icon>
         </div>
         <div class="stat-info">
           <div class="stat-value">{{ stat.value }}</div>
@@ -115,7 +115,7 @@
         >
           <div class="card-glow"></div>
           <div class="player-avatar-wrapper">
-            <el-avatar :size="48" :icon="UserFilled" class="player-avatar" />
+            <el-avatar :size="44" :icon="UserFilled" class="player-avatar" />
             <span class="online-indicator"></span>
           </div>
           <div class="player-info">
@@ -130,7 +130,7 @@
 
       <div v-else class="empty-state">
         <div class="empty-icon-wrapper">
-          <el-icon :size="48"><User /></el-icon>
+          <el-icon :size="40"><User /></el-icon>
         </div>
         <p>暂无在线玩家</p>
         <span>成为第一个探索地牢的冒险者吧！</span>
@@ -154,7 +154,7 @@
         >
           <div class="feature-glow" :style="{ background: feature.glow }"></div>
           <div class="feature-icon-wrapper" :style="{ background: feature.gradient }">
-            <el-icon :size="32" color="white"><component :is="feature.icon" /></el-icon>
+            <el-icon :size="28" color="white"><component :is="feature.icon" /></el-icon>
           </div>
           <h3 class="feature-title">{{ feature.title }}</h3>
           <p class="feature-desc">{{ feature.description }}</p>
@@ -183,10 +183,10 @@ const onlinePlayers = ref([])
 const loading = ref(true)
 
 const floatingIcons = [
-  { name: 'StarFilled', size: 20, x: '10%', y: '20%' },
-  { name: 'Trophy', size: 24, x: '85%', y: '15%' },
-  { name: 'FirstAidKit', size: 22, x: '75%', y: '75%' },
-  { name: 'Medal', size: 18, x: '15%', y: '70%' }
+  { name: 'StarFilled', size: 18, x: '10%', y: '20%' },
+  { name: 'Trophy', size: 22, x: '85%', y: '15%' },
+  { name: 'FirstAidKit', size: 20, x: '75%', y: '75%' },
+  { name: 'Medal', size: 16, x: '15%', y: '70%' }
 ]
 
 const statsList = computed(() => [
@@ -194,29 +194,29 @@ const statsList = computed(() => [
     label: '当前在线',
     value: serverInfo.value?.onlineCount || 0,
     icon: 'UserFilled',
-    gradient: 'linear-gradient(135deg, #8b5cf6 0%, #a855f7 100%)',
-    glow: 'rgba(139, 92, 246, 0.3)'
+    gradient: 'linear-gradient(135deg, #9333ea 0%, #a855f7 100%)',
+    glow: 'rgba(147, 51, 234, 0.25)'
   },
   {
     label: '注册玩家',
     value: serverInfo.value?.totalPlayers || 0,
     icon: 'User',
     gradient: 'linear-gradient(135deg, #ec4899 0%, #f43f5e 100%)',
-    glow: 'rgba(236, 72, 153, 0.3)'
+    glow: 'rgba(236, 72, 153, 0.25)'
   },
   {
     label: '游戏版本',
     value: serverInfo.value?.version || '-',
     icon: 'CollectionTag',
     gradient: 'linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%)',
-    glow: 'rgba(6, 182, 212, 0.3)'
+    glow: 'rgba(6, 182, 212, 0.25)'
   },
   {
     label: '联机版本',
     value: serverInfo.value?.netVersion || '-',
     icon: 'CircleCheck',
     gradient: 'linear-gradient(135deg, #10b981 0%, #06b6d4 100%)',
-    glow: 'rgba(16, 185, 129, 0.3)'
+    glow: 'rgba(16, 185, 129, 0.25)'
   }
 ])
 
@@ -226,21 +226,21 @@ const features = [
     title: '竞技排行',
     description: '挑战高分排行榜，与全球玩家一较高下，展示你的地牢探险实力。',
     gradient: 'linear-gradient(135deg, #f59e0b 0%, #f97316 100%)',
-    glow: 'rgba(245, 158, 11, 0.2)'
+    glow: 'rgba(245, 158, 11, 0.15)'
   },
   {
     icon: 'ChatDotRound',
     title: '实时聊天',
     description: '与在线玩家实时交流，分享游戏心得，结交志同道合的冒险伙伴。',
     gradient: 'linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%)',
-    glow: 'rgba(6, 182, 212, 0.2)'
+    glow: 'rgba(6, 182, 212, 0.15)'
   },
   {
     icon: 'TrendCharts',
     title: '数据追踪',
     description: '详细记录你的每一次冒险，分析游戏数据，不断提升自己的技巧。',
     gradient: 'linear-gradient(135deg, #10b981 0%, #06b6d4 100%)',
-    glow: 'rgba(16, 185, 129, 0.2)'
+    glow: 'rgba(16, 185, 129, 0.15)'
   }
 ]
 
@@ -278,23 +278,23 @@ onMounted(() => {
 .home-page {
   max-width: var(--max-width);
   margin: 0 auto;
-  padding: var(--space-8) var(--content-padding);
+  padding: var(--space-6) var(--content-padding);
 }
 
 /* Hero Section */
 .hero-section {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: var(--space-12);
+  gap: var(--space-10);
   align-items: center;
-  padding: var(--space-12) 0;
-  min-height: calc(100vh - var(--header-height) - var(--space-16));
+  padding: var(--space-10) 0 var(--space-12);
+  min-height: calc(100vh - var(--header-height) - var(--space-12));
 }
 
 .hero-content {
   display: flex;
   flex-direction: column;
-  gap: var(--space-5);
+  gap: var(--space-4);
 }
 
 .hero-badge {
@@ -302,51 +302,47 @@ onMounted(() => {
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
-  padding: var(--space-2) var(--space-4);
+  padding: var(--space-1) var(--space-3);
   background: rgba(16, 185, 129, 0.1);
   border: 1px solid rgba(16, 185, 129, 0.2);
   border-radius: var(--radius-full);
   color: var(--accent-emerald);
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
   font-weight: 500;
   width: fit-content;
   overflow: hidden;
 }
 
-.badge-glow {
+.badge-pulse {
   position: absolute;
   inset: 0;
   background: radial-gradient(circle at center, rgba(16, 185, 129, 0.2) 0%, transparent 70%);
   animation: pulse 2s ease-in-out infinite;
 }
 
-.hero-badge .el-icon {
-  position: relative;
-  z-index: 1;
-}
-
+.hero-badge .el-icon,
 .hero-badge span {
   position: relative;
   z-index: 1;
 }
 
 .hero-title {
-  font-size: 4.5rem;
+  font-size: 3.5rem;
   font-weight: 800;
   line-height: 1.1;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.02em;
 }
 
 .hero-subtitle {
-  font-size: 1.5rem;
+  font-size: 1.25rem;
   color: var(--text-secondary);
-  font-weight: 300;
+  font-weight: 400;
 }
 
 .hero-description {
-  font-size: 1.125rem;
+  font-size: 1rem;
   color: var(--text-tertiary);
-  max-width: 480px;
+  max-width: 440px;
   line-height: 1.7;
 }
 
@@ -358,12 +354,13 @@ onMounted(() => {
 }
 
 .btn-lg {
-  padding: var(--space-3) var(--space-6);
-  font-size: 1rem;
+  padding: var(--space-3) var(--space-5);
+  font-size: 0.9375rem;
   display: flex;
   align-items: center;
   gap: var(--space-2);
   text-decoration: none;
+  border-radius: var(--radius-full);
 }
 
 /* Hero Visual */
@@ -376,8 +373,8 @@ onMounted(() => {
 
 .visual-container {
   position: relative;
-  width: 320px;
-  height: 320px;
+  width: 280px;
+  height: 280px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -386,32 +383,35 @@ onMounted(() => {
 .visual-ring {
   position: absolute;
   border-radius: 50%;
-  border: 1px solid var(--border-subtle);
+  border: 1px solid var(--border-default);
 }
 
 .ring-1 {
   width: 100%;
   height: 100%;
-  animation: rotate 20s linear infinite;
+  animation: rotate 25s linear infinite;
   border-style: dashed;
+  opacity: 0.5;
 }
 
 .ring-2 {
   width: 75%;
   height: 75%;
-  animation: rotate 15s linear infinite reverse;
+  animation: rotate 18s linear infinite reverse;
+  opacity: 0.4;
 }
 
 .ring-3 {
   width: 50%;
   height: 50%;
-  animation: rotate 10s linear infinite;
+  animation: rotate 12s linear infinite;
   border-style: dotted;
+  opacity: 0.3;
 }
 
 .visual-core {
-  width: 140px;
-  height: 140px;
+  width: 120px;
+  height: 120px;
   border-radius: 50%;
   background: var(--gradient-primary);
   display: flex;
@@ -419,17 +419,17 @@ onMounted(() => {
   justify-content: center;
   position: relative;
   box-shadow: var(--shadow-glow);
-  animation: float 6s ease-in-out infinite;
+  animation: float 5s ease-in-out infinite;
 }
 
 .visual-core::before {
   content: '';
   position: absolute;
-  inset: -10px;
+  inset: -8px;
   border-radius: 50%;
   background: var(--gradient-primary);
-  opacity: 0.3;
-  filter: blur(20px);
+  opacity: 0.25;
+  filter: blur(16px);
 }
 
 .visual-icon {
@@ -449,7 +449,7 @@ onMounted(() => {
   left: var(--x);
   top: var(--y);
   color: var(--primary-400);
-  opacity: 0.6;
+  opacity: 0.5;
   animation: float 4s ease-in-out infinite;
   animation-delay: var(--delay);
 }
@@ -458,26 +458,26 @@ onMounted(() => {
 .stats-section {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: var(--space-5);
-  margin-bottom: var(--space-12);
+  gap: var(--space-4);
+  margin-bottom: var(--space-10);
 }
 
 .stat-card {
   position: relative;
   display: flex;
   align-items: center;
-  gap: var(--space-4);
-  padding: var(--space-5);
+  gap: var(--space-3);
+  padding: var(--space-4);
   background: var(--surface-1);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
   transition: all var(--transition-base);
-  animation: fadeInUp 0.6s ease-out backwards;
+  animation: fadeInUp 0.5s ease-out backwards;
   overflow: hidden;
 }
 
 .stat-card:hover {
-  transform: translateY(-4px);
+  transform: translateY(-3px);
   border-color: var(--border-default);
   box-shadow: var(--shadow-lg);
 }
@@ -490,12 +490,12 @@ onMounted(() => {
 }
 
 .stat-card:hover .stat-glow {
-  opacity: 0.1;
+  opacity: 0.08;
 }
 
 .stat-icon-wrapper {
-  width: 56px;
-  height: 56px;
+  width: 48px;
+  height: 48px;
   border-radius: var(--radius-md);
   display: flex;
   align-items: center;
@@ -512,47 +512,47 @@ onMounted(() => {
 }
 
 .stat-value {
-  font-size: 1.75rem;
+  font-size: 1.5rem;
   font-weight: 700;
   color: var(--text-primary);
   line-height: 1.2;
 }
 
 .stat-label {
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
   color: var(--text-secondary);
-  margin-top: var(--space-1);
+  margin-top: 2px;
 }
 
 /* Online Section */
 .online-section {
-  margin-bottom: var(--space-12);
+  margin-bottom: var(--space-10);
 }
 
 .section-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: var(--space-6);
+  margin-bottom: var(--space-5);
 }
 
 .section-header.centered {
   flex-direction: column;
   text-align: center;
-  gap: var(--space-3);
+  gap: var(--space-2);
 }
 
 .section-title-wrapper {
   display: flex;
   align-items: center;
-  gap: var(--space-4);
+  gap: var(--space-3);
 }
 
 .title-icon-wrapper {
-  width: 52px;
-  height: 52px;
+  width: 44px;
+  height: 44px;
   border-radius: var(--radius-md);
-  background: rgba(139, 92, 246, 0.15);
+  background: rgba(147, 51, 234, 0.12);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -560,15 +560,15 @@ onMounted(() => {
 }
 
 .title-content h2 {
-  font-size: 1.5rem;
+  font-size: 1.25rem;
   font-weight: 600;
   margin: 0;
 }
 
 .title-content p {
   color: var(--text-secondary);
-  margin: var(--space-1) 0 0;
-  font-size: 0.875rem;
+  margin: 2px 0 0;
+  font-size: 0.8125rem;
 }
 
 .refresh-btn {
@@ -577,36 +577,36 @@ onMounted(() => {
 
 .players-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: var(--space-4);
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: var(--space-3);
 }
 
 .player-card {
   position: relative;
   display: flex;
   align-items: center;
-  gap: var(--space-4);
-  padding: var(--space-4);
+  gap: var(--space-3);
+  padding: var(--space-3);
   background: var(--surface-1);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
   text-decoration: none;
   transition: all var(--transition-base);
-  animation: fadeInUp 0.5s ease-out backwards;
+  animation: fadeInUp 0.4s ease-out backwards;
   overflow: hidden;
 }
 
 .card-glow {
   position: absolute;
   inset: 0;
-  background: radial-gradient(circle at 50% 0%, rgba(139, 92, 246, 0.15) 0%, transparent 70%);
+  background: radial-gradient(circle at 50% 0%, rgba(147, 51, 234, 0.12) 0%, transparent 70%);
   opacity: 0;
   transition: opacity var(--transition-base);
 }
 
 .player-card:hover {
   border-color: var(--primary-500);
-  transform: translateY(-4px);
+  transform: translateY(-3px);
   box-shadow: var(--shadow-glow-sm);
 }
 
@@ -627,12 +627,12 @@ onMounted(() => {
   position: absolute;
   bottom: 0;
   right: 0;
-  width: 12px;
-  height: 12px;
+  width: 10px;
+  height: 10px;
   border-radius: var(--radius-full);
   background: var(--accent-emerald);
   border: 2px solid var(--surface-1);
-  box-shadow: 0 0 8px var(--accent-emerald);
+  box-shadow: 0 0 6px var(--accent-emerald);
   z-index: 2;
 }
 
@@ -640,13 +640,14 @@ onMounted(() => {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: var(--space-1);
+  gap: 2px;
   position: relative;
   z-index: 1;
 }
 
 .player-name {
   font-weight: 600;
+  font-size: 0.9375rem;
   color: var(--text-primary);
 }
 
@@ -659,15 +660,15 @@ onMounted(() => {
 
 .player-card:hover .arrow-icon {
   color: var(--primary-400);
-  transform: translateX(4px);
+  transform: translateX(3px);
 }
 
 .empty-state {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-12);
+  gap: var(--space-2);
+  padding: var(--space-10);
   background: var(--surface-1);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
@@ -675,8 +676,8 @@ onMounted(() => {
 }
 
 .empty-icon-wrapper {
-  width: 80px;
-  height: 80px;
+  width: 64px;
+  height: 64px;
   border-radius: var(--radius-xl);
   background: var(--surface-2);
   display: flex;
@@ -686,7 +687,7 @@ onMounted(() => {
 }
 
 .empty-state p {
-  font-size: 1.125rem;
+  font-size: 1rem;
   font-weight: 600;
   color: var(--text-primary);
   margin: 0;
@@ -694,27 +695,27 @@ onMounted(() => {
 
 .empty-state span {
   color: var(--text-secondary);
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
 }
 
 /* Features Section */
 .features-section {
-  padding: var(--space-12) 0;
+  padding: var(--space-10) 0;
 }
 
 .section-badge {
   display: inline-flex;
   padding: var(--space-1) var(--space-3);
-  background: rgba(139, 92, 246, 0.1);
-  border: 1px solid rgba(139, 92, 246, 0.2);
+  background: rgba(147, 51, 234, 0.1);
+  border: 1px solid rgba(147, 51, 234, 0.2);
   border-radius: var(--radius-full);
   color: var(--primary-400);
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
   font-weight: 500;
 }
 
 .section-title-main {
-  font-size: 2.25rem;
+  font-size: 1.875rem;
   font-weight: 700;
   margin: 0;
   background: var(--gradient-primary);
@@ -725,15 +726,15 @@ onMounted(() => {
 
 .section-subtitle {
   color: var(--text-secondary);
-  margin: var(--space-2) 0 0;
-  font-size: 1.125rem;
+  margin: var(--space-1) 0 0;
+  font-size: 1rem;
 }
 
 .features-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: var(--space-6);
-  margin-top: var(--space-8);
+  gap: var(--space-4);
+  margin-top: var(--space-6);
 }
 
 .feature-card {
@@ -742,12 +743,12 @@ onMounted(() => {
   flex-direction: column;
   align-items: center;
   text-align: center;
-  padding: var(--space-8);
+  padding: var(--space-6);
   background: var(--surface-1);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-xl);
   transition: all var(--transition-base);
-  animation: fadeInUp 0.6s ease-out backwards;
+  animation: fadeInUp 0.5s ease-out backwards;
   overflow: hidden;
 }
 
@@ -759,31 +760,31 @@ onMounted(() => {
 }
 
 .feature-card:hover {
-  transform: translateY(-8px);
+  transform: translateY(-6px);
   border-color: var(--border-default);
   box-shadow: var(--shadow-lg);
 }
 
 .feature-card:hover .feature-glow {
-  opacity: 0.1;
+  opacity: 0.08;
 }
 
 .feature-icon-wrapper {
-  width: 80px;
-  height: 80px;
-  border-radius: var(--radius-xl);
+  width: 64px;
+  height: 64px;
+  border-radius: var(--radius-lg);
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: var(--space-5);
+  margin-bottom: var(--space-4);
   position: relative;
   z-index: 1;
 }
 
 .feature-title {
-  font-size: 1.375rem;
+  font-size: 1.125rem;
   font-weight: 600;
-  margin: 0 0 var(--space-3);
+  margin: 0 0 var(--space-2);
   color: var(--text-primary);
   position: relative;
   z-index: 1;
@@ -793,14 +794,15 @@ onMounted(() => {
   color: var(--text-secondary);
   line-height: 1.6;
   margin: 0;
+  font-size: 0.875rem;
   position: relative;
   z-index: 1;
 }
 
 .feature-arrow {
   margin-top: var(--space-4);
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   border-radius: var(--radius-full);
   background: var(--surface-2);
   display: flex;
@@ -815,14 +817,14 @@ onMounted(() => {
 .feature-card:hover .feature-arrow {
   background: var(--gradient-primary);
   color: white;
-  transform: translateX(4px);
+  transform: translateX(3px);
 }
 
 /* Animations */
 @keyframes fadeInUp {
   from {
     opacity: 0;
-    transform: translateY(20px);
+    transform: translateY(15px);
   }
   to {
     opacity: 1;
@@ -846,10 +848,11 @@ onMounted(() => {
     text-align: center;
     gap: var(--space-8);
     min-height: auto;
+    padding: var(--space-8) 0;
   }
 
   .hero-title {
-    font-size: 3rem;
+    font-size: 2.5rem;
   }
 
   .hero-description {
@@ -866,13 +869,13 @@ onMounted(() => {
   }
 
   .visual-container {
-    width: 240px;
-    height: 240px;
+    width: 220px;
+    height: 220px;
   }
 
   .visual-core {
-    width: 100px;
-    height: 100px;
+    width: 90px;
+    height: 90px;
   }
 
   .stats-section {
@@ -890,15 +893,15 @@ onMounted(() => {
   }
 
   .hero-section {
-    padding: var(--space-8) 0;
+    padding: var(--space-6) 0;
   }
 
   .hero-title {
-    font-size: 2.5rem;
+    font-size: 2rem;
   }
 
   .hero-subtitle {
-    font-size: 1.125rem;
+    font-size: 1rem;
   }
 
   .stats-section {
@@ -910,7 +913,7 @@ onMounted(() => {
   }
 
   .section-title-main {
-    font-size: 1.75rem;
+    font-size: 1.5rem;
   }
 }
 </style>

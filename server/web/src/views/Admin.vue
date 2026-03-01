@@ -38,6 +38,43 @@
 
     <!-- Main Content -->
     <div class="admin-content">
+      <!-- Broadcast Section -->
+      <div class="content-section">
+        <div class="section-header-bar">
+          <div class="header-title">
+            <div class="title-icon broadcast">
+              <el-icon><Bell /></el-icon>
+            </div>
+            <div class="title-content">
+              <h2>广播消息</h2>
+              <span class="section-desc">向所有在线玩家发送消息</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="broadcast-form">
+          <el-input
+            v-model="broadcastMessage"
+            type="textarea"
+            :rows="3"
+            placeholder="输入广播消息内容..."
+            maxlength="200"
+            show-word-limit
+          />
+          <div class="broadcast-actions">
+            <el-button
+              type="primary"
+              :icon="Promotion"
+              :loading="broadcasting"
+              :disabled="!broadcastMessage.trim()"
+              @click="handleBroadcast"
+            >
+              发送广播
+            </el-button>
+          </div>
+        </div>
+      </div>
+
       <!-- Players Section -->
       <div class="content-section">
         <div class="section-header-bar">
@@ -80,7 +117,7 @@
                   </div>
                   <div class="player-info">
                     <span class="player-name">{{ row.name }}</span>
-                    <span class="player-email">{{ row.email }}</span>
+                    <span class="player-id">ID: {{ row.id }}</span>
                   </div>
                 </div>
               </template>
@@ -89,15 +126,15 @@
             <el-table-column label="角色" width="120" align="center">
               <template #default="{ row }">
                 <el-tag
-                  :type="row.role === '管理员' ? 'danger' : 'primary'"
+                  :type="getRoleType(row.role)"
                   effect="dark"
                   round
                   size="small"
                   class="role-tag"
                 >
-                  <el-icon v-if="row.role === '管理员'"><StarFilled /></el-icon>
+                  <el-icon v-if="row.role === 'ADMIN'"><StarFilled /></el-icon>
                   <el-icon v-else><User /></el-icon>
-                  {{ row.role || '玩家' }}
+                  {{ getRoleDisplay(row.role) }}
                 </el-tag>
               </template>
             </el-table-column>
@@ -131,7 +168,7 @@
               </template>
             </el-table-column>
 
-            <el-table-column label="操作" width="120" align="center">
+            <el-table-column label="操作" width="150" align="center">
               <template #default="{ row }">
                 <el-dropdown @command="(cmd) => handlePlayerAction(cmd, row)" trigger="click">
                   <el-button type="primary" text class="action-menu-btn">
@@ -143,7 +180,27 @@
                         <el-icon><View /></el-icon>
                         <span>查看主页</span>
                       </el-dropdown-item>
-                      <el-dropdown-item command="delete" divided class="danger-item">
+                      <el-dropdown-item command="setAdmin" v-if="row.role !== 'ADMIN'">
+                        <el-icon><StarFilled /></el-icon>
+                        <span>设为管理员</span>
+                      </el-dropdown-item>
+                      <el-dropdown-item command="setPlayer" v-if="row.role === 'ADMIN'">
+                        <el-icon><User /></el-icon>
+                        <span>设为普通玩家</span>
+                      </el-dropdown-item>
+                      <el-dropdown-item command="ban" v-if="row.role !== 'BANNED'" divided>
+                        <el-icon><Lock /></el-icon>
+                        <span>封禁账号</span>
+                      </el-dropdown-item>
+                      <el-dropdown-item command="unban" v-if="row.role === 'BANNED'" divided>
+                        <el-icon><Unlock /></el-icon>
+                        <span>解封账号</span>
+                      </el-dropdown-item>
+                      <el-dropdown-item command="kick" divided>
+                        <el-icon><CircleClose /></el-icon>
+                        <span>踢出游戏</span>
+                      </el-dropdown-item>
+                      <el-dropdown-item command="delete" class="danger-item">
                         <el-icon><Delete /></el-icon>
                         <span>删除账号</span>
                       </el-dropdown-item>
@@ -227,7 +284,8 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   Setting, UserFilled, Refresh, Search, MoreFilled, View, Delete,
   Monitor, CollectionTag, Connection, DataAnalysis, StarFilled, User,
-  TrendCharts, FirstAidKit, Medal, Calendar, Timer
+  TrendCharts, Medal, Calendar, Timer, Bell, Promotion,
+  Lock, Unlock, CircleClose
 } from '@element-plus/icons-vue'
 import { playerApi, adminApi } from '../api'
 import { authStore } from '../store/auth'
@@ -237,6 +295,8 @@ const loading = ref(false)
 const players = ref([])
 const serverInfo = ref({})
 const searchQuery = ref('')
+const broadcastMessage = ref('')
+const broadcasting = ref(false)
 
 const stats = computed(() => [
   {
@@ -252,16 +312,16 @@ const stats = computed(() => [
     gradient: 'linear-gradient(135deg, #10b981 0%, #34d399 100%)'
   },
   {
-    label: '今日新增',
-    value: 0,
-    icon: 'FirstAidKit',
-    gradient: 'linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%)'
-  },
-  {
     label: '管理员数',
-    value: players.value.filter(p => p.role === '管理员').length,
+    value: serverInfo.value?.adminCount || 0,
     icon: 'Medal',
     gradient: 'linear-gradient(135deg, #ec4899 0%, #f43f5e 100%)'
+  },
+  {
+    label: '封禁数',
+    value: serverInfo.value?.bannedCount || 0,
+    icon: 'Lock',
+    gradient: 'linear-gradient(135deg, #f59e0b 0%, #f97316 100%)'
   }
 ])
 
@@ -269,8 +329,7 @@ const filteredPlayers = computed(() => {
   if (!searchQuery.value) return players.value
   const query = searchQuery.value.toLowerCase()
   return players.value.filter(p =>
-    p.name?.toLowerCase().includes(query) ||
-    p.email?.toLowerCase().includes(query)
+    p.name?.toLowerCase().includes(query)
   )
 })
 
@@ -281,6 +340,24 @@ const headerStyle = () => ({
   fontSize: '0.875rem',
   borderBottom: '1px solid rgba(139, 92, 246, 0.2)'
 })
+
+const getRoleType = (role) => {
+  const types = {
+    'ADMIN': 'danger',
+    'PLAYER': 'primary',
+    'BANNED': 'info'
+  }
+  return types[role] || 'primary'
+}
+
+const getRoleDisplay = (role) => {
+  const displays = {
+    'ADMIN': '管理员',
+    'PLAYER': '玩家',
+    'BANNED': '已封禁'
+  }
+  return displays[role] || role
+}
 
 const formatDate = (dateStr) => {
   if (!dateStr) return '-'
@@ -301,7 +378,8 @@ const loadData = async () => {
     ])
 
     if (playersRes.data.success) {
-      players.value = playersRes.data.data || []
+      // 后端返回的数据结构是 { players: [...], totalElements: ..., totalPages: ... }
+      players.value = playersRes.data.data?.players || []
     }
     if (infoRes.data.success) {
       serverInfo.value = infoRes.data.data
@@ -314,10 +392,145 @@ const loadData = async () => {
   }
 }
 
+const handleBroadcast = async () => {
+  if (!broadcastMessage.value.trim()) return
+
+  broadcasting.value = true
+  try {
+    const res = await adminApi.broadcast(broadcastMessage.value)
+    if (res.data.success) {
+      ElMessage.success('广播发送成功')
+      broadcastMessage.value = ''
+    } else {
+      ElMessage.error(res.data.message || '发送失败')
+    }
+  } catch (error) {
+    console.error('广播发送失败:', error)
+    ElMessage.error('广播发送失败')
+  } finally {
+    broadcasting.value = false
+  }
+}
+
 const handlePlayerAction = (command, player) => {
   switch (command) {
     case 'view':
       router.push(`/player/${player.name}`)
+      break
+    case 'setAdmin':
+      ElMessageBox.confirm(
+        `确定要将 "${player.name}" 设为管理员吗？`,
+        '确认操作',
+        {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          type: 'warning'
+        }
+      ).then(async () => {
+        try {
+          const res = await adminApi.setPlayerRole(player.id, 'ADMIN')
+          if (res.data.success) {
+            ElMessage.success('设置成功')
+            loadData()
+          } else {
+            ElMessage.error(res.data.message)
+          }
+        } catch (error) {
+          ElMessage.error(error.response?.data?.message || '操作失败')
+        }
+      }).catch(() => {})
+      break
+    case 'setPlayer':
+      ElMessageBox.confirm(
+        `确定要将 "${player.name}" 设为普通玩家吗？`,
+        '确认操作',
+        {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          type: 'warning'
+        }
+      ).then(async () => {
+        try {
+          const res = await adminApi.setPlayerRole(player.id, 'PLAYER')
+          if (res.data.success) {
+            ElMessage.success('设置成功')
+            loadData()
+          } else {
+            ElMessage.error(res.data.message)
+          }
+        } catch (error) {
+          ElMessage.error(error.response?.data?.message || '操作失败')
+        }
+      }).catch(() => {})
+      break
+    case 'ban':
+      ElMessageBox.confirm(
+        `确定要封禁玩家 "${player.name}" 吗？`,
+        '确认封禁',
+        {
+          confirmButtonText: '确定封禁',
+          cancelButtonText: '取消',
+          type: 'danger'
+        }
+      ).then(async () => {
+        try {
+          const res = await adminApi.setPlayerRole(player.id, 'BANNED')
+          if (res.data.success) {
+            ElMessage.success('封禁成功')
+            loadData()
+          } else {
+            ElMessage.error(res.data.message)
+          }
+        } catch (error) {
+          ElMessage.error(error.response?.data?.message || '封禁失败')
+        }
+      }).catch(() => {})
+      break
+    case 'unban':
+      ElMessageBox.confirm(
+        `确定要解封玩家 "${player.name}" 吗？`,
+        '确认解封',
+        {
+          confirmButtonText: '确定解封',
+          cancelButtonText: '取消',
+          type: 'warning'
+        }
+      ).then(async () => {
+        try {
+          const res = await adminApi.setPlayerRole(player.id, 'PLAYER')
+          if (res.data.success) {
+            ElMessage.success('解封成功')
+            loadData()
+          } else {
+            ElMessage.error(res.data.message)
+          }
+        } catch (error) {
+          ElMessage.error(error.response?.data?.message || '解封失败')
+        }
+      }).catch(() => {})
+      break
+    case 'kick':
+      ElMessageBox.confirm(
+        `确定要踢出玩家 "${player.name}" 吗？`,
+        '确认踢出',
+        {
+          confirmButtonText: '确定踢出',
+          cancelButtonText: '取消',
+          type: 'warning'
+        }
+      ).then(async () => {
+        try {
+          const res = await adminApi.kick(player.name)
+          if (res.data.success) {
+            ElMessage.success('踢出成功')
+            loadData()
+          } else {
+            ElMessage.error(res.data.message)
+          }
+        } catch (error) {
+          ElMessage.error(error.response?.data?.message || '踢出失败')
+        }
+      }).catch(() => {})
       break
     case 'delete':
       ElMessageBox.confirm(
@@ -331,7 +544,7 @@ const handlePlayerAction = (command, player) => {
         }
       ).then(async () => {
         try {
-          const res = await adminApi.deletePlayer(player.name)
+          const res = await adminApi.deletePlayer(player.id)
           if (res.data.success) {
             ElMessage.success('删除成功')
             loadData()
@@ -558,6 +771,12 @@ onMounted(() => {
   color: #22d3ee;
 }
 
+.title-icon.broadcast {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(251, 191, 36, 0.1));
+  border-color: rgba(245, 158, 11, 0.3);
+  color: #fbbf24;
+}
+
 .title-content h2 {
   font-size: 1.25rem;
   font-weight: 700;
@@ -566,7 +785,8 @@ onMounted(() => {
 }
 
 .player-count,
-.system-status {
+.system-status,
+.section-desc {
   font-size: 0.8125rem;
   color: var(--text-secondary);
 }
@@ -589,6 +809,23 @@ onMounted(() => {
 
 .search-input :deep(.el-input__wrapper:hover) {
   border-color: rgba(139, 92, 246, 0.4);
+}
+
+/* Broadcast Form */
+.broadcast-form {
+  padding: var(--space-5) var(--space-6);
+}
+
+.broadcast-form :deep(.el-textarea__inner) {
+  background: rgba(15, 15, 25, 0.6);
+  border-color: rgba(139, 92, 246, 0.2);
+  color: var(--text-primary);
+}
+
+.broadcast-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: var(--space-4);
 }
 
 /* Table */
@@ -669,8 +906,8 @@ onMounted(() => {
   color: var(--text-primary);
 }
 
-.player-email {
-  font-size: 0.8125rem;
+.player-id {
+  font-size: 0.75rem;
   color: var(--text-tertiary);
 }
 

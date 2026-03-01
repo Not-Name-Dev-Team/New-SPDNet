@@ -1,28 +1,28 @@
 /* ============================================
-   SPDNet Design System v2.0
-   A premium dark theme for gaming
+   SPDNet Design System v3.0
+   重构版 - 更现代、更精致的暗色主题
    ============================================ */
 
 /* CSS Custom Properties */
 :root {
-  /* Primary Colors - Deep Purple to Violet gradient theme */
-  --primary-50: #f5f3ff;
-  --primary-100: #ede9fe;
-  --primary-200: #ddd6fe;
-  --primary-300: #c4b5fd;
-  --primary-400: #a78bfa;
-  --primary-500: #8b5cf6;
-  --primary-600: #7c3aed;
-  --primary-700: #6d28d9;
-  --primary-800: #5b21b6;
-  --primary-900: #4c1d95;
+  /* 主色调 - 紫罗兰到紫色的渐变主题 */
+  --primary-50: #faf5ff;
+  --primary-100: #f3e8ff;
+  --primary-200: #e9d5ff;
+  --primary-300: #d8b4fe;
+  --primary-400: #c084fc;
+  --primary-500: #a855f7;
+  --primary-600: #9333ea;
+  --primary-700: #7c3aed;
+  --primary-800: #6b21a8;
+  --primary-900: #581c87;
 
-  /* Secondary Colors - Cyan to Blue */
+  /* 辅助色 - 青色到蓝色 */
   --secondary-400: #22d3ee;
   --secondary-500: #06b6d4;
   --secondary-600: #0891b2;
 
-  /* Accent Colors */
+  /* 强调色 */
   --accent-cyan: #06b6d4;
   --accent-purple: #a855f7;
   --accent-pink: #ec4899;
@@ -31,58 +31,61 @@
   --accent-rose: #f43f5e;
   --accent-orange: #f97316;
   --accent-blue: #3b82f6;
+  --accent-lime: #84cc16;
+  --accent-indigo: #6366f1;
 
-  /* Semantic Colors */
+  /* 语义色 */
   --success: var(--accent-emerald);
   --warning: var(--accent-amber);
   --danger: var(--accent-rose);
   --info: var(--accent-cyan);
 
-  /* Background Colors - Deep dark theme with subtle purple tint */
-  --bg-primary: #030307;
-  --bg-secondary: #0a0a12;
-  --bg-tertiary: #12121c;
-  --bg-elevated: #1a1a28;
-  --bg-overlay: rgba(3, 3, 7, 0.9);
+  /* 背景色 - 更深邃的暗色主题 */
+  --bg-primary: #0a0a0f;
+  --bg-secondary: #12121a;
+  --bg-tertiary: #1a1a24;
+  --bg-elevated: #22222e;
+  --bg-overlay: rgba(10, 10, 15, 0.95);
 
-  /* Surface Colors - Glass morphism base */
-  --surface-1: rgba(20, 20, 35, 0.6);
-  --surface-2: rgba(30, 30, 50, 0.7);
-  --surface-3: rgba(40, 40, 65, 0.8);
-  --surface-solid: #141423;
+  /* 表面色 - 玻璃拟态基础 */
+  --surface-1: rgba(26, 26, 36, 0.6);
+  --surface-2: rgba(34, 34, 46, 0.7);
+  --surface-3: rgba(42, 42, 56, 0.8);
+  --surface-solid: #1a1a24;
 
-  /* Border Colors */
-  --border-subtle: rgba(139, 92, 246, 0.1);
-  --border-default: rgba(139, 92, 246, 0.2);
-  --border-strong: rgba(139, 92, 246, 0.3);
-  --border-glow: rgba(139, 92, 246, 0.5);
+  /* 边框色 */
+  --border-subtle: rgba(139, 92, 246, 0.08);
+  --border-default: rgba(139, 92, 246, 0.15);
+  --border-strong: rgba(139, 92, 246, 0.25);
+  --border-glow: rgba(139, 92, 246, 0.4);
 
-  /* Text Colors */
-  --text-primary: #f8fafc;
-  --text-secondary: #94a3b8;
-  --text-tertiary: #64748b;
-  --text-muted: #475569;
+  /* 文字色 */
+  --text-primary: #fafafa;
+  --text-secondary: #a1a1aa;
+  --text-tertiary: #71717a;
+  --text-muted: #52525b;
 
-  /* Gradients */
-  --gradient-primary: linear-gradient(135deg, #8b5cf6 0%, #a855f7 50%, #c084fc 100%);
+  /* 渐变 */
+  --gradient-primary: linear-gradient(135deg, #9333ea 0%, #a855f7 50%, #c084fc 100%);
   --gradient-secondary: linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%);
   --gradient-success: linear-gradient(135deg, #10b981 0%, #06b6d4 100%);
   --gradient-warning: linear-gradient(135deg, #f59e0b 0%, #f97316 100%);
   --gradient-danger: linear-gradient(135deg, #f43f5e 0%, #e11d48 100%);
-  --gradient-dark: linear-gradient(180deg, #12121c 0%, #030307 100%);
-  --gradient-glow: radial-gradient(ellipse at center, rgba(139, 92, 246, 0.2) 0%, transparent 70%);
-  --gradient-shine: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.1) 50%, transparent 100%);
+  --gradient-dark: linear-gradient(180deg, #1a1a24 0%, #0a0a0f 100%);
+  --gradient-glow: radial-gradient(ellipse at center, rgba(147, 51, 234, 0.15) 0%, transparent 70%);
+  --gradient-shine: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.08) 50%, transparent 100%);
+  --gradient-aurora: linear-gradient(135deg, rgba(147, 51, 234, 0.1) 0%, rgba(6, 182, 212, 0.1) 50%, rgba(236, 72, 153, 0.1) 100%);
 
-  /* Shadows */
+  /* 阴影 */
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.4);
   --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.5), 0 2px 4px -2px rgba(0, 0, 0, 0.4);
   --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.6), 0 4px 6px -4px rgba(0, 0, 0, 0.4);
   --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.6), 0 8px 10px -6px rgba(0, 0, 0, 0.4);
-  --shadow-glow: 0 0 40px rgba(139, 92, 246, 0.4);
-  --shadow-glow-sm: 0 0 20px rgba(139, 92, 246, 0.3);
-  --shadow-cyan: 0 0 30px rgba(6, 182, 212, 0.3);
+  --shadow-glow: 0 0 40px rgba(147, 51, 234, 0.3);
+  --shadow-glow-sm: 0 0 20px rgba(147, 51, 234, 0.2);
+  --shadow-cyan: 0 0 30px rgba(6, 182, 212, 0.25);
 
-  /* Spacing Scale */
+  /* 间距 */
   --space-1: 0.25rem;
   --space-2: 0.5rem;
   --space-3: 0.75rem;
@@ -96,26 +99,26 @@
   --space-20: 5rem;
   --space-24: 6rem;
 
-  /* Border Radius */
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
-  --radius-xl: 24px;
-  --radius-2xl: 32px;
+  /* 圆角 */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+  --radius-2xl: 28px;
   --radius-full: 9999px;
 
-  /* Transitions */
+  /* 过渡 */
   --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
   --transition-base: 300ms cubic-bezier(0.4, 0, 0.2, 1);
   --transition-slow: 500ms cubic-bezier(0.4, 0, 0.2, 1);
   --transition-bounce: 500ms cubic-bezier(0.34, 1.56, 0.64, 1);
 
-  /* Typography */
+  /* 字体 */
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   --font-mono: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
 
-  /* Layout */
-  --header-height: 72px;
+  /* 布局 */
+  --header-height: 70px;
   --max-width: 1400px;
   --content-padding: var(--space-6);
 }
@@ -150,14 +153,14 @@ body {
 
 /* Selection */
 ::selection {
-  background: rgba(139, 92, 246, 0.4);
+  background: rgba(147, 51, 234, 0.35);
   color: var(--text-primary);
 }
 
 /* Scrollbar */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
 }
 
 ::-webkit-scrollbar-track {
@@ -266,7 +269,7 @@ html.dark {
 }
 
 .text-glow {
-  text-shadow: 0 0 20px rgba(139, 92, 246, 0.5);
+  text-shadow: 0 0 20px rgba(147, 51, 234, 0.4);
 }
 
 /* Button Styles */
@@ -362,7 +365,7 @@ html.dark {
 @keyframes fadeInUp {
   from {
     opacity: 0;
-    transform: translateY(30px);
+    transform: translateY(20px);
   }
   to {
     opacity: 1;
@@ -373,7 +376,7 @@ html.dark {
 @keyframes fadeInDown {
   from {
     opacity: 0;
-    transform: translateY(-30px);
+    transform: translateY(-20px);
   }
   to {
     opacity: 1;
@@ -384,7 +387,7 @@ html.dark {
 @keyframes slideInLeft {
   from {
     opacity: 0;
-    transform: translateX(-50px);
+    transform: translateX(-30px);
   }
   to {
     opacity: 1;
@@ -395,7 +398,7 @@ html.dark {
 @keyframes slideInRight {
   from {
     opacity: 0;
-    transform: translateX(50px);
+    transform: translateX(30px);
   }
   to {
     opacity: 1;
@@ -406,7 +409,7 @@ html.dark {
 @keyframes scaleIn {
   from {
     opacity: 0;
-    transform: scale(0.8);
+    transform: scale(0.9);
   }
   to {
     opacity: 1;
@@ -419,7 +422,7 @@ html.dark {
     transform: translateY(0);
   }
   50% {
-    transform: translateY(-15px);
+    transform: translateY(-10px);
   }
 }
 
@@ -463,10 +466,10 @@ html.dark {
 
 @keyframes glow-pulse {
   0%, 100% {
-    box-shadow: 0 0 20px rgba(139, 92, 246, 0.3);
+    box-shadow: 0 0 20px rgba(147, 51, 234, 0.2);
   }
   50% {
-    box-shadow: 0 0 40px rgba(139, 92, 246, 0.5);
+    box-shadow: 0 0 40px rgba(147, 51, 234, 0.4);
   }
 }
 
@@ -488,6 +491,15 @@ html.dark {
   }
   50% {
     border-color: var(--border-glow);
+  }
+}
+
+@keyframes aurora {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
   }
 }
 
@@ -682,7 +694,7 @@ html.dark {
 
 .el-input__wrapper.is-focus {
   border-color: var(--primary-500);
-  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.15);
+  box-shadow: 0 0 0 3px rgba(147, 51, 234, 0.1);
 }
 
 /* Tag */
@@ -692,26 +704,26 @@ html.dark {
 }
 
 .el-tag--success {
-  background: rgba(16, 185, 129, 0.15);
-  border-color: rgba(16, 185, 129, 0.3);
+  background: rgba(16, 185, 129, 0.12);
+  border-color: rgba(16, 185, 129, 0.25);
   color: var(--accent-emerald);
 }
 
 .el-tag--warning {
-  background: rgba(245, 158, 11, 0.15);
-  border-color: rgba(245, 158, 11, 0.3);
+  background: rgba(245, 158, 11, 0.12);
+  border-color: rgba(245, 158, 11, 0.25);
   color: var(--accent-amber);
 }
 
 .el-tag--danger {
-  background: rgba(244, 63, 94, 0.15);
-  border-color: rgba(244, 63, 94, 0.3);
+  background: rgba(244, 63, 94, 0.12);
+  border-color: rgba(244, 63, 94, 0.25);
   color: var(--accent-rose);
 }
 
 .el-tag--info {
-  background: rgba(148, 163, 184, 0.15);
-  border-color: rgba(148, 163, 184, 0.3);
+  background: rgba(161, 161, 170, 0.12);
+  border-color: rgba(161, 161, 170, 0.25);
   color: var(--text-secondary);
 }
 
@@ -753,7 +765,7 @@ html.dark {
 }
 
 .el-menu-item.is-active {
-  background: rgba(139, 92, 246, 0.15);
+  background: rgba(147, 51, 234, 0.12);
   color: var(--primary-400);
 }
 
@@ -816,18 +828,18 @@ html.dark {
 }
 
 .el-alert--success {
-  background: rgba(16, 185, 129, 0.1);
-  border-color: rgba(16, 185, 129, 0.2);
+  background: rgba(16, 185, 129, 0.08);
+  border-color: rgba(16, 185, 129, 0.15);
 }
 
 .el-alert--warning {
-  background: rgba(245, 158, 11, 0.1);
-  border-color: rgba(245, 158, 11, 0.2);
+  background: rgba(245, 158, 11, 0.08);
+  border-color: rgba(245, 158, 11, 0.15);
 }
 
 .el-alert--error {
-  background: rgba(244, 63, 94, 0.1);
-  border-color: rgba(244, 63, 94, 0.2);
+  background: rgba(244, 63, 94, 0.08);
+  border-color: rgba(244, 63, 94, 0.15);
 }
 
 /* Empty */
@@ -871,6 +883,6 @@ html.dark {
 
 /* Loading */
 .el-loading-mask {
-  background: rgba(3, 3, 7, 0.8);
+  background: rgba(10, 10, 15, 0.8);
   backdrop-filter: blur(4px);
 }
