@@ -1,175 +1,168 @@
 <template>
-  <div class="home">
+  <div class="home-page">
     <!-- Hero Section -->
-    <div class="hero-section">
+    <section class="hero-section">
       <div class="hero-content">
-        <div class="hero-badge">
-          <el-tag type="success" effect="dark" round>在线联机版</el-tag>
+        <div class="hero-badge animate-fadeInUp">
+          <span class="badge-icon">
+            <el-icon><CircleCheck /></el-icon>
+          </span>
+          <span>在线联机版</span>
         </div>
-        <h1 class="hero-title">
+
+        <h1 class="hero-title animate-fadeInUp" style="animation-delay: 0.1s">
           <span class="gradient-text">联机破碎地牢</span>
         </h1>
-        <p class="hero-subtitle">Shattered Pixel Dungeon NET</p>
-        <p class="hero-description">
+
+        <p class="hero-subtitle animate-fadeInUp" style="animation-delay: 0.2s">
+          Shattered Pixel Dungeon NET
+        </p>
+
+        <p class="hero-description animate-fadeInUp" style="animation-delay: 0.3s">
           与全球玩家一起探索地牢，挑战极限，创造属于你的传奇！
         </p>
-        <div class="hero-actions">
+
+        <div class="hero-actions animate-fadeInUp" style="animation-delay: 0.4s">
           <template v-if="!authStore.isLoggedIn">
-            <el-button 
-              type="primary" 
-              size="large" 
-              @click="$router.push('/register')"
-              class="glow-btn"
-            >
+            <router-link to="/register" class="btn-primary btn-lg">
               <el-icon><User /></el-icon>
-              立即注册
-            </el-button>
-            <el-button 
-              size="large" 
-              @click="$router.push('/login')"
-            >
+              <span>立即注册</span>
+            </router-link>
+            <router-link to="/login" class="btn-secondary btn-lg">
               <el-icon><Key /></el-icon>
-              登录账号
-            </el-button>
+              <span>登录账号</span>
+            </router-link>
           </template>
           <template v-else>
-            <el-button 
-              type="primary" 
-              size="large" 
-              @click="$router.push('/profile')"
-              class="glow-btn"
-            >
+            <router-link to="/profile" class="btn-primary btn-lg">
               <el-icon><User /></el-icon>
-              个人中心
-            </el-button>
+              <span>个人中心</span>
+            </router-link>
           </template>
-          <el-button 
-            size="large" 
-            @click="$router.push('/leaderboard')"
-          >
+          <router-link to="/leaderboard" class="btn-secondary btn-lg">
             <el-icon><Trophy /></el-icon>
-            查看排行榜
-          </el-button>
+            <span>查看排行榜</span>
+          </router-link>
         </div>
       </div>
-      <div class="hero-decoration">
-        <div class="floating-icon">
-          <el-icon :size="120" color="var(--primary-color)"><Connection /></el-icon>
+
+      <div class="hero-visual animate-fadeIn" style="animation-delay: 0.5s">
+        <div class="visual-card">
+          <div class="card-glow"></div>
+          <el-icon class="visual-icon" :size="80"><Connection /></el-icon>
+        </div>
+        <div class="floating-elements">
+          <div class="float-item" v-for="i in 3" :key="i" :style="{ '--delay': `${i * 0.2}s` }">
+            <el-icon :size="24 + i * 8"><StarFilled /></el-icon>
+          </div>
         </div>
       </div>
-    </div>
+    </section>
 
     <!-- Stats Section -->
-    <el-row :gutter="20" class="stats-section" v-if="serverInfo">
-      <el-col :xs="12" :sm="6" v-for="(stat, index) in statsList" :key="index">
-        <div class="stat-card" :style="{ animationDelay: `${index * 0.1}s` }">
-          <div class="stat-icon" :style="{ background: stat.gradient }">
-            <el-icon :size="24" color="white"><component :is="stat.icon" /></el-icon>
-          </div>
-          <div class="stat-info">
-            <div class="stat-value stat-number">{{ stat.value }}</div>
-            <div class="stat-label">{{ stat.label }}</div>
-          </div>
+    <section class="stats-section" v-if="serverInfo">
+      <div
+        v-for="(stat, index) in statsList"
+        :key="index"
+        class="stat-card"
+        :style="{ animationDelay: `${index * 0.1}s` }"
+      >
+        <div class="stat-icon" :style="{ background: stat.gradient }">
+          <el-icon :size="24" color="white"><component :is="stat.icon" /></el-icon>
         </div>
-      </el-col>
-    </el-row>
+        <div class="stat-info">
+          <div class="stat-value">{{ stat.value }}</div>
+          <div class="stat-label">{{ stat.label }}</div>
+        </div>
+      </div>
+    </section>
 
     <!-- Online Players Section -->
-    <el-card class="online-section" shadow="hover" v-loading="loading">
-      <template #header>
-        <div class="section-header">
-          <div class="section-title">
+    <section class="online-section">
+      <div class="section-header">
+        <div class="section-title">
+          <div class="title-icon">
             <el-icon><UserFilled /></el-icon>
-            <span>在线玩家</span>
-            <el-tag type="success" effect="dark" round size="small" v-if="onlinePlayers.length > 0">
-              {{ onlinePlayers.length }} 人在线
-            </el-tag>
           </div>
-          <el-button 
-            type="primary" 
-            text 
-            :icon="Refresh" 
-            @click="loadData"
-            :loading="loading"
-          >
-            刷新
-          </el-button>
+          <div class="title-content">
+            <h2>在线玩家</h2>
+            <p v-if="onlinePlayers.length > 0">{{ onlinePlayers.length }} 位冒险者正在探索</p>
+          </div>
         </div>
-      </template>
-
-      <div v-if="onlinePlayers.length > 0">
-        <el-table 
-          :data="onlinePlayers" 
-          style="width: 100%"
-          :header-cell-style="{ background: 'var(--bg-hover)' }"
+        <el-button
+          type="primary"
+          text
+          :icon="Refresh"
+          @click="loadData"
+          :loading="loading"
+          class="refresh-btn"
         >
-          <el-table-column label="玩家名" min-width="150">
-            <template #default="{ row }">
-              <router-link :to="`/player/${row.name}`" class="player-link">
-                <el-avatar :size="32" :icon="UserFilled" class="player-avatar" />
-                <span class="player-name">{{ row.name }}</span>
-              </router-link>
-            </template>
-          </el-table-column>
-          <el-table-column label="身份" width="120">
-            <template #default="{ row }">
-              <el-tag :type="getRoleType(row.role)" effect="light" round size="small">
-                {{ row.role }}
-              </el-tag>
-            </template>
-          </el-table-column>
-          <el-table-column label="状态" width="80" align="center">
-            <template #default>
-              <el-tag type="success" effect="dark" round size="small">在线</el-tag>
-            </template>
-          </el-table-column>
-          <el-table-column label="操作" width="120" align="right">
-            <template #default="{ row }">
-              <el-button 
-                type="primary" 
-                text 
-                size="small"
-                @click="$router.push(`/player/${row.name}`)"
-              >
-                查看
-              </el-button>
-            </template>
-          </el-table-column>
-        </el-table>
+          刷新
+        </el-button>
       </div>
 
-      <el-empty 
-        v-else 
-        description="暂无在线玩家" 
-        :image-size="120"
-      >
-        <template #image>
-          <el-icon :size="60" color="var(--text-muted)"><User /></el-icon>
-        </template>
-      </el-empty>
-    </el-card>
+      <div class="players-grid" v-if="onlinePlayers.length > 0">
+        <router-link
+          v-for="player in onlinePlayers"
+          :key="player.name"
+          :to="`/player/${player.name}`"
+          class="player-card"
+        >
+          <div class="player-avatar-wrapper">
+            <el-avatar :size="48" :icon="UserFilled" class="player-avatar" />
+            <span class="online-indicator"></span>
+          </div>
+          <div class="player-info">
+            <span class="player-name">{{ player.name }}</span>
+            <el-tag :type="getRoleType(player.role)" size="small" effect="light" round>
+              {{ player.role }}
+            </el-tag>
+          </div>
+          <el-icon class="arrow-icon"><ArrowRight /></el-icon>
+        </router-link>
+      </div>
+
+      <div v-else class="empty-state">
+        <div class="empty-icon">
+          <el-icon :size="48"><User /></el-icon>
+        </div>
+        <p>暂无在线玩家</p>
+        <span>成为第一个探索地牢的冒险者吧！</span>
+      </div>
+    </section>
 
     <!-- Features Section -->
-    <el-row :gutter="20" class="features-section">
-      <el-col :xs="24" :sm="8" v-for="(feature, index) in features" :key="index">
-        <el-card class="feature-card" shadow="hover">
-          <div class="feature-icon" :style="{ background: feature.gradient }">
+    <section class="features-section">
+      <div class="section-header centered">
+        <h2 class="section-title-main">特色功能</h2>
+        <p class="section-subtitle">探索 SPDNet 带来的全新体验</p>
+      </div>
+
+      <div class="features-grid">
+        <div
+          v-for="(feature, index) in features"
+          :key="index"
+          class="feature-card"
+          :style="{ animationDelay: `${index * 0.1}s` }"
+        >
+          <div class="feature-icon-wrapper" :style="{ background: feature.gradient }">
             <el-icon :size="32" color="white"><component :is="feature.icon" /></el-icon>
           </div>
           <h3 class="feature-title">{{ feature.title }}</h3>
           <p class="feature-desc">{{ feature.description }}</p>
-        </el-card>
-      </el-col>
-    </el-row>
+        </div>
+      </div>
+    </section>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import { ElMessage } from 'element-plus'
-import { 
-  User, UserFilled, Trophy, Connection, Key, 
-  CircleCheck, Refresh, ChatDotRound, Rank, Medal, CollectionTag
+import {
+  User, UserFilled, Trophy, Connection, Key,
+  CircleCheck, Refresh, ChatDotRound, Rank, Medal, CollectionTag,
+  ArrowRight, StarFilled
 } from '@element-plus/icons-vue'
 import { playerApi } from '../api'
 import { authStore } from '../store/auth'
@@ -179,29 +172,29 @@ const onlinePlayers = ref([])
 const loading = ref(true)
 
 const statsList = computed(() => [
-  { 
-    label: '当前在线', 
-    value: serverInfo.value?.onlineCount || 0, 
+  {
+    label: '当前在线',
+    value: serverInfo.value?.onlineCount || 0,
     icon: 'UserFilled',
-    gradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+    gradient: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)'
   },
-  { 
-    label: '注册玩家', 
-    value: serverInfo.value?.totalPlayers || 0, 
+  {
+    label: '注册玩家',
+    value: serverInfo.value?.totalPlayers || 0,
     icon: 'User',
-    gradient: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)'
+    gradient: 'linear-gradient(135deg, #ec4899 0%, #f43f5e 100%)'
   },
-  { 
-    label: '游戏版本', 
-    value: serverInfo.value?.version || '-', 
+  {
+    label: '游戏版本',
+    value: serverInfo.value?.version || '-',
     icon: 'CollectionTag',
-    gradient: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)'
+    gradient: 'linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%)'
   },
-  { 
-    label: '联机版本', 
-    value: serverInfo.value?.netVersion || '-', 
+  {
+    label: '联机版本',
+    value: serverInfo.value?.netVersion || '-',
     icon: 'CircleCheck',
-    gradient: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)'
+    gradient: 'linear-gradient(135deg, #10b981 0%, #06b6d4 100%)'
   }
 ])
 
@@ -210,19 +203,19 @@ const features = [
     icon: 'Trophy',
     title: '竞技排行',
     description: '挑战高分排行榜，与全球玩家一较高下，展示你的地牢探险实力。',
-    gradient: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)'
+    gradient: 'linear-gradient(135deg, #f59e0b 0%, #f97316 100%)'
   },
   {
     icon: 'ChatDotRound',
     title: '实时聊天',
     description: '与在线玩家实时交流，分享游戏心得，结交志同道合的冒险伙伴。',
-    gradient: 'linear-gradient(135deg, #30cfd0 0%, #330867 100%)'
+    gradient: 'linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%)'
   },
   {
     icon: 'Rank',
     title: '数据追踪',
     description: '详细记录你的每一次冒险，分析游戏数据，不断提升自己的技巧。',
-    gradient: 'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)'
+    gradient: 'linear-gradient(135deg, #10b981 0%, #06b6d4 100%)'
   }
 ]
 
@@ -257,93 +250,182 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.home {
-  max-width: 1200px;
+.home-page {
+  max-width: var(--max-width);
   margin: 0 auto;
+  padding: var(--space-8) var(--content-padding);
 }
 
+/* Hero Section */
 .hero-section {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-12);
   align-items: center;
-  justify-content: space-between;
-  padding: 4rem 0;
-  gap: 3rem;
+  padding: var(--space-12) 0;
+  min-height: 70vh;
 }
 
 .hero-content {
-  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
 }
 
 .hero-badge {
-  margin-bottom: 1.5rem;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  border-radius: var(--radius-full);
+  color: var(--accent-emerald);
+  font-size: 0.875rem;
+  font-weight: 500;
+  width: fit-content;
+}
+
+.badge-icon {
+  display: flex;
+  align-items: center;
 }
 
 .hero-title {
-  font-size: 3.5rem;
+  font-size: 4rem;
   font-weight: 800;
-  margin-bottom: 0.5rem;
-  letter-spacing: -1px;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
 }
 
 .hero-subtitle {
   font-size: 1.5rem;
   color: var(--text-secondary);
-  margin-bottom: 1rem;
   font-weight: 300;
 }
 
 .hero-description {
   font-size: 1.125rem;
-  color: var(--text-muted);
-  margin-bottom: 2rem;
-  max-width: 500px;
-  line-height: 1.8;
+  color: var(--text-tertiary);
+  max-width: 480px;
+  line-height: 1.7;
 }
 
 .hero-actions {
   display: flex;
-  gap: 1rem;
+  gap: var(--space-3);
   flex-wrap: wrap;
+  margin-top: var(--space-2);
 }
 
-.hero-decoration {
-  flex-shrink: 0;
+.btn-lg {
+  padding: var(--space-3) var(--space-6);
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  text-decoration: none;
 }
 
-.floating-icon {
-  animation: float 3s ease-in-out infinite;
-  opacity: 0.3;
+/* Hero Visual */
+.hero-visual {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
 }
 
+.visual-card {
+  width: 280px;
+  height: 280px;
+  border-radius: var(--radius-2xl);
+  background: var(--surface-1);
+  border: 1px solid var(--border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  animation: float 6s ease-in-out infinite;
+}
+
+.card-glow {
+  position: absolute;
+  inset: -1px;
+  border-radius: var(--radius-2xl);
+  background: var(--gradient-primary);
+  opacity: 0.5;
+  filter: blur(20px);
+  z-index: -1;
+  animation: glow-pulse 3s ease-in-out infinite;
+}
+
+.visual-icon {
+  color: var(--primary-400);
+}
+
+.floating-elements {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.float-item {
+  position: absolute;
+  color: var(--primary-400);
+  opacity: 0.6;
+  animation: float 4s ease-in-out infinite;
+  animation-delay: var(--delay);
+}
+
+.float-item:nth-child(1) {
+  top: 10%;
+  right: 10%;
+}
+
+.float-item:nth-child(2) {
+  bottom: 20%;
+  left: 5%;
+}
+
+.float-item:nth-child(3) {
+  top: 50%;
+  right: 0;
+}
+
+/* Stats Section */
 .stats-section {
-  margin-bottom: 2rem;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-5);
+  margin-bottom: var(--space-12);
 }
 
 .stat-card {
   display: flex;
   align-items: center;
-  gap: 1rem;
-  padding: 1.5rem;
-  background: var(--bg-card);
-  border-radius: 12px;
-  border: 1px solid var(--border-color);
-  transition: all 0.3s;
-  animation: slideUp 0.6s ease-out backwards;
+  gap: var(--space-4);
+  padding: var(--space-5);
+  background: var(--surface-1);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  transition: all var(--transition-base);
+  animation: fadeInUp 0.6s ease-out backwards;
 }
 
 .stat-card:hover {
   transform: translateY(-4px);
+  border-color: var(--border-default);
   box-shadow: var(--shadow-lg);
-  border-color: var(--primary-color);
 }
 
 .stat-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
+  width: 52px;
+  height: 52px;
+  border-radius: var(--radius-md);
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
 
 .stat-info {
@@ -360,96 +442,232 @@ onMounted(() => {
 .stat-label {
   font-size: 0.875rem;
   color: var(--text-secondary);
-  margin-top: 0.25rem;
+  margin-top: var(--space-1);
 }
 
+/* Online Section */
 .online-section {
-  margin-bottom: 2rem;
-  background: var(--bg-card);
-  border: 1px solid var(--border-color);
+  margin-bottom: var(--space-12);
 }
 
 .section-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  margin-bottom: var(--space-6);
+}
+
+.section-header.centered {
+  flex-direction: column;
+  text-align: center;
+  gap: var(--space-2);
 }
 
 .section-title {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  font-size: 1.125rem;
-  font-weight: 600;
+  gap: var(--space-4);
 }
 
-.section-title .el-icon {
-  color: var(--primary-color);
-}
-
-.player-link {
+.title-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-md);
+  background: rgba(99, 102, 241, 0.1);
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  text-decoration: none;
-  color: var(--text-primary);
-  transition: color 0.3s;
+  justify-content: center;
+  color: var(--primary-400);
 }
 
-.player-link:hover {
-  color: var(--primary-color);
+.title-content h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.title-content p {
+  color: var(--text-secondary);
+  margin: var(--space-1) 0 0;
+  font-size: 0.875rem;
+}
+
+.refresh-btn {
+  font-weight: 500;
+}
+
+.players-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--space-4);
+}
+
+.player-card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  background: var(--surface-1);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  text-decoration: none;
+  transition: all var(--transition-base);
+}
+
+.player-card:hover {
+  border-color: var(--primary-500);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-glow-sm);
+}
+
+.player-avatar-wrapper {
+  position: relative;
 }
 
 .player-avatar {
   background: var(--gradient-primary);
 }
 
-.player-name {
-  font-weight: 500;
+.online-indicator {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 12px;
+  height: 12px;
+  border-radius: var(--radius-full);
+  background: var(--accent-emerald);
+  border: 2px solid var(--surface-1);
+  box-shadow: 0 0 8px var(--accent-emerald);
 }
 
+.player-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.player-name {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.arrow-icon {
+  color: var(--text-tertiary);
+  transition: all var(--transition-fast);
+}
+
+.player-card:hover .arrow-icon {
+  color: var(--primary-400);
+  transform: translateX(4px);
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-12);
+  background: var(--surface-1);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  text-align: center;
+}
+
+.empty-icon {
+  width: 80px;
+  height: 80px;
+  border-radius: var(--radius-xl);
+  background: var(--surface-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-tertiary);
+}
+
+.empty-state p {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.empty-state span {
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+}
+
+/* Features Section */
 .features-section {
-  margin-top: 2rem;
+  padding: var(--space-12) 0;
+}
+
+.section-title-main {
+  font-size: 2rem;
+  font-weight: 700;
+  margin: 0;
+  background: var(--gradient-primary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.section-subtitle {
+  color: var(--text-secondary);
+  margin: var(--space-2) 0 0;
+}
+
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-6);
+  margin-top: var(--space-8);
 }
 
 .feature-card {
-  background: var(--bg-card);
-  border: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   text-align: center;
-  padding: 1rem;
-  transition: all 0.3s;
-  height: 100%;
+  padding: var(--space-8);
+  background: var(--surface-1);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xl);
+  transition: all var(--transition-base);
+  animation: fadeInUp 0.6s ease-out backwards;
 }
 
 .feature-card:hover {
   transform: translateY(-8px);
+  border-color: var(--border-default);
   box-shadow: var(--shadow-lg);
-  border-color: var(--primary-color);
 }
 
-.feature-icon {
-  width: 64px;
-  height: 64px;
-  border-radius: 16px;
+.feature-icon-wrapper {
+  width: 72px;
+  height: 72px;
+  border-radius: var(--radius-xl);
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 0 auto 1.5rem;
+  margin-bottom: var(--space-5);
 }
 
 .feature-title {
   font-size: 1.25rem;
   font-weight: 600;
-  margin-bottom: 0.75rem;
+  margin: 0 0 var(--space-3);
   color: var(--text-primary);
 }
 
 .feature-desc {
   color: var(--text-secondary);
   line-height: 1.6;
+  margin: 0;
 }
 
-@keyframes slideUp {
+/* Animations */
+@keyframes fadeInUp {
   from {
     opacity: 0;
     transform: translateY(20px);
@@ -460,32 +678,78 @@ onMounted(() => {
   }
 }
 
-@media (max-width: 768px) {
+@keyframes glow-pulse {
+  0%, 100% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
   .hero-section {
-    flex-direction: column;
+    grid-template-columns: 1fr;
     text-align: center;
-    padding: 2rem 0;
+    gap: var(--space-8);
   }
-  
+
   .hero-title {
-    font-size: 2.5rem;
+    font-size: 3rem;
   }
-  
+
   .hero-description {
     margin-left: auto;
     margin-right: auto;
   }
-  
+
   .hero-actions {
     justify-content: center;
   }
-  
-  .hero-decoration {
-    display: none;
+
+  .hero-visual {
+    order: -1;
   }
-  
-  .stat-card {
-    margin-bottom: 1rem;
+
+  .visual-card {
+    width: 200px;
+    height: 200px;
+  }
+
+  .stats-section {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .features-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .home-page {
+    padding: var(--space-4);
+  }
+
+  .hero-section {
+    padding: var(--space-8) 0;
+    min-height: auto;
+  }
+
+  .hero-title {
+    font-size: 2.25rem;
+  }
+
+  .hero-subtitle {
+    font-size: 1.125rem;
+  }
+
+  .stats-section {
+    grid-template-columns: 1fr;
+  }
+
+  .players-grid {
+    grid-template-columns: 1fr;
   }
 }
 </style>

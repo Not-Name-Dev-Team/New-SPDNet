@@ -1,145 +1,182 @@
 <template>
-  <div class="register-page">
-    <div class="register-container">
-      <div class="register-left">
-        <div class="brand-section">
-          <el-icon :size="48" class="brand-icon"><Connection /></el-icon>
-          <h1 class="brand-title">
-            <span class="gradient-text">SPD</span>Net
-          </h1>
-          <p class="brand-subtitle">联机破碎地牢</p>
-        </div>
-        <div class="info-card">
-          <h3><el-icon><InfoFilled /></el-icon> 注册说明</h3>
-          <ul>
-            <li><el-icon><Check /></el-icon> 用户名一旦注册无法更改</li>
-            <li><el-icon><Check /></el-icon> 密码长度需在6-32个字符之间</li>
-            <li><el-icon><Check /></el-icon> 每个邮箱只能注册一个账号</li>
-            <li><el-icon><Check /></el-icon> 需要通过邮箱验证码验证</li>
-            <li><el-icon><Check /></el-icon> 注册后即可使用用户名和密码登录游戏</li>
-          </ul>
+  <div class="auth-page">
+    <div class="auth-container">
+      <!-- Left Side - Branding -->
+      <div class="auth-branding">
+        <div class="branding-content">
+          <div class="brand-logo">
+            <div class="logo-icon">
+              <el-icon :size="32"><Connection /></el-icon>
+            </div>
+            <h1 class="brand-title">
+              <span class="gradient-text">SPD</span>Net
+            </h1>
+          </div>
+          <p class="brand-tagline">联机破碎地牢</p>
+          <p class="brand-description">
+            创建账号，开启你的地牢冒险之旅。与全球玩家一起探索、战斗、成长！
+          </p>
+
+          <div class="info-card">
+            <div class="info-header">
+              <el-icon><InfoFilled /></el-icon>
+              <span>注册须知</span>
+            </div>
+            <ul class="info-list">
+              <li v-for="(item, index) in infoItems" :key="index">
+                <el-icon><Check /></el-icon>
+                <span>{{ item }}</span>
+              </li>
+            </ul>
+          </div>
         </div>
       </div>
 
-      <div class="register-right">
-        <el-card class="register-card" shadow="hover">
-          <template #header>
-            <div class="register-header">
-              <h2>创建账号</h2>
-              <p>开始你的地牢冒险之旅</p>
+      <!-- Right Side - Form -->
+      <div class="auth-form-wrapper">
+        <div class="form-card">
+          <!-- Success State -->
+          <template v-if="success">
+            <div class="success-state">
+              <div class="success-icon">
+                <el-icon :size="64"><CircleCheck /></el-icon>
+              </div>
+              <h2>注册成功</h2>
+              <p>您可以使用用户名和密码登录游戏了</p>
+              <div class="success-actions">
+                <router-link to="/login" class="btn-primary">
+                  <el-icon><Key /></el-icon>
+                  <span>去登录</span>
+                </router-link>
+                <router-link to="/" class="btn-secondary">
+                  <el-icon><House /></el-icon>
+                  <span>返回首页</span>
+                </router-link>
+              </div>
             </div>
           </template>
 
-          <el-result
-            v-if="success"
-            icon="success"
-            title="注册成功"
-            sub-title="您可以使用用户名和密码登录游戏"
-            class="success-result"
-          >
-            <template #extra>
-              <el-button type="primary" @click="$router.push('/login')" size="large">
-                去登录
-              </el-button>
-              <el-button @click="$router.push('/')" size="large">
-                返回首页
-              </el-button>
-            </template>
-          </el-result>
-
+          <!-- Form State -->
           <template v-else>
+            <div class="form-header">
+              <h2>创建账号</h2>
+              <p>开始你的地牢冒险之旅</p>
+            </div>
+
+            <!-- Step Indicator -->
+            <div class="step-indicator">
+              <div
+                v-for="step in 3"
+                :key="step"
+                :class="['step', {
+                  active: currentStep >= step - 1,
+                  completed: currentStep > step - 1
+                }]"
+              >
+                <div class="step-number">{{ step }}</div>
+                <div class="step-label">{{ ['填写信息', '验证邮箱', '完成注册'][step - 1] }}</div>
+              </div>
+              <div class="step-line">
+                <div class="step-progress" :style="{ width: `${(currentStep / 2) * 100}%` }"></div>
+              </div>
+            </div>
+
             <el-alert
               v-if="message"
               :title="message"
               :type="error ? 'error' : 'success'"
               show-icon
               :closable="false"
-              class="register-alert"
+              class="form-alert"
             />
-
-            <el-steps :active="currentStep" finish-status="success" class="register-steps">
-              <el-step title="填写信息" />
-              <el-step title="验证邮箱" />
-              <el-step title="完成注册" />
-            </el-steps>
 
             <el-form
               ref="formRef"
               :model="form"
               :rules="rules"
               @keyup.enter="handleRegister"
-              class="register-form"
+              class="auth-form"
             >
               <el-form-item prop="name">
-                <el-input
-                  v-model="form.name"
-                  placeholder="请输入用户名 (2-16字符)"
-                  size="large"
-                  :prefix-icon="User"
-                  maxlength="16"
-                  show-word-limit
-                  clearable
-                />
+                <div class="input-wrapper">
+                  <el-icon class="input-icon"><User /></el-icon>
+                  <el-input
+                    v-model="form.name"
+                    placeholder="请输入用户名 (2-16字符)"
+                    size="large"
+                    maxlength="16"
+                    show-word-limit
+                    clearable
+                  />
+                </div>
               </el-form-item>
 
               <el-form-item prop="email">
-                <el-input
-                  v-model="form.email"
-                  placeholder="请输入邮箱地址"
-                  size="large"
-                  :prefix-icon="Message"
-                  clearable
-                >
-                  <template #append>
-                    <el-button
-                      :disabled="!canSendCode || codeSending"
-                      :loading="codeSending"
-                      @click="sendCode"
-                      class="code-btn"
-                    >
-                      {{ countdown > 0 ? `${countdown}s` : (codeSent ? '重新获取' : '获取验证码') }}
-                    </el-button>
-                  </template>
-                </el-input>
+                <div class="input-wrapper">
+                  <el-icon class="input-icon"><Message /></el-icon>
+                  <el-input
+                    v-model="form.email"
+                    placeholder="请输入邮箱地址"
+                    size="large"
+                    clearable
+                  >
+                    <template #append>
+                      <el-button
+                        :disabled="!canSendCode || codeSending"
+                        :loading="codeSending"
+                        @click="sendCode"
+                        class="code-btn"
+                      >
+                        {{ countdown > 0 ? `${countdown}s` : (codeSent ? '重新获取' : '获取验证码') }}
+                      </el-button>
+                    </template>
+                  </el-input>
+                </div>
               </el-form-item>
 
               <el-form-item prop="verificationCode" v-if="codeSent">
-                <el-input
-                  v-model="form.verificationCode"
-                  placeholder="请输入6位验证码"
-                  size="large"
-                  :prefix-icon="Key"
-                  maxlength="6"
-                  clearable
-                />
+                <div class="input-wrapper">
+                  <el-icon class="input-icon"><Key /></el-icon>
+                  <el-input
+                    v-model="form.verificationCode"
+                    placeholder="请输入6位验证码"
+                    size="large"
+                    maxlength="6"
+                    clearable
+                  />
+                </div>
                 <div class="code-hint">
                   <el-icon><InfoFilled /></el-icon>
-                  验证码已发送到 {{ maskedEmail }}，5分钟内有效
+                  <span>验证码已发送到 {{ maskedEmail }}，5分钟内有效</span>
                 </div>
               </el-form-item>
 
               <el-form-item prop="password">
-                <el-input
-                  v-model="form.password"
-                  type="password"
-                  placeholder="请输入密码 (6-32字符)"
-                  size="large"
-                  :prefix-icon="Lock"
-                  show-password
-                  clearable
-                />
+                <div class="input-wrapper">
+                  <el-icon class="input-icon"><Lock /></el-icon>
+                  <el-input
+                    v-model="form.password"
+                    type="password"
+                    placeholder="请输入密码 (6-32字符)"
+                    size="large"
+                    show-password
+                    clearable
+                  />
+                </div>
               </el-form-item>
 
               <el-form-item prop="confirmPassword">
-                <el-input
-                  v-model="form.confirmPassword"
-                  type="password"
-                  placeholder="请再次输入密码"
-                  size="large"
-                  :prefix-icon="Lock"
-                  show-password
-                  clearable
-                />
+                <div class="input-wrapper">
+                  <el-icon class="input-icon"><Lock /></el-icon>
+                  <el-input
+                    v-model="form.confirmPassword"
+                    type="password"
+                    placeholder="请再次输入密码"
+                    size="large"
+                    show-password
+                    clearable
+                  />
+                </div>
               </el-form-item>
 
               <el-form-item>
@@ -149,23 +186,23 @@
                   @click="handleRegister"
                   :loading="loading"
                   :disabled="!codeSent"
-                  class="register-btn glow-btn"
+                  class="submit-btn"
                 >
                   <el-icon><CircleCheck /></el-icon>
-                  {{ loading ? '注册中...' : '立即注册' }}
+                  <span>{{ loading ? '注册中...' : '立即注册' }}</span>
                 </el-button>
               </el-form-item>
             </el-form>
 
-            <div class="register-footer">
+            <div class="form-footer">
               <span>已有账号？</span>
-              <router-link to="/login" class="login-link">
+              <router-link to="/login" class="link-primary">
                 立即登录
                 <el-icon><ArrowRight /></el-icon>
               </router-link>
             </div>
           </template>
-        </el-card>
+        </div>
       </div>
     </div>
   </div>
@@ -174,9 +211,9 @@
 <script setup>
 import { ref, reactive, computed } from 'vue'
 import { ElMessage } from 'element-plus'
-import { 
-  User, Lock, Key, Message, ArrowRight, 
-  Connection, InfoFilled, Check, CircleCheck 
+import {
+  User, Lock, Key, Message, ArrowRight,
+  Connection, InfoFilled, Check, CircleCheck, House
 } from '@element-plus/icons-vue'
 import { playerApi } from '../api'
 
@@ -230,6 +267,14 @@ const codeSending = ref(false)
 const codeSent = ref(false)
 const countdown = ref(0)
 const currentStep = ref(0)
+
+const infoItems = [
+  '用户名一旦注册无法更改',
+  '密码长度需在6-32个字符之间',
+  '每个邮箱只能注册一个账号',
+  '需要通过邮箱验证码验证',
+  '注册后即可使用用户名和密码登录游戏'
+]
 
 const canSendCode = computed(() => {
   const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/
@@ -317,156 +362,247 @@ const handleRegister = async () => {
 </script>
 
 <style scoped>
-.register-page {
-  min-height: calc(100vh - 64px - 100px);
+.auth-page {
+  min-height: calc(100vh - var(--header-height));
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 2rem;
+  padding: var(--space-8) var(--content-padding);
 }
 
-.register-container {
-  display: flex;
-  max-width: 1000px;
+.auth-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-12);
+  max-width: 1200px;
   width: 100%;
-  gap: 4rem;
-  align-items: flex-start;
+  align-items: start;
 }
 
-.register-left {
-  flex: 1;
-  padding: 2rem;
+/* Branding Side */
+.auth-branding {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+  padding: var(--space-8);
   position: sticky;
-  top: 100px;
+  top: calc(var(--header-height) + var(--space-8));
 }
 
-.brand-section {
-  margin-bottom: 2rem;
+.branding-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
 }
 
-.brand-icon {
-  color: var(--primary-color);
-  margin-bottom: 1rem;
-  animation: float 3s ease-in-out infinite;
+.brand-logo {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.logo-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-lg);
+  background: var(--gradient-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  box-shadow: var(--shadow-glow-sm);
 }
 
 .brand-title {
   font-size: 2.5rem;
   font-weight: 800;
-  margin-bottom: 0.5rem;
-  letter-spacing: -1px;
+  margin: 0;
+  letter-spacing: -0.02em;
 }
 
-.brand-subtitle {
+.brand-tagline {
   font-size: 1.25rem;
   color: var(--text-secondary);
-}
-
-.info-card {
-  background: var(--bg-card);
-  border: 1px solid var(--border-color);
-  border-radius: 12px;
-  padding: 1.5rem;
-}
-
-.info-card h3 {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 1.125rem;
-  margin-bottom: 1rem;
-  color: var(--text-primary);
-}
-
-.info-card h3 .el-icon {
-  color: var(--primary-color);
-}
-
-.info-card ul {
-  list-style: none;
-  padding: 0;
   margin: 0;
 }
 
-.info-card li {
+.brand-description {
+  font-size: 1rem;
+  color: var(--text-tertiary);
+  line-height: 1.7;
+}
+
+.info-card {
+  background: var(--surface-2);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+}
+
+.info-header {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 0;
-  color: var(--text-secondary);
-}
-
-.info-card li .el-icon {
-  color: var(--success-color);
-}
-
-.register-right {
-  flex: 1;
-  max-width: 480px;
-}
-
-.register-card {
-  background: var(--bg-card);
-  border: 1px solid var(--border-color);
-  border-radius: 16px;
-}
-
-:deep(.register-card .el-card__header) {
-  border-bottom: 1px solid var(--border-color);
-  padding: 2rem 2rem 1.5rem;
-}
-
-:deep(.register-card .el-card__body) {
-  padding: 2rem;
-}
-
-.register-header {
-  text-align: center;
-}
-
-.register-header h2 {
-  font-size: 1.75rem;
+  gap: var(--space-2);
   font-weight: 600;
-  margin-bottom: 0.5rem;
+  color: var(--text-primary);
+  margin-bottom: var(--space-4);
+}
+
+.info-header .el-icon {
+  color: var(--primary-400);
+}
+
+.info-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.info-list li {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--text-secondary);
+  font-size: 0.9375rem;
+}
+
+.info-list li .el-icon {
+  color: var(--accent-emerald);
+  flex-shrink: 0;
+}
+
+/* Form Side */
+.auth-form-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.form-card {
+  width: 100%;
+  max-width: 480px;
+  padding: var(--space-8);
+  background: var(--surface-1);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg);
+}
+
+.form-header {
+  text-align: center;
+  margin-bottom: var(--space-6);
+}
+
+.form-header h2 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin: 0 0 var(--space-2);
   color: var(--text-primary);
 }
 
-.register-header p {
+.form-header p {
   color: var(--text-secondary);
+  margin: 0;
 }
 
-.success-result {
-  padding: 2rem 0;
+/* Step Indicator */
+.step-indicator {
+  display: flex;
+  justify-content: space-between;
+  position: relative;
+  margin-bottom: var(--space-6);
+  padding: 0 var(--space-4);
 }
 
-.register-alert {
-  margin-bottom: 1.5rem;
+.step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  position: relative;
+  z-index: 1;
 }
 
-.register-steps {
-  margin-bottom: 2rem;
+.step-number {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-full);
+  background: var(--surface-2);
+  border: 2px solid var(--border-default);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  transition: all var(--transition-base);
 }
 
-:deep(.register-steps .el-step__title) {
-  font-size: 0.875rem;
+.step.active .step-number {
+  background: var(--gradient-primary);
+  border-color: transparent;
+  color: white;
 }
 
-.register-form {
-  margin-bottom: 1.5rem;
+.step.completed .step-number {
+  background: var(--accent-emerald);
+  border-color: transparent;
+  color: white;
 }
 
-:deep(.register-form .el-input__wrapper) {
-  background: var(--bg-dark);
-  box-shadow: 0 0 0 1px var(--border-color) inset;
-  padding: 4px 11px;
+.step-label {
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+  font-weight: 500;
 }
 
-:deep(.register-form .el-input__wrapper:hover) {
-  box-shadow: 0 0 0 1px var(--primary-color) inset;
+.step.active .step-label {
+  color: var(--primary-400);
 }
 
-:deep(.register-form .el-input__wrapper.is-focus) {
-  box-shadow: 0 0 0 1px var(--primary-color) inset;
+.step-line {
+  position: absolute;
+  top: 18px;
+  left: 60px;
+  right: 60px;
+  height: 2px;
+  background: var(--border-subtle);
+  z-index: 0;
+}
+
+.step-progress {
+  height: 100%;
+  background: var(--gradient-primary);
+  transition: width var(--transition-base);
+}
+
+.form-alert {
+  margin-bottom: var(--space-5);
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.input-icon {
+  position: absolute;
+  left: var(--space-4);
+  color: var(--text-tertiary);
+  z-index: 1;
+}
+
+:deep(.input-wrapper .el-input__wrapper) {
+  padding-left: var(--space-10);
 }
 
 .code-btn {
@@ -476,67 +612,185 @@ const handleRegister = async () => {
 .code-hint {
   display: flex;
   align-items: center;
-  gap: 0.25rem;
-  margin-top: 0.5rem;
-  font-size: 0.875rem;
+  gap: var(--space-1);
+  margin-top: var(--space-2);
+  font-size: 0.8125rem;
   color: var(--text-secondary);
 }
 
 .code-hint .el-icon {
-  color: var(--primary-color);
+  color: var(--primary-400);
 }
 
-.register-btn {
+.submit-btn {
   width: 100%;
+  height: 48px;
   font-size: 1rem;
-  height: 44px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
 }
 
-.register-footer {
-  text-align: center;
+.form-footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  margin-top: var(--space-6);
+  padding-top: var(--space-6);
+  border-top: 1px solid var(--border-subtle);
   color: var(--text-secondary);
-  padding-top: 1.5rem;
-  border-top: 1px solid var(--border-color);
+  font-size: 0.9375rem;
 }
 
-.login-link {
+.link-primary {
   display: inline-flex;
   align-items: center;
-  gap: 0.25rem;
-  color: var(--primary-color);
+  gap: var(--space-1);
+  color: var(--primary-400);
   text-decoration: none;
-  font-weight: 500;
-  margin-left: 0.5rem;
-  transition: all 0.3s;
+  font-weight: 600;
+  transition: all var(--transition-fast);
 }
 
-.login-link:hover {
-  color: var(--primary-light);
-  transform: translateX(4px);
+.link-primary:hover {
+  color: var(--primary-300);
+  transform: translateX(2px);
 }
 
-@media (max-width: 768px) {
-  .register-container {
-    flex-direction: column;
-    gap: 2rem;
+/* Success State */
+.success-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: var(--space-8) 0;
+}
+
+.success-icon {
+  width: 100px;
+  height: 100px;
+  border-radius: var(--radius-full);
+  background: rgba(16, 185, 129, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent-emerald);
+  margin-bottom: var(--space-6);
+  animation: scaleIn 0.5s ease;
+}
+
+.success-state h2 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin: 0 0 var(--space-2);
+  color: var(--text-primary);
+}
+
+.success-state p {
+  color: var(--text-secondary);
+  margin: 0 0 var(--space-8);
+}
+
+.success-actions {
+  display: flex;
+  gap: var(--space-3);
+}
+
+.success-actions .btn-primary,
+.success-actions .btn-secondary {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-6);
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  text-decoration: none;
+  transition: all var(--transition-fast);
+}
+
+.success-actions .btn-primary {
+  background: var(--gradient-primary);
+  color: white;
+}
+
+.success-actions .btn-secondary {
+  background: var(--surface-2);
+  border: 1px solid var(--border-default);
+  color: var(--text-primary);
+}
+
+/* Animations */
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.5);
   }
-  
-  .register-left {
-    text-align: center;
-    padding: 1rem;
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .auth-container {
+    grid-template-columns: 1fr;
+    gap: var(--space-8);
+  }
+
+  .auth-branding {
     position: static;
+    text-align: center;
+    padding: var(--space-4);
   }
-  
+
+  .brand-logo {
+    justify-content: center;
+  }
+
+  .brand-description {
+    margin-left: auto;
+    margin-right: auto;
+  }
+
   .info-card {
+    max-width: 400px;
+    margin: 0 auto;
+  }
+
+  .info-list {
+    text-align: left;
+  }
+}
+
+@media (max-width: 640px) {
+  .auth-page {
+    padding: var(--space-4);
+  }
+
+  .form-card {
+    padding: var(--space-5);
+  }
+
+  .brand-title {
+    font-size: 2rem;
+  }
+
+  .step-label {
     display: none;
   }
-  
-  .register-right {
+
+  .success-actions {
+    flex-direction: column;
     width: 100%;
   }
-  
-  :deep(.register-steps) {
-    display: none;
+
+  .success-actions .btn-primary,
+  .success-actions .btn-secondary {
+    justify-content: center;
   }
 }
 </style>

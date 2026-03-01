@@ -1,29 +1,41 @@
 <template>
   <div class="chat-page">
-    <el-card class="chat-card" shadow="hover">
-      <template #header>
-        <div class="chat-header">
-          <div class="header-title">
-            <el-icon :size="24" color="var(--primary-color)"><ChatDotRound /></el-icon>
-            <span>聊天室</span>
-            <el-tag type="success" effect="dark" round size="small" v-if="authStore.isLoggedIn">
-              在线
-            </el-tag>
+    <div class="chat-container">
+      <!-- Chat Header -->
+      <div class="chat-header">
+        <div class="header-info">
+          <div class="header-icon">
+            <el-icon :size="24"><ChatDotRound /></el-icon>
           </div>
-          <div class="header-actions">
-            <el-button type="primary" text :icon="Refresh" @click="loadMessages" :loading="loading">
-              刷新
-            </el-button>
+          <div class="header-text">
+            <h2>聊天室</h2>
+            <p v-if="authStore.isLoggedIn">
+              <span class="status-dot online"></span>
+              在线
+            </p>
           </div>
         </div>
-      </template>
+        <el-button
+          type="primary"
+          text
+          :icon="Refresh"
+          @click="loadMessages"
+          :loading="loading"
+          class="refresh-btn"
+        >
+          刷新
+        </el-button>
+      </div>
 
-      <div class="chat-container" ref="chatContainer" v-loading="loading">
-        <el-empty v-if="!loading && messages.length === 0" description="暂无消息，来发送第一条消息吧！">
-          <template #image>
-            <el-icon :size="60" color="var(--text-muted)"><ChatLineRound /></el-icon>
-          </template>
-        </el-empty>
+      <!-- Messages Area -->
+      <div class="messages-area" ref="chatContainer" v-loading="loading">
+        <div v-if="!loading && messages.length === 0" class="empty-state">
+          <div class="empty-icon">
+            <el-icon :size="48"><ChatLineRound /></el-icon>
+          </div>
+          <p>暂无消息</p>
+          <span>来发送第一条消息吧！</span>
+        </div>
 
         <div v-else class="messages-list">
           <div
@@ -31,18 +43,28 @@
             :key="index"
             :class="['message-item', { 'message-own': msg.name === authStore.user?.name }]"
           >
-            <el-avatar 
-              :size="40" 
-              :icon="UserFilled"
-              class="message-avatar"
-              :class="{ 'own-avatar': msg.name === authStore.user?.name }"
-            />
+            <div class="message-avatar-wrapper">
+              <el-avatar
+                :size="40"
+                :icon="UserFilled"
+                class="message-avatar"
+                :class="{ 'own-avatar': msg.name === authStore.user?.name }"
+              />
+            </div>
             <div class="message-content">
               <div class="message-header">
                 <router-link :to="`/player/${msg.name}`" class="message-author">
                   {{ msg.name }}
                 </router-link>
-                <el-tag v-if="msg.name === authStore.user?.name" size="small" type="success" effect="plain">我</el-tag>
+                <el-tag
+                  v-if="msg.name === authStore.user?.name"
+                  size="small"
+                  type="success"
+                  effect="light"
+                  round
+                >
+                  我
+                </el-tag>
               </div>
               <div class="message-bubble">
                 {{ msg.message }}
@@ -52,15 +74,13 @@
         </div>
       </div>
 
-      <div class="chat-input-area">
-        <el-alert
-          v-if="!authStore.isLoggedIn"
-          title="请先登录后再参与聊天"
-          type="warning"
-          show-icon
-          :closable="false"
-          class="login-warning"
-        />
+      <!-- Input Area -->
+      <div class="input-area">
+        <div v-if="!authStore.isLoggedIn" class="login-prompt">
+          <el-icon><Warning /></el-icon>
+          <span>请先登录后再参与聊天</span>
+          <router-link to="/login" class="btn-primary btn-sm">去登录</router-link>
+        </div>
         <div v-else class="input-wrapper">
           <el-input
             v-model="newMessage"
@@ -71,6 +91,7 @@
             show-word-limit
             resize="none"
             @keyup.enter.prevent="sendMessage"
+            class="message-input"
           />
           <el-button
             type="primary"
@@ -85,14 +106,14 @@
           </el-button>
         </div>
       </div>
-    </el-card>
+    </div>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted, nextTick } from 'vue'
 import { ElMessage } from 'element-plus'
-import { ChatDotRound, Refresh, ChatLineRound, UserFilled, Promotion } from '@element-plus/icons-vue'
+import { ChatDotRound, Refresh, ChatLineRound, UserFilled, Promotion, Warning } from '@element-plus/icons-vue'
 import { chatApi } from '../api'
 import { authStore } from '../store/auth'
 
@@ -158,66 +179,107 @@ onMounted(() => {
 .chat-page {
   max-width: 900px;
   margin: 0 auto;
-  height: calc(100vh - 200px);
-  min-height: 500px;
+  padding: var(--space-8) var(--content-padding);
+  height: calc(100vh - var(--header-height) - var(--space-16));
+  min-height: 600px;
 }
 
-.chat-card {
+.chat-container {
+  display: flex;
+  flex-direction: column;
   height: 100%;
-  background: var(--bg-card);
-  border: 1px solid var(--border-color);
-  display: flex;
-  flex-direction: column;
-}
-
-:deep(.chat-card .el-card__body) {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  padding: 0;
+  background: var(--surface-1);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xl);
   overflow: hidden;
 }
 
+/* Chat Header */
 .chat-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  padding: var(--space-5);
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--surface-2);
 }
 
-.header-title {
+.header-info {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  font-size: 1.125rem;
-  font-weight: 600;
+  gap: var(--space-3);
 }
 
-.chat-container {
+.header-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-md);
+  background: linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+}
+
+.header-text h2 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin: 0;
+  color: var(--text-primary);
+}
+
+.header-text p {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin: var(--space-1) 0 0;
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+  background: var(--accent-emerald);
+  box-shadow: 0 0 8px var(--accent-emerald);
+}
+
+.refresh-btn {
+  font-weight: 500;
+}
+
+/* Messages Area */
+.messages-area {
   flex: 1;
   overflow-y: auto;
-  padding: 1.5rem;
-  background: var(--bg-dark);
+  padding: var(--space-5);
+  background: var(--bg-primary);
 }
 
 .messages-list {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: var(--space-4);
 }
 
 .message-item {
   display: flex;
-  gap: 0.75rem;
+  gap: var(--space-3);
   align-items: flex-start;
+  animation: fadeInUp 0.3s ease;
 }
 
 .message-item.message-own {
   flex-direction: row-reverse;
 }
 
+.message-avatar-wrapper {
+  flex-shrink: 0;
+}
+
 .message-avatar {
   background: var(--gradient-primary);
-  flex-shrink: 0;
 }
 
 .message-avatar.own-avatar {
@@ -226,102 +288,172 @@ onMounted(() => {
 
 .message-content {
   max-width: 70%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
 }
 
 .message-own .message-content {
-  text-align: right;
+  align-items: flex-end;
 }
 
 .message-header {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  margin-bottom: 0.25rem;
-}
-
-.message-own .message-header {
-  justify-content: flex-end;
+  gap: var(--space-2);
 }
 
 .message-author {
-  color: var(--primary-color);
+  color: var(--primary-400);
   text-decoration: none;
   font-weight: 500;
   font-size: 0.875rem;
+  transition: color var(--transition-fast);
 }
 
 .message-author:hover {
+  color: var(--primary-300);
   text-decoration: underline;
 }
 
 .message-bubble {
-  background: var(--bg-card);
-  border: 1px solid var(--border-color);
-  border-radius: 12px;
-  padding: 0.75rem 1rem;
+  background: var(--surface-2);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: var(--space-3) var(--space-4);
   color: var(--text-primary);
   word-break: break-word;
-  display: inline-block;
-  text-align: left;
+  line-height: 1.5;
 }
 
 .message-own .message-bubble {
-  background: var(--primary-color);
-  border-color: var(--primary-color);
+  background: var(--gradient-primary);
+  border-color: transparent;
   color: white;
 }
 
-.chat-input-area {
-  padding: 1rem 1.5rem;
-  border-top: 1px solid var(--border-color);
-  background: var(--bg-card);
+/* Empty State */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-12);
+  text-align: center;
 }
 
-.login-warning {
+.empty-icon {
+  width: 80px;
+  height: 80px;
+  border-radius: var(--radius-xl);
+  background: var(--surface-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-tertiary);
+}
+
+.empty-state p {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--text-primary);
   margin: 0;
+}
+
+.empty-state span {
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+}
+
+/* Input Area */
+.input-area {
+  padding: var(--space-4) var(--space-5);
+  border-top: 1px solid var(--border-subtle);
+  background: var(--surface-2);
+}
+
+.login-prompt {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+  border-radius: var(--radius-lg);
+  color: var(--accent-amber);
+}
+
+.login-prompt .el-icon {
+  font-size: 1.25rem;
+}
+
+.btn-sm {
+  padding: var(--space-2) var(--space-4);
+  font-size: 0.875rem;
+  text-decoration: none;
+  border-radius: var(--radius-md);
 }
 
 .input-wrapper {
   display: flex;
-  gap: 0.75rem;
+  gap: var(--space-3);
   align-items: flex-end;
 }
 
-.input-wrapper .el-textarea {
+.message-input {
   flex: 1;
 }
 
-:deep(.input-wrapper .el-textarea__inner) {
-  background: var(--bg-dark);
-  border-color: var(--border-color);
+:deep(.message-input .el-textarea__inner) {
+  background: var(--surface-1);
+  border-color: var(--border-subtle);
   color: var(--text-primary);
+  border-radius: var(--radius-lg);
+  padding: var(--space-3);
 }
 
-:deep(.input-wrapper .el-textarea__inner:focus) {
-  border-color: var(--primary-color);
+:deep(.message-input .el-textarea__inner:focus) {
+  border-color: var(--primary-500);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
 }
 
 .send-btn {
   height: 52px;
-  padding: 0 1.5rem;
+  padding: 0 var(--space-6);
+  font-weight: 600;
 }
 
+/* Animations */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Responsive */
 @media (max-width: 768px) {
   .chat-page {
-    height: calc(100vh - 150px);
+    padding: var(--space-4);
+    height: calc(100vh - var(--header-height) - var(--space-8));
   }
-  
+
   .message-content {
     max-width: 80%;
   }
-  
+
   .input-wrapper {
     flex-direction: column;
   }
-  
+
   .send-btn {
     width: 100%;
-    height: 40px;
+    height: 44px;
   }
 }
 </style>
