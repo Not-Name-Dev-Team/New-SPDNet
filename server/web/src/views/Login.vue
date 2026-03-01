@@ -5,7 +5,8 @@
       <div class="auth-branding">
         <div class="branding-content">
           <div class="brand-logo">
-            <div class="logo-icon">
+            <div class="logo-icon-wrapper">
+              <div class="logo-glow"></div>
               <el-icon :size="32"><Connection /></el-icon>
             </div>
             <h1 class="brand-title">
@@ -29,8 +30,13 @@
 
         <div class="branding-visual">
           <div class="visual-glow"></div>
-          <div class="visual-card">
-            <el-icon :size="64"><Connection /></el-icon>
+          <div class="visual-rings">
+            <div class="ring ring-1"></div>
+            <div class="ring ring-2"></div>
+            <div class="ring ring-3"></div>
+          </div>
+          <div class="visual-core">
+            <el-icon :size="48"><Connection /></el-icon>
           </div>
         </div>
       </div>
@@ -39,6 +45,9 @@
       <div class="auth-form-wrapper">
         <div class="form-card">
           <div class="form-header">
+            <div class="header-icon">
+              <el-icon :size="28"><Key /></el-icon>
+            </div>
             <h2>欢迎回来</h2>
             <p>登录你的账号继续冒险</p>
           </div>
@@ -222,7 +231,8 @@ const handleLogin = async () => {
   gap: var(--space-3);
 }
 
-.logo-icon {
+.logo-icon-wrapper {
+  position: relative;
   width: 56px;
   height: 56px;
   border-radius: var(--radius-lg);
@@ -231,7 +241,16 @@ const handleLogin = async () => {
   align-items: center;
   justify-content: center;
   color: white;
-  box-shadow: var(--shadow-glow-sm);
+}
+
+.logo-glow {
+  position: absolute;
+  inset: -4px;
+  border-radius: var(--radius-lg);
+  background: var(--gradient-primary);
+  filter: blur(12px);
+  opacity: 0.5;
+  animation: glow-pulse 2s ease-in-out infinite;
 }
 
 .brand-title {
@@ -287,30 +306,67 @@ const handleLogin = async () => {
   align-items: center;
   justify-content: center;
   padding: var(--space-8);
+  height: 300px;
 }
 
 .visual-glow {
   position: absolute;
-  width: 300px;
-  height: 300px;
+  width: 250px;
+  height: 250px;
   background: var(--gradient-primary);
-  border-radius: var(--radius-full);
-  filter: blur(80px);
-  opacity: 0.2;
+  border-radius: 50%;
+  filter: blur(60px);
+  opacity: 0.15;
   animation: pulse 4s ease-in-out infinite;
 }
 
-.visual-card {
-  width: 180px;
-  height: 180px;
-  border-radius: var(--radius-2xl);
-  background: var(--surface-1);
+.visual-rings {
+  position: absolute;
+  width: 200px;
+  height: 200px;
+}
+
+.ring {
+  position: absolute;
+  border-radius: 50%;
   border: 1px solid var(--border-subtle);
+}
+
+.ring-1 {
+  width: 100%;
+  height: 100%;
+  animation: rotate 20s linear infinite;
+  border-style: dashed;
+}
+
+.ring-2 {
+  width: 70%;
+  height: 70%;
+  top: 15%;
+  left: 15%;
+  animation: rotate 15s linear infinite reverse;
+}
+
+.ring-3 {
+  width: 40%;
+  height: 40%;
+  top: 30%;
+  left: 30%;
+  animation: rotate 10s linear infinite;
+  border-style: dotted;
+}
+
+.visual-core {
+  position: relative;
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  background: var(--gradient-primary);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--primary-400);
-  position: relative;
+  color: white;
+  box-shadow: var(--shadow-glow);
   animation: float 6s ease-in-out infinite;
 }
 
@@ -329,11 +385,25 @@ const handleLogin = async () => {
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-lg);
+  backdrop-filter: blur(20px);
 }
 
 .form-header {
   text-align: center;
   margin-bottom: var(--space-6);
+}
+
+.header-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: var(--radius-xl);
+  background: var(--gradient-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  margin: 0 auto var(--space-4);
+  box-shadow: var(--shadow-glow-sm);
 }
 
 .form-header h2 {
@@ -431,6 +501,24 @@ const handleLogin = async () => {
   50% {
     opacity: 0.25;
     transform: scale(1.1);
+  }
+}
+
+@keyframes glow-pulse {
+  0%, 100% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+@keyframes rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
   }
 }
 

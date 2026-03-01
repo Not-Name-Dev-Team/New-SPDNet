@@ -5,7 +5,8 @@
       <div class="auth-branding">
         <div class="branding-content">
           <div class="brand-logo">
-            <div class="logo-icon">
+            <div class="logo-icon-wrapper">
+              <div class="logo-glow"></div>
               <el-icon :size="32"><Connection /></el-icon>
             </div>
             <h1 class="brand-title">
@@ -39,7 +40,7 @@
           <template v-if="success">
             <div class="success-state">
               <div class="success-icon">
-                <el-icon :size="64"><CircleCheck /></el-icon>
+                <el-icon :size="48"><CircleCheck /></el-icon>
               </div>
               <h2>注册成功</h2>
               <p>您可以使用用户名和密码登录游戏了</p>
@@ -59,6 +60,9 @@
           <!-- Form State -->
           <template v-else>
             <div class="form-header">
+              <div class="header-icon">
+                <el-icon :size="28"><UserFilled /></el-icon>
+              </div>
               <h2>创建账号</h2>
               <p>开始你的地牢冒险之旅</p>
             </div>
@@ -213,7 +217,7 @@ import { ref, reactive, computed } from 'vue'
 import { ElMessage } from 'element-plus'
 import {
   User, Lock, Key, Message, ArrowRight,
-  Connection, InfoFilled, Check, CircleCheck, House
+  Connection, InfoFilled, Check, CircleCheck, House, UserFilled
 } from '@element-plus/icons-vue'
 import { playerApi } from '../api'
 
@@ -401,7 +405,8 @@ const handleRegister = async () => {
   gap: var(--space-3);
 }
 
-.logo-icon {
+.logo-icon-wrapper {
+  position: relative;
   width: 56px;
   height: 56px;
   border-radius: var(--radius-lg);
@@ -410,7 +415,16 @@ const handleRegister = async () => {
   align-items: center;
   justify-content: center;
   color: white;
-  box-shadow: var(--shadow-glow-sm);
+}
+
+.logo-glow {
+  position: absolute;
+  inset: -4px;
+  border-radius: var(--radius-lg);
+  background: var(--gradient-primary);
+  filter: blur(12px);
+  opacity: 0.5;
+  animation: glow-pulse 2s ease-in-out infinite;
 }
 
 .brand-title {
@@ -489,11 +503,25 @@ const handleRegister = async () => {
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-lg);
+  backdrop-filter: blur(20px);
 }
 
 .form-header {
   text-align: center;
   margin-bottom: var(--space-6);
+}
+
+.header-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: var(--radius-xl);
+  background: var(--gradient-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  margin: 0 auto var(--space-4);
+  box-shadow: var(--shadow-glow-sm);
 }
 
 .form-header h2 {
@@ -723,6 +751,15 @@ const handleRegister = async () => {
 }
 
 /* Animations */
+@keyframes glow-pulse {
+  0%, 100% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
 @keyframes scaleIn {
   from {
     opacity: 0;

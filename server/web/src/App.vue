@@ -1,19 +1,16 @@
 <template>
   <div class="app-wrapper">
-    <!-- Background Effects -->
-    <div class="bg-effects">
-      <div class="bg-gradient"></div>
-      <div class="bg-grid"></div>
-      <div class="bg-glow"></div>
-    </div>
+    <!-- Particle Background -->
+    <ParticleBackground />
 
     <!-- Header -->
-    <header class="app-header">
+    <header class="app-header" :class="{ 'scrolled': isScrolled }">
       <div class="header-container">
         <!-- Brand -->
         <router-link to="/" class="brand">
           <div class="brand-icon-wrapper">
-            <el-icon class="brand-icon" :size="24"><Connection /></el-icon>
+            <div class="brand-icon-glow"></div>
+            <el-icon class="brand-icon" :size="22"><Connection /></el-icon>
           </div>
           <span class="brand-text">
             <span class="gradient-text">SPD</span>Net
@@ -28,6 +25,7 @@
             :to="item.path"
             :class="['nav-link', { active: $route.path === item.path }]"
           >
+            <div class="nav-link-bg"></div>
             <el-icon :size="18"><component :is="item.icon" /></el-icon>
             <span>{{ item.label }}</span>
           </router-link>
@@ -94,7 +92,9 @@
     <footer class="app-footer">
       <div class="footer-container">
         <div class="footer-brand">
-          <el-icon :size="20"><Connection /></el-icon>
+          <div class="footer-icon">
+            <el-icon :size="20"><Connection /></el-icon>
+          </div>
           <span>联机破碎地牢 SPDNet</span>
         </div>
         <div class="footer-links">
@@ -112,10 +112,11 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { authStore } from './store/auth'
+import ParticleBackground from './components/ParticleBackground.vue'
 import {
   House, Trophy, ChatDotRound, User, Plus, UserFilled,
   ArrowDown, View, Setting, SwitchButton, Link, Connection
@@ -123,12 +124,25 @@ import {
 
 const router = useRouter()
 const isAdmin = computed(() => authStore.user?.role === '管理员')
+const isScrolled = ref(false)
 
 const navItems = [
   { path: '/', label: '首页', icon: House },
   { path: '/leaderboard', label: '排行榜', icon: Trophy },
   { path: '/chat', label: '聊天室', icon: ChatDotRound }
 ]
+
+const handleScroll = () => {
+  isScrolled.value = window.scrollY > 20
+}
+
+onMounted(() => {
+  window.addEventListener('scroll', handleScroll)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('scroll', handleScroll)
+})
 
 const handleCommand = (command) => {
   switch (command) {
@@ -167,54 +181,26 @@ const handleCommand = (command) => {
   display: flex;
   flex-direction: column;
   position: relative;
-  background: var(--bg-primary);
-}
-
-/* Background Effects */
-.bg-effects {
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 0;
-  overflow: hidden;
-}
-
-.bg-gradient {
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(ellipse at 0% 0%, rgba(99, 102, 241, 0.08) 0%, transparent 50%),
-              radial-gradient(ellipse at 100% 100%, rgba(168, 85, 247, 0.05) 0%, transparent 50%);
-}
-
-.bg-grid {
-  position: absolute;
-  inset: 0;
-  background-image:
-    linear-gradient(rgba(255, 255, 255, 0.015) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
-  background-size: 60px 60px;
-}
-
-.bg-glow {
-  position: absolute;
-  top: -50%;
-  left: -20%;
-  width: 80%;
-  height: 100%;
-  background: radial-gradient(ellipse at center, rgba(99, 102, 241, 0.08) 0%, transparent 60%);
-  animation: pulse 8s ease-in-out infinite;
 }
 
 /* Header */
 .app-header {
-  position: sticky;
+  position: fixed;
   top: 0;
+  left: 0;
+  right: 0;
   z-index: 100;
   height: var(--header-height);
-  background: rgba(10, 10, 15, 0.8);
+  background: rgba(3, 3, 7, 0.6);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border-bottom: 1px solid var(--border-subtle);
+  transition: all var(--transition-base);
+}
+
+.app-header.scrolled {
+  background: rgba(3, 3, 7, 0.85);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
 }
 
 .header-container {
@@ -233,9 +219,11 @@ const handleCommand = (command) => {
   align-items: center;
   gap: var(--space-3);
   text-decoration: none;
+  position: relative;
 }
 
 .brand-icon-wrapper {
+  position: relative;
   width: 40px;
   height: 40px;
   border-radius: var(--radius-md);
@@ -243,11 +231,22 @@ const handleCommand = (command) => {
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: var(--shadow-glow-sm);
+}
+
+.brand-icon-glow {
+  position: absolute;
+  inset: -2px;
+  border-radius: var(--radius-md);
+  background: var(--gradient-primary);
+  filter: blur(8px);
+  opacity: 0.5;
+  animation: glow-pulse 2s ease-in-out infinite;
 }
 
 .brand-icon {
   color: white;
+  position: relative;
+  z-index: 1;
 }
 
 .brand-text {
@@ -261,10 +260,11 @@ const handleCommand = (command) => {
 .main-nav {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: var(--space-1);
 }
 
 .nav-link {
+  position: relative;
   display: flex;
   align-items: center;
   gap: var(--space-2);
@@ -274,16 +274,38 @@ const handleCommand = (command) => {
   text-decoration: none;
   font-weight: 500;
   transition: all var(--transition-fast);
+  overflow: hidden;
+}
+
+.nav-link-bg {
+  position: absolute;
+  inset: 0;
+  background: var(--gradient-primary);
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+  border-radius: var(--radius-md);
 }
 
 .nav-link:hover {
   color: var(--text-primary);
-  background: var(--surface-1);
+}
+
+.nav-link:hover .nav-link-bg {
+  opacity: 0.1;
 }
 
 .nav-link.active {
   color: var(--primary-400);
-  background: rgba(99, 102, 241, 0.1);
+}
+
+.nav-link.active .nav-link-bg {
+  opacity: 0.15;
+}
+
+.nav-link .el-icon,
+.nav-link span {
+  position: relative;
+  z-index: 1;
 }
 
 /* User Section */
@@ -312,7 +334,7 @@ const handleCommand = (command) => {
 
 .btn-login:hover {
   color: var(--text-primary);
-  background: var(--surface-1);
+  background: var(--surface-2);
 }
 
 .btn-register {
@@ -338,7 +360,7 @@ const handleCommand = (command) => {
 }
 
 .user-trigger:hover {
-  background: var(--surface-1);
+  background: var(--surface-2);
 }
 
 .user-avatar-wrapper {
@@ -383,6 +405,7 @@ const handleCommand = (command) => {
   flex: 1;
   position: relative;
   z-index: 1;
+  padding-top: var(--header-height);
 }
 
 /* Footer */
@@ -391,7 +414,8 @@ const handleCommand = (command) => {
   z-index: 1;
   padding: var(--space-8) 0;
   border-top: 1px solid var(--border-subtle);
-  background: var(--bg-secondary);
+  background: rgba(3, 3, 7, 0.6);
+  backdrop-filter: blur(10px);
 }
 
 .footer-container {
@@ -413,8 +437,15 @@ const handleCommand = (command) => {
   color: var(--text-primary);
 }
 
-.footer-brand .el-icon {
-  color: var(--primary-400);
+.footer-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-md);
+  background: var(--gradient-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
 }
 
 .footer-links {
@@ -443,17 +474,29 @@ const handleCommand = (command) => {
 /* Page Transition */
 .page-enter-active,
 .page-leave-active {
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .page-enter-from {
   opacity: 0;
-  transform: translateY(10px);
+  transform: translateY(20px);
 }
 
 .page-leave-to {
   opacity: 0;
-  transform: translateY(-10px);
+  transform: translateY(-20px);
+}
+
+/* Animations */
+@keyframes glow-pulse {
+  0%, 100% {
+    opacity: 0.3;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.6;
+    transform: scale(1.05);
+  }
 }
 
 /* Responsive */
@@ -489,6 +532,7 @@ const handleCommand = (command) => {
   border-radius: var(--radius-lg) !important;
   box-shadow: var(--shadow-lg) !important;
   padding: var(--space-2) !important;
+  backdrop-filter: blur(20px);
 }
 
 .user-dropdown-menu .el-dropdown-menu__item {
@@ -521,6 +565,7 @@ const handleCommand = (command) => {
   background: var(--surface-1) !important;
   border: 1px solid var(--border-default) !important;
   border-radius: var(--radius-lg) !important;
+  backdrop-filter: blur(20px);
 }
 
 .custom-message-box .el-message-box__title {
