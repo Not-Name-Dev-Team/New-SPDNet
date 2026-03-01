@@ -271,17 +271,15 @@ public class NetWndPlayerInfo extends WndTabbed {
 									if (player == null || player.getStatus() == null) {
 										return;
 									}
-									Sender.sendGiveItem(new CGiveItem(hero.name, item));
-									if (player.getStatus().getGameModeEnum() == Mode.IRONMAN) {
-										NLog.h(hero.name + "是铁人，不能接受你的" + item.name());
-									} else {
-										if (item instanceof EquipableItem) {
-											((EquipableItem) item).doUnequip(Dungeon.hero, false);
-
-										} else {
-											item.detach(Dungeon.hero.belongings.backpack);
-										}
-									}
+								if (player.getStatus().getGameModeEnum() == Mode.IRONMAN) {
+									NLog.h(hero.name + "是铁人，不能接受你的" + item.name());
+									return;
+								}
+								Sender.sendGiveItem(new CGiveItem(hero.name, item));
+								if (item instanceof EquipableItem && item.isEquipped(Dungeon.hero)) {
+									((EquipableItem) item).doUnequip(Dungeon.hero, false);
+								}
+								item.detach(Dungeon.hero.belongings.backpack);
 								}
 							}
 						});
