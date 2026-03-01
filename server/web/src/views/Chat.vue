@@ -144,7 +144,7 @@ onMounted(() => {
 .message {
   padding: 0.75rem;
   border-radius: 8px;
-  background-color: var(--card-bg);
+  background-color: var(--bg-secondary);
   max-width: 80%;
 }
 

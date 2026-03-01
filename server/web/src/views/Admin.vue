@@ -508,7 +508,7 @@ onMounted(() => {
   padding: 0.5rem;
   border: 1px solid var(--border-color);
   border-radius: 4px;
-  background-color: var(--bg-color);
+  background-color: #0f0f1a;
   color: var(--text-color);
 }
 
@@ -522,7 +522,7 @@ onMounted(() => {
   padding: 0.25rem 0.5rem;
   border: 1px solid var(--border-color);
   border-radius: 4px;
-  background-color: var(--bg-color);
+  background-color: #0f0f1a;
   color: var(--text-color);
 }
 
