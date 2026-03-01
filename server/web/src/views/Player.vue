@@ -1,96 +1,140 @@
 <template>
-  <div class="player">
-    <div v-if="loading" class="loading">加载中...</div>
+  <div class="player-page">
+    <el-skeleton :rows="6" animated v-if="loading" />
 
     <template v-else-if="playerInfo">
-      <div class="card">
-        <h2 class="card-title">
-          {{ playerInfo.name }}
-          <span :class="['badge', playerInfo.online ? 'badge-online' : 'badge-offline']">
-            {{ playerInfo.online ? '在线' : '离线' }}
-          </span>
-        </h2>
-
-        <div class="stats-grid">
-          <div class="stat-card">
-            <div class="stat-value">{{ playerInfo.totalGames }}</div>
-            <div class="stat-label">总游戏次数</div>
+      <!-- 玩家信息卡片 -->
+      <el-card class="player-header-card" shadow="hover">
+        <div class="player-header">
+          <div class="player-identity">
+            <el-avatar :size="80" :icon="UserFilled" class="player-avatar" />
+            <div class="player-basic">
+              <h1>
+                {{ playerInfo.name }}
+                <el-tag
+                  :type="playerInfo.online ? 'success' : 'info'"
+                  effect="dark"
+                  round
+                  size="small"
+                >
+                  {{ playerInfo.online ? '在线' : '离线' }}
+                </el-tag>
+              </h1>
+              <p class="player-role">{{ playerInfo.role || '玩家' }}</p>
+            </div>
           </div>
-          <div class="stat-card">
-            <div class="stat-value">{{ playerInfo.wins }}</div>
-            <div class="stat-label">胜利次数</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-value">{{ playerInfo.achievementCount }}</div>
-            <div class="stat-label">成就数量</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-value">{{ playerInfo.role }}</div>
-            <div class="stat-label">身份</div>
+          
+          <div class="player-stats">
+            <div class="stat-item">
+              <div class="stat-value">{{ playerInfo.totalGames || 0 }}</div>
+              <div class="stat-label">总游戏</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-value text-success">{{ playerInfo.wins || 0 }}</div>
+              <div class="stat-label">胜利</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-value text-warning">{{ playerInfo.achievementCount || 0 }}</div>
+              <div class="stat-label">成就</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-value">{{ winRate }}%</div>
+              <div class="stat-label">胜率</div>
+            </div>
           </div>
         </div>
-
+        
+        <el-divider />
+        
         <div class="player-meta">
           <div class="meta-item">
-            <span class="meta-label">注册时间:</span>
-            <span class="meta-value">{{ formatDate(playerInfo.createdAt) }} ({{ timeAgo(playerInfo.createdAt) }})</span>
+            <el-icon><Calendar /></el-icon>
+            <span>注册于 {{ formatDate(playerInfo.createdAt) }}</span>
+            <el-tag size="small" type="info">{{ timeAgo(playerInfo.createdAt) }}</el-tag>
           </div>
           <div class="meta-item" v-if="playerInfo.lastLoginAt">
-            <span class="meta-label">最后登录:</span>
-            <span class="meta-value">{{ formatDate(playerInfo.lastLoginAt) }} ({{ timeAgo(playerInfo.lastLoginAt) }})</span>
+            <el-icon><Timer /></el-icon>
+            <span>最后登录 {{ formatDate(playerInfo.lastLoginAt) }}</span>
+            <el-tag size="small" type="info">{{ timeAgo(playerInfo.lastLoginAt) }}</el-tag>
           </div>
         </div>
-      </div>
+      </el-card>
 
-      <div class="card">
-        <h3 class="card-title">游戏记录</h3>
+      <!-- 游戏记录 -->
+      <el-card class="records-card" shadow="hover" v-loading="recordsLoading">
+        <template #header>
+          <div class="card-header">
+            <div class="header-title">
+              <el-icon><Trophy /></el-icon>
+              <span>游戏记录</span>
+              <el-tag type="primary" effect="dark" round size="small">
+                {{ records.length }}
+              </el-tag>
+            </div>
+          </div>
+        </template>
 
-        <div v-if="recordsLoading" class="loading">加载中...</div>
-
-        <table class="table" v-else-if="records.length > 0">
-          <thead>
-            <tr>
-              <th>分数</th>
-              <th>深度</th>
-              <th>挑战</th>
-              <th>结果</th>
-              <th>角色</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="record in records" :key="record.id">
-              <td>{{ record.score }}</td>
-              <td>{{ record.maxDepth }}</td>
-              <td>{{ countChallenges(record.challenges) }}</td>
-              <td>
-                <span :class="['badge', record.win ? 'badge-win' : 'badge-offline']">
+        <el-timeline v-if="records.length > 0">
+          <el-timeline-item
+            v-for="record in records"
+            :key="record.id"
+            :type="record.win ? 'success' : 'danger'"
+          >
+            <div class="record-item">
+              <div class="record-header">
+                <div class="record-score">
+                  <el-icon><Trophy /></el-icon>
+                  <span>{{ record.score.toLocaleString() }} 分</span>
+                </div>
+                <el-tag :type="record.win ? 'success' : 'danger'" effect="dark" round size="small">
                   {{ record.win ? '胜利' : '失败' }}
-                </span>
-              </td>
-              <td>{{ record.class }}</td>
-            </tr>
-          </tbody>
-        </table>
+                </el-tag>
+              </div>
+              <div class="record-details">
+                <el-tag size="small" effect="plain">第{{ record.maxDepth }}层</el-tag>
+                <el-tag size="small" type="primary" effect="plain">{{ getHeroClassName(record.class) }}</el-tag>
+                <el-tag v-if="countChallenges(record.challenges) > 0" size="small" type="warning" effect="dark">
+                  {{ countChallenges(record.challenges) }}挑战
+                </el-tag>
+              </div>
+            </div>
+          </el-timeline-item>
+        </el-timeline>
 
-        <div v-else class="loading">暂无游戏记录</div>
-      </div>
+        <el-empty v-else description="暂无游戏记录" />
+      </el-card>
     </template>
 
-    <div v-else class="card">
-      <div class="alert alert-error">玩家不存在</div>
-      <router-link to="/" class="btn">返回首页</router-link>
-    </div>
+    <!-- 玩家不存在 -->
+    <el-result
+      v-else
+      icon="error"
+      title="玩家不存在"
+      sub-title="该玩家可能不存在或已被删除"
+    >
+      <template #extra>
+        <el-button type="primary" @click="$router.push('/')">
+          <el-icon><House /></el-icon>
+          返回首页
+        </el-button>
+      </template>
+    </el-result>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
+import { ElMessage } from 'element-plus'
+import {
+  UserFilled, CircleCheck, CircleClose, Calendar, Timer,
+  Trophy, Location, House
+} from '@element-plus/icons-vue'
 import { playerApi } from '../api'
 
 const CHALLENGE_MASKS = [128, 256, 1, 2, 4, 8, 16, 32, 64]
 
-function countChallenges(challenges) {
+const countChallenges = (challenges) => {
   if (!challenges) return 0
   let count = 0
   for (const mask of CHALLENGE_MASKS) {
@@ -99,18 +143,29 @@ function countChallenges(challenges) {
   return count
 }
 
-function formatDate(dateStr) {
-  if (!dateStr) return '-'
-  const date = new Date(dateStr)
-  return date.toLocaleString('zh-CN')
+const getHeroClassName = (heroClass) => {
+  if (!heroClass) return '-'
+  const classMap = {
+    'WARRIOR': '战士',
+    'MAGE': '法师',
+    'ROGUE': '盗贼',
+    'HUNTRESS': '女猎手',
+    'DUELIST': '决斗家',
+    'CLERIC': '牧师'
+  }
+  return classMap[heroClass] || heroClass
 }
 
-function timeAgo(dateStr) {
+const formatDate = (dateStr) => {
+  if (!dateStr) return '-'
+  return new Date(dateStr).toLocaleDateString('zh-CN')
+}
+
+const timeAgo = (dateStr) => {
   if (!dateStr) return ''
   const date = new Date(dateStr)
   const now = new Date()
   const diff = now.getTime() - date.getTime()
-
   const seconds = Math.floor(diff / 1000)
   const minutes = Math.floor(seconds / 60)
   const hours = Math.floor(minutes / 60)
@@ -132,7 +187,12 @@ const records = ref([])
 const loading = ref(true)
 const recordsLoading = ref(true)
 
-async function loadPlayer() {
+const winRate = computed(() => {
+  if (!playerInfo.value?.totalGames) return 0
+  return Math.round((playerInfo.value.wins / playerInfo.value.totalGames) * 100)
+})
+
+const loadPlayer = async () => {
   loading.value = true
   recordsLoading.value = true
 
@@ -167,30 +227,175 @@ watch(() => route.params.name, () => {
 </script>
 
 <style scoped>
-.card-title {
+.player-page {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.player-header-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  margin-bottom: 1.5rem;
+}
+
+.player-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+}
+
+.player-identity {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 1.5rem;
+}
+
+.player-avatar {
+  background: var(--gradient-primary);
+}
+
+.player-basic h1 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.player-role {
+  margin: 0;
+  color: var(--text-secondary);
+}
+
+.player-stats {
+  display: flex;
+  gap: 2rem;
+}
+
+.stat-item {
+  text-align: center;
+}
+
+.stat-value {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.stat-value.text-success {
+  color: var(--success-color);
+}
+
+.stat-value.text-warning {
+  color: var(--warning-color);
+}
+
+.stat-label {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  margin-top: 0.25rem;
 }
 
 .player-meta {
-  margin-top: 1.5rem;
-  padding-top: 1.5rem;
-  border-top: 1px solid var(--border-color);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
 }
 
 .meta-item {
   display: flex;
-  padding: 0.5rem 0;
-}
-
-.meta-label {
-  width: 80px;
+  align-items: center;
+  gap: 0.5rem;
   color: var(--text-secondary);
 }
 
-.meta-value {
-  flex: 1;
-  color: var(--text-color);
+.meta-item .el-icon {
+  color: var(--primary-color);
+}
+
+.records-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.header-title {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-weight: 600;
+}
+
+.header-title .el-icon {
+  color: var(--primary-color);
+}
+
+.record-item {
+  padding: 0.5rem 0;
+}
+
+.record-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+}
+
+.record-score {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--primary-color);
+}
+
+.record-details {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+:deep(.el-timeline-item__node) {
+  background-color: var(--bg-card);
+  border: 2px solid;
+}
+
+:deep(.el-timeline-item__node--success) {
+  border-color: var(--success-color);
+  color: var(--success-color);
+}
+
+:deep(.el-timeline-item__node--danger) {
+  border-color: var(--danger-color);
+  color: var(--danger-color);
+}
+
+@media (max-width: 768px) {
+  .player-header {
+    flex-direction: column;
+    text-align: center;
+  }
+  
+  .player-identity {
+    flex-direction: column;
+  }
+  
+  .player-stats {
+    width: 100%;
+    justify-content: space-around;
+  }
+  
+  .player-meta {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
 }
 </style>

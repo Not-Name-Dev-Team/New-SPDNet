@@ -1,123 +1,186 @@
 <template>
-  <div class="register">
-    <div class="card">
-      <h2 class="card-title">注册账号</h2>
-      
-      <div v-if="message" :class="['alert', success ? 'alert-success' : 'alert-error']">
-        {{ message }}
-      </div>
-
-      <div v-if="success && !message.includes('失败')" class="alert alert-success">
-        <p><strong>注册成功！</strong></p>
-        <p>您可以使用用户名和密码登录游戏</p>
-      </div>
-
-      <form @submit.prevent="handleRegister" v-if="!success">
-        <div class="form-group">
-          <label for="name">用户名</label>
-          <input 
-            type="text" 
-            id="name" 
-            v-model="form.name" 
-            placeholder="请输入用户名 (2-16字符)"
-            required
-            minlength="2"
-            maxlength="16"
-          />
+  <div class="register-page">
+    <div class="register-container">
+      <div class="register-left">
+        <div class="brand-section">
+          <el-icon :size="48" class="brand-icon"><Connection /></el-icon>
+          <h1 class="brand-title">
+            <span class="gradient-text">SPD</span>Net
+          </h1>
+          <p class="brand-subtitle">联机破碎地牢</p>
         </div>
+        <div class="info-card">
+          <h3><el-icon><InfoFilled /></el-icon> 注册说明</h3>
+          <ul>
+            <li><el-icon><Check /></el-icon> 用户名一旦注册无法更改</li>
+            <li><el-icon><Check /></el-icon> 密码长度需在6-32个字符之间</li>
+            <li><el-icon><Check /></el-icon> 每个邮箱只能注册一个账号</li>
+            <li><el-icon><Check /></el-icon> 需要通过邮箱验证码验证</li>
+            <li><el-icon><Check /></el-icon> 注册后即可使用用户名和密码登录游戏</li>
+          </ul>
+        </div>
+      </div>
 
-        <div class="form-group">
-          <label for="email">邮箱</label>
-          <div class="email-input-group">
-            <input 
-              type="email" 
-              id="email" 
-              v-model="form.email" 
-              placeholder="请输入邮箱地址"
-              required
-              :disabled="codeSending || codeSent"
+      <div class="register-right">
+        <el-card class="register-card" shadow="hover">
+          <template #header>
+            <div class="register-header">
+              <h2>创建账号</h2>
+              <p>开始你的地牢冒险之旅</p>
+            </div>
+          </template>
+
+          <el-result
+            v-if="success"
+            icon="success"
+            title="注册成功"
+            sub-title="您可以使用用户名和密码登录游戏"
+            class="success-result"
+          >
+            <template #extra>
+              <el-button type="primary" @click="$router.push('/login')" size="large">
+                去登录
+              </el-button>
+              <el-button @click="$router.push('/')" size="large">
+                返回首页
+              </el-button>
+            </template>
+          </el-result>
+
+          <template v-else>
+            <el-alert
+              v-if="message"
+              :title="message"
+              :type="error ? 'error' : 'success'"
+              show-icon
+              :closable="false"
+              class="register-alert"
             />
-            <button 
-              type="button" 
-              class="btn btn-secondary"
-              :disabled="!canSendCode || codeSending"
-              @click="sendCode"
+
+            <el-steps :active="currentStep" finish-status="success" class="register-steps">
+              <el-step title="填写信息" />
+              <el-step title="验证邮箱" />
+              <el-step title="完成注册" />
+            </el-steps>
+
+            <el-form
+              ref="formRef"
+              :model="form"
+              :rules="rules"
+              @keyup.enter="handleRegister"
+              class="register-form"
             >
-              {{ codeSending ? '发送中...' : (countdown > 0 ? `${countdown}s` : (codeSent ? '重新获取' : '获取验证码')) }}
-            </button>
-          </div>
-        </div>
+              <el-form-item prop="name">
+                <el-input
+                  v-model="form.name"
+                  placeholder="请输入用户名 (2-16字符)"
+                  size="large"
+                  :prefix-icon="User"
+                  maxlength="16"
+                  show-word-limit
+                  clearable
+                />
+              </el-form-item>
 
-        <div class="form-group">
-          <label for="verificationCode">验证码</label>
-          <input 
-            type="text" 
-            id="verificationCode" 
-            v-model="form.verificationCode" 
-            :placeholder="codeSent ? '请输入6位验证码' : '请先点击获取验证码'"
-            :required="codeSent"
-            maxlength="6"
-            :disabled="!codeSent"
-          />
-          <small class="help-text" v-if="codeSent">验证码已发送到 {{ maskedEmail }}，5分钟内有效</small>
-          <small class="help-text" v-else>点击上方按钮获取验证码</small>
-        </div>
+              <el-form-item prop="email">
+                <el-input
+                  v-model="form.email"
+                  placeholder="请输入邮箱地址"
+                  size="large"
+                  :prefix-icon="Message"
+                  clearable
+                >
+                  <template #append>
+                    <el-button
+                      :disabled="!canSendCode || codeSending"
+                      :loading="codeSending"
+                      @click="sendCode"
+                      class="code-btn"
+                    >
+                      {{ countdown > 0 ? `${countdown}s` : (codeSent ? '重新获取' : '获取验证码') }}
+                    </el-button>
+                  </template>
+                </el-input>
+              </el-form-item>
 
-        <div class="form-group">
-          <label for="password">密码</label>
-          <input 
-            type="password" 
-            id="password" 
-            v-model="form.password" 
-            placeholder="请输入密码 (6-32字符)"
-            required
-            minlength="6"
-            maxlength="32"
-          />
-        </div>
+              <el-form-item prop="verificationCode" v-if="codeSent">
+                <el-input
+                  v-model="form.verificationCode"
+                  placeholder="请输入6位验证码"
+                  size="large"
+                  :prefix-icon="Key"
+                  maxlength="6"
+                  clearable
+                />
+                <div class="code-hint">
+                  <el-icon><InfoFilled /></el-icon>
+                  验证码已发送到 {{ maskedEmail }}，5分钟内有效
+                </div>
+              </el-form-item>
 
-        <div class="form-group">
-          <label for="confirmPassword">确认密码</label>
-          <input 
-            type="password" 
-            id="confirmPassword" 
-            v-model="form.confirmPassword" 
-            placeholder="请再次输入密码"
-            required
-          />
-        </div>
+              <el-form-item prop="password">
+                <el-input
+                  v-model="form.password"
+                  type="password"
+                  placeholder="请输入密码 (6-32字符)"
+                  size="large"
+                  :prefix-icon="Lock"
+                  show-password
+                  clearable
+                />
+              </el-form-item>
 
-        <button type="submit" class="btn" :disabled="loading || !codeSent">
-          {{ loading ? '注册中...' : '注册' }}
-        </button>
-      </form>
+              <el-form-item prop="confirmPassword">
+                <el-input
+                  v-model="form.confirmPassword"
+                  type="password"
+                  placeholder="请再次输入密码"
+                  size="large"
+                  :prefix-icon="Lock"
+                  show-password
+                  clearable
+                />
+              </el-form-item>
 
-      <div class="links" v-if="success">
-        <router-link to="/" class="btn">返回首页</router-link>
-        <router-link to="/login" class="btn" style="margin-left: 1rem;">去登录</router-link>
+              <el-form-item>
+                <el-button
+                  type="primary"
+                  size="large"
+                  @click="handleRegister"
+                  :loading="loading"
+                  :disabled="!codeSent"
+                  class="register-btn glow-btn"
+                >
+                  <el-icon><CircleCheck /></el-icon>
+                  {{ loading ? '注册中...' : '立即注册' }}
+                </el-button>
+              </el-form-item>
+            </el-form>
+
+            <div class="register-footer">
+              <span>已有账号？</span>
+              <router-link to="/login" class="login-link">
+                立即登录
+                <el-icon><ArrowRight /></el-icon>
+              </router-link>
+            </div>
+          </template>
+        </el-card>
       </div>
-      
-      <div class="links" v-if="!success">
-        <router-link to="/login">已有账号？去登录</router-link>
-      </div>
-    </div>
-
-    <div class="card">
-      <h3>注册说明</h3>
-      <ul>
-        <li>用户名一旦注册无法更改</li>
-        <li>密码长度需在6-32个字符之间</li>
-        <li>每个邮箱只能注册一个账号</li>
-        <li>需要通过邮箱验证码验证</li>
-        <li>注册后即可使用用户名和密码登录游戏</li>
-      </ul>
     </div>
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, computed } from 'vue'
+import { ElMessage } from 'element-plus'
+import { 
+  User, Lock, Key, Message, ArrowRight, 
+  Connection, InfoFilled, Check, CircleCheck 
+} from '@element-plus/icons-vue'
 import { playerApi } from '../api'
+
+const formRef = ref()
 
 const form = reactive({
   name: '',
@@ -127,15 +190,50 @@ const form = reactive({
   verificationCode: ''
 })
 
+const validatePass2 = (rule, value, callback) => {
+  if (value === '') {
+    callback(new Error('请再次输入密码'))
+  } else if (value !== form.password) {
+    callback(new Error('两次输入密码不一致'))
+  } else {
+    callback()
+  }
+}
+
+const rules = {
+  name: [
+    { required: true, message: '请输入用户名', trigger: 'blur' },
+    { min: 2, max: 16, message: '用户名长度在 2 到 16 个字符', trigger: 'blur' }
+  ],
+  email: [
+    { required: true, message: '请输入邮箱地址', trigger: 'blur' },
+    { type: 'email', message: '请输入正确的邮箱地址', trigger: 'blur' }
+  ],
+  verificationCode: [
+    { required: true, message: '请输入验证码', trigger: 'blur' },
+    { len: 6, message: '验证码为6位数字', trigger: 'blur' }
+  ],
+  password: [
+    { required: true, message: '请输入密码', trigger: 'blur' },
+    { min: 6, max: 32, message: '密码长度在 6 到 32 个字符', trigger: 'blur' }
+  ],
+  confirmPassword: [
+    { required: true, validator: validatePass2, trigger: 'blur' }
+  ]
+}
+
 const loading = ref(false)
 const message = ref('')
+const error = ref(false)
 const success = ref(false)
 const codeSending = ref(false)
 const codeSent = ref(false)
 const countdown = ref(0)
+const currentStep = ref(0)
 
 const canSendCode = computed(() => {
-  return form.email && form.email.match(/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/) && countdown.value === 0
+  const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/
+  return emailRegex.test(form.email) && countdown.value === 0
 })
 
 const maskedEmail = computed(() => {
@@ -147,8 +245,8 @@ const maskedEmail = computed(() => {
 
 let countdownTimer = null
 
-function startCountdown() {
-  countdown.value = 10
+const startCountdown = () => {
+  countdown.value = 60
   countdownTimer = setInterval(() => {
     countdown.value--
     if (countdown.value <= 0) {
@@ -157,7 +255,7 @@ function startCountdown() {
   }, 1000)
 }
 
-async function sendCode() {
+const sendCode = async () => {
   if (!canSendCode.value) return
 
   codeSending.value = true
@@ -168,33 +266,24 @@ async function sendCode() {
 
     if (res.data.success) {
       codeSent.value = true
-      message.value = res.data.message
-      success.value = false
+      currentStep.value = 1
+      ElMessage.success('验证码已发送')
       startCountdown()
     } else {
-      success.value = false
+      error.value = true
       message.value = res.data.message
     }
-  } catch (error) {
-    success.value = false
-    message.value = error.response?.data?.message || '验证码发送失败，请稍后重试'
+  } catch (err) {
+    error.value = true
+    message.value = err.response?.data?.message || '验证码发送失败'
   } finally {
     codeSending.value = false
   }
 }
 
-async function handleRegister() {
-  if (form.password !== form.confirmPassword) {
-    message.value = '两次输入的密码不一致'
-    success.value = false
-    return
-  }
-
-  if (!form.verificationCode) {
-    message.value = '请先获取并输入验证码'
-    success.value = false
-    return
-  }
+const handleRegister = async () => {
+  const valid = await formRef.value?.validate().catch(() => false)
+  if (!valid) return
 
   loading.value = true
   message.value = ''
@@ -209,18 +298,18 @@ async function handleRegister() {
 
     if (res.data.success) {
       success.value = true
-      message.value = res.data.message
+      currentStep.value = 2
+      ElMessage.success('注册成功')
     } else {
-      success.value = false
+      error.value = true
       message.value = res.data.message
-      // 如果验证码错误，清空验证码输入框让用户重新输入
-      if (res.data.message && res.data.message.includes('验证码')) {
+      if (res.data.message?.includes('验证码')) {
         form.verificationCode = ''
       }
     }
-  } catch (error) {
-    success.value = false
-    message.value = error.response?.data?.message || '注册失败，请稍后重试'
+  } catch (err) {
+    error.value = true
+    message.value = err.response?.data?.message || '注册失败'
   } finally {
     loading.value = false
   }
@@ -228,59 +317,226 @@ async function handleRegister() {
 </script>
 
 <style scoped>
-.register {
-  max-width: 500px;
-  margin: 0 auto;
-}
-
-.email-input-group {
+.register-page {
+  min-height: calc(100vh - 64px - 100px);
   display: flex;
-  gap: 0.5rem;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
 }
 
-.email-input-group input {
+.register-container {
+  display: flex;
+  max-width: 1000px;
+  width: 100%;
+  gap: 4rem;
+  align-items: flex-start;
+}
+
+.register-left {
   flex: 1;
+  padding: 2rem;
+  position: sticky;
+  top: 100px;
 }
 
-.email-input-group .btn {
-  white-space: nowrap;
-  padding: 0.5rem 1rem;
-  font-size: 0.875rem;
+.brand-section {
+  margin-bottom: 2rem;
 }
 
-.help-text {
-  display: block;
-  margin-top: 0.25rem;
-  color: var(--text-secondary);
-  font-size: 0.875rem;
-}
-
-.links {
-  margin-top: 1rem;
-  text-align: center;
-}
-
-.links a {
+.brand-icon {
   color: var(--primary-color);
-  text-decoration: none;
+  margin-bottom: 1rem;
+  animation: float 3s ease-in-out infinite;
 }
 
-.links a:hover {
-  text-decoration: underline;
+.brand-title {
+  font-size: 2.5rem;
+  font-weight: 800;
+  margin-bottom: 0.5rem;
+  letter-spacing: -1px;
 }
 
-ul {
+.brand-subtitle {
+  font-size: 1.25rem;
+  color: var(--text-secondary);
+}
+
+.info-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 1.5rem;
+}
+
+.info-card h3 {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.125rem;
+  margin-bottom: 1rem;
+  color: var(--text-primary);
+}
+
+.info-card h3 .el-icon {
+  color: var(--primary-color);
+}
+
+.info-card ul {
   list-style: none;
   padding: 0;
+  margin: 0;
 }
 
-ul li {
+.info-card li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   padding: 0.5rem 0;
   color: var(--text-secondary);
 }
 
-ul li::before {
-  content: '• ';
+.info-card li .el-icon {
+  color: var(--success-color);
+}
+
+.register-right {
+  flex: 1;
+  max-width: 480px;
+}
+
+.register-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+}
+
+:deep(.register-card .el-card__header) {
+  border-bottom: 1px solid var(--border-color);
+  padding: 2rem 2rem 1.5rem;
+}
+
+:deep(.register-card .el-card__body) {
+  padding: 2rem;
+}
+
+.register-header {
+  text-align: center;
+}
+
+.register-header h2 {
+  font-size: 1.75rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: var(--text-primary);
+}
+
+.register-header p {
+  color: var(--text-secondary);
+}
+
+.success-result {
+  padding: 2rem 0;
+}
+
+.register-alert {
+  margin-bottom: 1.5rem;
+}
+
+.register-steps {
+  margin-bottom: 2rem;
+}
+
+:deep(.register-steps .el-step__title) {
+  font-size: 0.875rem;
+}
+
+.register-form {
+  margin-bottom: 1.5rem;
+}
+
+:deep(.register-form .el-input__wrapper) {
+  background: var(--bg-dark);
+  box-shadow: 0 0 0 1px var(--border-color) inset;
+  padding: 4px 11px;
+}
+
+:deep(.register-form .el-input__wrapper:hover) {
+  box-shadow: 0 0 0 1px var(--primary-color) inset;
+}
+
+:deep(.register-form .el-input__wrapper.is-focus) {
+  box-shadow: 0 0 0 1px var(--primary-color) inset;
+}
+
+.code-btn {
+  min-width: 100px;
+}
+
+.code-hint {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-top: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+.code-hint .el-icon {
   color: var(--primary-color);
+}
+
+.register-btn {
+  width: 100%;
+  font-size: 1rem;
+  height: 44px;
+}
+
+.register-footer {
+  text-align: center;
+  color: var(--text-secondary);
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border-color);
+}
+
+.login-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  color: var(--primary-color);
+  text-decoration: none;
+  font-weight: 500;
+  margin-left: 0.5rem;
+  transition: all 0.3s;
+}
+
+.login-link:hover {
+  color: var(--primary-light);
+  transform: translateX(4px);
+}
+
+@media (max-width: 768px) {
+  .register-container {
+    flex-direction: column;
+    gap: 2rem;
+  }
+  
+  .register-left {
+    text-align: center;
+    padding: 1rem;
+    position: static;
+  }
+  
+  .info-card {
+    display: none;
+  }
+  
+  .register-right {
+    width: 100%;
+  }
+  
+  :deep(.register-steps) {
+    display: none;
+  }
 }
 </style>

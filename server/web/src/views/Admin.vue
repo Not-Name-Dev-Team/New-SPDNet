@@ -1,248 +1,232 @@
 <template>
-  <div class="admin">
-    <div v-if="!isAdmin" class="card">
-      <div class="alert alert-error">您没有权限访问此页面</div>
-      <router-link to="/" class="btn">返回首页</router-link>
-    </div>
+  <div class="admin-page">
+    <el-result
+      v-if="!isAdmin"
+      icon="warning"
+      title="权限不足"
+      sub-title="您没有权限访问此页面"
+    >
+      <template #extra>
+        <el-button type="primary" @click="$router.push('/')">返回首页</el-button>
+      </template>
+    </el-result>
 
     <template v-else>
-      <div class="stats-grid" v-if="stats">
-        <div class="stat-card">
-          <div class="stat-value">{{ stats.totalPlayers }}</div>
-          <div class="stat-label">注册玩家</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-value">{{ stats.totalRecords }}</div>
-          <div class="stat-label">游戏记录</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-value">{{ stats.onlineCount }}</div>
-          <div class="stat-label">当前在线</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-value">{{ stats.winCount }}</div>
-          <div class="stat-label">胜利次数</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-value">{{ stats.bannedCount }}</div>
-          <div class="stat-label">封禁账号</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-value">{{ stats.adminCount }}</div>
-          <div class="stat-label">管理员</div>
-        </div>
-      </div>
+      <!-- 统计卡片 -->
+      <el-row :gutter="20" class="stats-row">
+        <el-col :xs="12" :sm="8" :md="4" v-for="(stat, index) in statsList" :key="index">
+          <el-card class="stat-card" shadow="hover" :body-style="{ padding: '20px' }">
+            <div class="stat-content">
+              <el-icon :size="32" :color="stat.color"><component :is="stat.icon" /></el-icon>
+              <div class="stat-info">
+                <div class="stat-value">{{ stat.value }}</div>
+                <div class="stat-label">{{ stat.label }}</div>
+              </div>
+            </div>
+          </el-card>
+        </el-col>
+      </el-row>
 
-      <div class="tabs">
-        <button :class="['tab', activeTab === 'online' ? 'active' : '']" @click="activeTab = 'online'">在线玩家</button>
-        <button :class="['tab', activeTab === 'players' ? 'active' : '']" @click="activeTab = 'players'">玩家管理</button>
-        <button :class="['tab', activeTab === 'records' ? 'active' : '']" @click="activeTab = 'records'">记录管理</button>
-        <button :class="['tab', activeTab === 'broadcast' ? 'active' : '']" @click="activeTab = 'broadcast'">广播通知</button>
-      </div>
+      <!-- 管理标签页 -->
+      <el-card class="admin-tabs-card" shadow="hover">
+        <el-tabs v-model="activeTab" type="border-card">
+          <!-- 在线玩家 -->
+          <el-tab-pane label="在线玩家" name="online">
+            <div class="tab-header">
+              <h3>在线玩家 ({{ onlinePlayers.length }})</h3>
+              <el-button type="primary" :icon="Refresh" @click="loadOnlinePlayers" :loading="onlineLoading">
+                刷新
+              </el-button>
+            </div>
+            <el-table :data="onlinePlayers" v-loading="onlineLoading" stripe>
+              <el-table-column prop="name" label="用户名" min-width="120">
+                <template #default="{ row }">
+                  <router-link :to="`/player/${row.name}`" class="player-link">{{ row.name }}</router-link>
+                </template>
+              </el-table-column>
+              <el-table-column label="身份" width="100">
+                <template #default="{ row }">
+                  <el-tag :type="getRoleType(row.role)" size="small">{{ row.role }}</el-tag>
+                </template>
+              </el-table-column>
+              <el-table-column label="状态" width="120">
+                <template #default="{ row }">
+                  <span>{{ getStatusText(row.status) }}</span>
+                </template>
+              </el-table-column>
+              <el-table-column label="深度" width="80" align="center">
+                <template #default="{ row }">
+                  <span v-if="row.status?.depth">{{ row.status.depth }}层</span>
+                  <span v-else>-</span>
+                </template>
+              </el-table-column>
+              <el-table-column label="挑战" width="80" align="center">
+                <template #default="{ row }">
+                  <span v-if="countChallenges(row.status?.challenges) > 0">
+                    {{ countChallenges(row.status?.challenges) }}
+                  </span>
+                  <span v-else>-</span>
+                </template>
+              </el-table-column>
+              <el-table-column label="操作" width="100" align="center">
+                <template #default="{ row }">
+                  <el-button type="danger" size="small" @click="kickPlayer(row)">踢出</el-button>
+                </template>
+              </el-table-column>
+            </el-table>
+          </el-tab-pane>
 
-      <div class="card" v-show="activeTab === 'online'">
-        <div class="card-header">
-          <h3 class="card-title">在线玩家 ({{ onlinePlayers.length }})</h3>
-          <button class="btn btn-sm" @click="loadOnlinePlayers">刷新</button>
-        </div>
+          <!-- 玩家管理 -->
+          <el-tab-pane label="玩家管理" name="players">
+            <div class="tab-header">
+              <h3>玩家列表</h3>
+              <div class="filter-bar">
+                <el-input v-model="playerSearch" placeholder="搜索玩家" clearable style="width: 200px" />
+                <el-select v-model="playerRoleFilter" placeholder="角色筛选" clearable style="width: 120px">
+                  <el-option label="全部" value="" />
+                  <el-option label="玩家" value="USER" />
+                  <el-option label="管理员" value="ADMIN" />
+                  <el-option label="封禁" value="BANNED" />
+                </el-select>
+                <el-button type="primary" :icon="Search" @click="loadPlayers">搜索</el-button>
+              </div>
+            </div>
+            <el-table :data="players" v-loading="playersLoading" stripe>
+              <el-table-column prop="id" label="ID" width="80" />
+              <el-table-column prop="name" label="用户名" min-width="120" />
+              <el-table-column label="身份" width="100">
+                <template #default="{ row }">
+                  <el-tag :type="getRoleType(row.role)" size="small">{{ row.role }}</el-tag>
+                </template>
+              </el-table-column>
+              <el-table-column label="注册时间" width="160">
+                <template #default="{ row }">{{ formatDate(row.createdAt) }}</template>
+              </el-table-column>
+              <el-table-column label="最后登录" width="160">
+                <template #default="{ row }">{{ formatDate(row.lastLoginAt) }}</template>
+              </el-table-column>
+              <el-table-column label="操作" width="180" align="center">
+                <template #default="{ row }">
+                  <el-select v-model="row.role" size="small" style="width: 90px" @change="changeRole(row)">
+                    <el-option label="玩家" value="USER" />
+                    <el-option label="管理员" value="ADMIN" />
+                    <el-option label="封禁" value="BANNED" />
+                  </el-select>
+                  <el-button type="danger" size="small" :icon="Delete" @click="deletePlayer(row)" style="margin-left: 8px" />
+                </template>
+              </el-table-column>
+            </el-table>
+            <el-pagination
+              v-model:current-page="playerPage"
+              :page-size="20"
+              :total="playerTotalPages * 20"
+              layout="prev, pager, next"
+              @current-change="loadPlayers"
+              class="pagination"
+            />
+          </el-tab-pane>
 
-        <div v-if="onlineLoading" class="loading">加载中...</div>
+          <!-- 记录管理 -->
+          <el-tab-pane label="记录管理" name="records">
+            <div class="tab-header">
+              <h3>游戏记录</h3>
+              <div class="filter-bar">
+                <el-input v-model="recordPlayerFilter" placeholder="玩家名称" clearable style="width: 150px" />
+                <el-select v-model="recordWinFilter" placeholder="结果" clearable style="width: 100px">
+                  <el-option label="全部" value="" />
+                  <el-option label="胜利" value="true" />
+                  <el-option label="失败" value="false" />
+                </el-select>
+                <el-button type="primary" :icon="Search" @click="loadRecords">搜索</el-button>
+              </div>
+            </div>
+            <el-table :data="records" v-loading="recordsLoading" stripe>
+              <el-table-column prop="id" label="ID" width="80" />
+              <el-table-column prop="player_name" label="玩家" min-width="120" />
+              <el-table-column prop="score" label="分数" width="100" />
+              <el-table-column prop="maxDepth" label="深度" width="80" />
+              <el-table-column label="结果" width="80" align="center">
+                <template #default="{ row }">
+                  <el-tag :type="row.win ? 'success' : 'danger'" size="small">{{ row.win ? '胜利' : '失败' }}</el-tag>
+                </template>
+              </el-table-column>
+              <el-table-column label="操作" width="100" align="center">
+                <template #default="{ row }">
+                  <el-button type="danger" size="small" :icon="Delete" @click="deleteRecord(row)" />
+                </template>
+              </el-table-column>
+            </el-table>
+            <el-pagination
+              v-model:current-page="recordPage"
+              :page-size="20"
+              :total="recordTotalPages * 20"
+              layout="prev, pager, next"
+              @current-change="loadRecords"
+              class="pagination"
+            />
+          </el-tab-pane>
 
-        <table class="table" v-else-if="onlinePlayers.length > 0">
-          <thead>
-            <tr>
-              <th>用户名</th>
-              <th>身份</th>
-              <th>状态</th>
-              <th>深度</th>
-              <th>挑战</th>
-              <th>操作</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="player in onlinePlayers" :key="player.name">
-              <td>
-                <router-link :to="`/player/${player.name}`">{{ player.name }}</router-link>
-              </td>
-              <td>
-                <span :class="['badge', getRoleBadgeClass(player.role)]">{{ player.role }}</span>
-              </td>
-              <td>{{ getStatusText(player.status) }}</td>
-              <td>{{ player.status?.depth || '-' }}</td>
-              <td>{{ countChallenges(player.status?.challenges) }}</td>
-              <td>
-                <button class="btn btn-sm btn-danger" @click="kickPlayer(player)">踢出</button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-
-        <div v-else class="loading">暂无在线玩家</div>
-      </div>
-
-      <div class="card" v-show="activeTab === 'broadcast'">
-        <h3 class="card-title">发送广播通知</h3>
-        <p class="hint">向当前服务器中的所有在线玩家发送消息弹窗</p>
-        
-        <div v-if="broadcastMessage" :class="['alert', broadcastSuccess ? 'alert-success' : 'alert-error']">
-          {{ broadcastMessage }}
-        </div>
-
-        <form @submit.prevent="sendBroadcast">
-          <div class="form-group">
-            <label for="broadcastText">消息内容</label>
-            <textarea 
-              id="broadcastText" 
-              v-model="broadcastText" 
-              placeholder="请输入要广播的消息..."
-              rows="4"
-              required
-            ></textarea>
-          </div>
-          <div class="broadcast-info">
-            <span>当前在线玩家: <strong>{{ stats?.onlineCount || 0 }}</strong> 人</span>
-          </div>
-          <button type="submit" class="btn btn-broadcast" :disabled="broadcastLoading">
-            {{ broadcastLoading ? '发送中...' : '发送广播' }}
-          </button>
-        </form>
-      </div>
-
-      <div class="card" v-show="activeTab === 'players'">
-        <div class="card-header">
-          <h3 class="card-title">玩家列表</h3>
-          <div class="filters">
-            <input type="text" v-model="playerSearch" placeholder="搜索玩家..." @keyup.enter="searchPlayers" />
-            <select v-model="playerRoleFilter" @change="loadPlayers">
-              <option value="">全部角色</option>
-              <option value="USER">玩家</option>
-              <option value="ADMIN">管理员</option>
-              <option value="BANNED">封禁</option>
-            </select>
-          </div>
-        </div>
-
-        <div v-if="playersLoading" class="loading">加载中...</div>
-
-        <table class="table" v-else-if="players.length > 0">
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>用户名</th>
-              <th>身份</th>
-              <th>注册时间</th>
-              <th>最后登录</th>
-              <th>登录IP</th>
-              <th>操作</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="player in players" :key="player.id">
-              <td>{{ player.id }}</td>
-              <td>{{ player.name }}</td>
-              <td>
-                <span :class="['badge', getRoleBadgeClass(player.role)]">{{ player.role }}</span>
-              </td>
-              <td>{{ formatDate(player.createdAt) }}</td>
-              <td>{{ formatDate(player.lastLoginAt) }}</td>
-              <td>{{ player.lastLoginIp || '-' }}</td>
-              <td class="actions">
-                <select v-model="player.role" @change="changeRole(player)" class="role-select">
-                  <option value="USER">玩家</option>
-                  <option value="ADMIN">管理员</option>
-                  <option value="BANNED">封禁</option>
-                </select>
-                <button class="btn btn-sm btn-danger" @click="deletePlayer(player)">删除</button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-
-        <div v-else class="loading">暂无玩家</div>
-
-        <div class="pagination" v-if="playerTotalPages > 1">
-          <button class="btn" :disabled="playerPage === 0" @click="playerPage--; loadPlayers()">上一页</button>
-          <span>第 {{ playerPage + 1 }} / {{ playerTotalPages }} 页</span>
-          <button class="btn" :disabled="playerPage >= playerTotalPages - 1" @click="playerPage++; loadPlayers()">下一页</button>
-        </div>
-      </div>
-
-      <div class="card" v-show="activeTab === 'records'">
-        <div class="card-header">
-          <h3 class="card-title">游戏记录</h3>
-          <div class="filters">
-            <input type="text" v-model="recordPlayerFilter" placeholder="玩家名称..." @keyup.enter="loadRecords" />
-            <select v-model="recordWinFilter" @change="loadRecords">
-              <option value="">全部结果</option>
-              <option value="true">胜利</option>
-              <option value="false">失败</option>
-            </select>
-          </div>
-        </div>
-
-        <div v-if="recordsLoading" class="loading">加载中...</div>
-
-        <table class="table" v-else-if="records.length > 0">
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>玩家</th>
-              <th>分数</th>
-              <th>深度</th>
-              <th>结果</th>
-              <th>操作</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="record in records" :key="record.id">
-              <td>{{ record.id }}</td>
-              <td>{{ record.player_name || '未知' }}</td>
-              <td>{{ record.score }}</td>
-              <td>{{ record.maxDepth }}</td>
-              <td>
-                <span :class="['badge', record.win ? 'badge-win' : 'badge-offline']">
-                  {{ record.win ? '胜利' : '失败' }}
-                </span>
-              </td>
-              <td>
-                <button class="btn btn-sm btn-danger" @click="deleteRecord(record)">删除</button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-
-        <div v-else class="loading">暂无记录</div>
-
-        <div class="pagination" v-if="recordTotalPages > 1">
-          <button class="btn" :disabled="recordPage === 0" @click="recordPage--; loadRecords()">上一页</button>
-          <span>第 {{ recordPage + 1 }} / {{ recordTotalPages }} 页</span>
-          <button class="btn" :disabled="recordPage >= recordTotalPages - 1" @click="recordPage++; loadRecords()">下一页</button>
-        </div>
-      </div>
+          <!-- 广播通知 -->
+          <el-tab-pane label="广播通知" name="broadcast">
+            <el-card class="broadcast-card" shadow="never">
+              <template #header>
+                <div class="card-header">
+                  <span>发送广播消息</span>
+                  <el-tag type="info">当前在线: {{ stats?.onlineCount || 0 }} 人</el-tag>
+                </div>
+              </template>
+              <el-alert
+                v-if="broadcastMessage"
+                :title="broadcastMessage"
+                :type="broadcastSuccess ? 'success' : 'error'"
+                show-icon
+                :closable="false"
+                style="margin-bottom: 16px"
+              />
+              <el-input
+                v-model="broadcastText"
+                type="textarea"
+                :rows="4"
+                placeholder="请输入要广播的消息内容..."
+                maxlength="500"
+                show-word-limit
+              />
+              <div class="broadcast-actions">
+                <el-button type="primary" size="large" @click="sendBroadcast" :loading="broadcastLoading">
+                  <el-icon><Promotion /></el-icon>
+                  发送广播
+                </el-button>
+              </div>
+            </el-card>
+          </el-tab-pane>
+        </el-tabs>
+      </el-card>
     </template>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { Refresh, Search, Delete, Promotion } from '@element-plus/icons-vue'
 import { adminApi } from '../api'
 import { authStore } from '../store/auth'
 
 const isAdmin = computed(() => authStore.user?.role === '管理员')
 
 const stats = ref(null)
-const activeTab = ref('players')
+const activeTab = ref('online')
 
 const players = ref([])
 const playersLoading = ref(false)
-const playerPage = ref(0)
+const playerPage = ref(1)
 const playerTotalPages = ref(0)
 const playerSearch = ref('')
 const playerRoleFilter = ref('')
 
 const records = ref([])
 const recordsLoading = ref(false)
-const recordPage = ref(0)
+const recordPage = ref(1)
 const recordTotalPages = ref(0)
 const recordPlayerFilter = ref('')
 const recordWinFilter = ref('')
@@ -257,7 +241,16 @@ const onlineLoading = ref(false)
 
 const CHALLENGE_MASKS = [128, 256, 1, 2, 4, 8, 16, 32, 64]
 
-function countChallenges(challenges) {
+const statsList = computed(() => [
+  { label: '注册玩家', value: stats.value?.totalPlayers || 0, icon: 'User', color: '#409EFF' },
+  { label: '游戏记录', value: stats.value?.totalRecords || 0, icon: 'Document', color: '#67C23A' },
+  { label: '当前在线', value: stats.value?.onlineCount || 0, icon: 'CircleCheck', color: '#E6A23C' },
+  { label: '胜利次数', value: stats.value?.winCount || 0, icon: 'Trophy', color: '#F56C6C' },
+  { label: '封禁账号', value: stats.value?.bannedCount || 0, icon: 'CircleClose', color: '#909399' },
+  { label: '管理员', value: stats.value?.adminCount || 0, icon: 'UserFilled', color: '#9B59B6' }
+])
+
+const countChallenges = (challenges) => {
   if (!challenges) return 0
   let count = 0
   for (const mask of CHALLENGE_MASKS) {
@@ -266,33 +259,47 @@ function countChallenges(challenges) {
   return count
 }
 
-function formatDate(dateStr) {
+const formatDate = (dateStr) => {
   if (!dateStr) return '-'
-  const date = new Date(dateStr)
-  return date.toLocaleString('zh-CN')
+  return new Date(dateStr).toLocaleString('zh-CN')
 }
 
-function getStatusText(status) {
+const getStatusText = (status) => {
   if (!status) return '大厅'
-  if (status.depth > 0) return `地牢第${status.depth}层`
+  if (status.depth > 0) return `地牢${status.depth}层`
   return '大厅'
 }
 
-async function loadStats() {
+const getRoleType = (role) => {
+  const types = { 'ADMIN': 'danger', 'BANNED': 'info', 'USER': 'success' }
+  return types[role] || 'info'
+}
+
+const loadStats = async () => {
   try {
     const res = await adminApi.getStats()
-    if (res.data.success) {
-      stats.value = res.data.data
-    }
+    if (res.data.success) stats.value = res.data.data
   } catch (error) {
     console.error('加载统计失败:', error)
   }
 }
 
-async function loadPlayers() {
+const loadOnlinePlayers = async () => {
+  onlineLoading.value = true
+  try {
+    const res = await adminApi.getOnline()
+    if (res.data.success) onlinePlayers.value = res.data.data || []
+  } catch (error) {
+    console.error('加载在线玩家失败:', error)
+  } finally {
+    onlineLoading.value = false
+  }
+}
+
+const loadPlayers = async () => {
   playersLoading.value = true
   try {
-    const res = await adminApi.getPlayers(playerPage.value, 20, playerRoleFilter.value, playerSearch.value || null)
+    const res = await adminApi.getPlayers(playerPage.value - 1, 20, playerRoleFilter.value || null, playerSearch.value || null)
     if (res.data.success) {
       players.value = res.data.data.players || []
       playerTotalPages.value = res.data.data.totalPages || 0
@@ -304,52 +311,11 @@ async function loadPlayers() {
   }
 }
 
-function searchPlayers() {
-  playerPage.value = 0
-  loadPlayers()
-}
-
-async function changeRole(player) {
-  if (!confirm(`确定要将 ${player.name} 的角色改为 ${player.role} 吗？`)) {
-    loadPlayers()
-    return
-  }
-  try {
-    const res = await adminApi.setPlayerRole(player.id, player.role)
-    if (res.data.success) {
-      alert('修改成功')
-      loadStats()
-    } else {
-      alert(res.data.message)
-      loadPlayers()
-    }
-  } catch (error) {
-    alert(error.response?.data?.message || '修改失败')
-    loadPlayers()
-  }
-}
-
-async function deletePlayer(player) {
-  if (!confirm(`确定要删除玩家 ${player.name} 吗？此操作不可恢复！`)) return
-  try {
-    const res = await adminApi.deletePlayer(player.id)
-    if (res.data.success) {
-      alert('删除成功')
-      loadPlayers()
-      loadStats()
-    } else {
-      alert(res.data.message)
-    }
-  } catch (error) {
-    alert(error.response?.data?.message || '删除失败')
-  }
-}
-
-async function loadRecords() {
+const loadRecords = async () => {
   recordsLoading.value = true
   try {
     const win = recordWinFilter.value === '' ? null : recordWinFilter.value === 'true'
-    const res = await adminApi.getRecords(recordPage.value, 20, win, recordPlayerFilter.value || null)
+    const res = await adminApi.getRecords(recordPage.value - 1, 20, win, recordPlayerFilter.value || null)
     if (res.data.success) {
       records.value = res.data.data.records || []
       recordTotalPages.value = res.data.data.totalPages || 0
@@ -361,70 +327,78 @@ async function loadRecords() {
   }
 }
 
-async function deleteRecord(record) {
-  if (!confirm(`确定要删除这条记录吗？此操作不可恢复！`)) return
+const changeRole = async (player) => {
   try {
+    await ElMessageBox.confirm(`确定要将 ${player.name} 的角色改为 ${player.role} 吗？`, '确认')
+    const res = await adminApi.setPlayerRole(player.id, player.role)
+    if (res.data.success) {
+      ElMessage.success('修改成功')
+      loadStats()
+    } else {
+      ElMessage.error(res.data.message)
+      loadPlayers()
+    }
+  } catch {
+    loadPlayers()
+  }
+}
+
+const deletePlayer = async (player) => {
+  try {
+    await ElMessageBox.confirm(`确定要删除玩家 ${player.name} 吗？此操作不可恢复！`, '警告', { type: 'warning' })
+    const res = await adminApi.deletePlayer(player.id)
+    if (res.data.success) {
+      ElMessage.success('删除成功')
+      loadPlayers()
+      loadStats()
+    } else {
+      ElMessage.error(res.data.message)
+    }
+  } catch (error) {
+    if (error !== 'cancel') ElMessage.error('删除失败')
+  }
+}
+
+const deleteRecord = async (record) => {
+  try {
+    await ElMessageBox.confirm('确定要删除这条记录吗？此操作不可恢复！', '警告', { type: 'warning' })
     const res = await adminApi.deleteRecord(record.id)
     if (res.data.success) {
-      alert('删除成功')
+      ElMessage.success('删除成功')
       loadRecords()
       loadStats()
     } else {
-      alert(res.data.message)
+      ElMessage.error(res.data.message)
     }
   } catch (error) {
-    alert(error.response?.data?.message || '删除失败')
+    if (error !== 'cancel') ElMessage.error('删除失败')
   }
 }
 
-function getRoleBadgeClass(role) {
-  switch (role) {
-    case 'ADMIN': return 'badge-win'
-    case 'BANNED': return 'badge-offline'
-    default: return 'badge-online'
-  }
-}
-
-async function loadOnlinePlayers() {
-  onlineLoading.value = true
+const kickPlayer = async (player) => {
   try {
-    const res = await adminApi.getOnline()
-    if (res.data.success) {
-      onlinePlayers.value = res.data.data || []
-    }
-  } catch (error) {
-    console.error('加载在线玩家失败:', error)
-  } finally {
-    onlineLoading.value = false
-  }
-}
-
-async function kickPlayer(player) {
-  if (!confirm(`确定要踢出玩家 ${player.name} 吗？`)) return
-  try {
+    await ElMessageBox.confirm(`确定要踢出玩家 ${player.name} 吗？`, '确认')
     const res = await adminApi.kick(player.name)
     if (res.data.success) {
-      alert('踢出成功')
+      ElMessage.success('踢出成功')
       loadOnlinePlayers()
       loadStats()
     } else {
-      alert(res.data.message)
+      ElMessage.error(res.data.message)
     }
   } catch (error) {
-    alert(error.response?.data?.message || '踢出失败')
+    if (error !== 'cancel') ElMessage.error('踢出失败')
   }
 }
 
-async function sendBroadcast() {
+const sendBroadcast = async () => {
   if (!broadcastText.value.trim()) {
     broadcastSuccess.value = false
     broadcastMessage.value = '请输入消息内容'
     return
   }
-
   broadcastLoading.value = true
   broadcastMessage.value = ''
-
   try {
     const res = await adminApi.broadcast(broadcastText.value)
     if (res.data.success) {
@@ -454,144 +428,112 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.admin {
-  max-width: 1200px;
+.admin-page {
+  max-width: 1400px;
   margin: 0 auto;
 }
 
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 1rem;
-  margin-bottom: 1.5rem;
+.stats-row {
+  margin-bottom: 20px;
 }
 
-.tabs {
+.stat-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+}
+
+.stat-content {
   display: flex;
-  gap: 0.5rem;
-  margin-bottom: 1rem;
+  align-items: center;
+  gap: 12px;
 }
 
-.tab {
-  padding: 0.75rem 1.5rem;
-  border: none;
-  background-color: var(--bg-color);
-  color: var(--text-color);
-  cursor: pointer;
-  border-radius: 4px 4px 0 0;
-  transition: background-color 0.2s;
+.stat-info {
+  flex: 1;
 }
 
-.tab.active {
-  background-color: var(--primary-color);
-  color: white;
+.stat-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-primary);
 }
 
-.tab:hover:not(.active) {
-  background-color: var(--border-color);
+.stat-label {
+  font-size: 14px;
+  color: var(--text-secondary);
 }
 
-.card-header {
+.admin-tabs-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+}
+
+:deep(.admin-tabs-card .el-tabs__header) {
+  background: var(--bg-hover);
+  border-bottom: 1px solid var(--border-color);
+}
+
+:deep(.admin-tabs-card .el-tabs__item) {
+  color: var(--text-secondary);
+}
+
+:deep(.admin-tabs-card .el-tabs__item.is-active) {
+  color: var(--primary-color);
+  background: var(--bg-card);
+}
+
+.tab-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1rem;
+  margin-bottom: 16px;
 }
 
-.filters {
+.tab-header h3 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.filter-bar {
   display: flex;
-  gap: 0.5rem;
+  gap: 8px;
 }
 
-.filters input,
-.filters select {
-  padding: 0.5rem;
-  border: 1px solid var(--border-color);
-  border-radius: 4px;
-  background-color: #0f0f1a;
-  color: var(--text-color);
-}
-
-.actions {
-  display: flex;
-  gap: 0.5rem;
-  align-items: center;
-}
-
-.role-select {
-  padding: 0.25rem 0.5rem;
-  border: 1px solid var(--border-color);
-  border-radius: 4px;
-  background-color: #0f0f1a;
-  color: var(--text-color);
-}
-
-.btn-sm {
-  padding: 0.25rem 0.5rem;
-  font-size: 0.875rem;
-}
-
-.btn-danger {
-  background-color: #dc3545;
-  border-color: #dc3545;
-}
-
-.btn-danger:hover {
-  background-color: #c82333;
-  border-color: #bd2130;
+.player-link {
+  color: var(--primary-color);
+  text-decoration: none;
 }
 
 .pagination {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 1rem;
-  margin-top: 1rem;
-  padding-top: 1rem;
-  border-top: 1px solid var(--border-color);
+  margin-top: 16px;
+  justify-content: flex-end;
 }
 
-.hint {
-  color: var(--text-secondary);
-  margin-bottom: 1rem;
-}
-
-textarea {
-  width: 100%;
-  padding: 0.75rem;
+.broadcast-card {
+  max-width: 600px;
+  margin: 0 auto;
+  background: var(--bg-hover);
   border: 1px solid var(--border-color);
-  border-radius: 4px;
-  background-color: var(--bg-color);
-  color: var(--text-color);
-  font-family: inherit;
-  font-size: 1rem;
-  resize: vertical;
 }
 
-textarea:focus {
-  outline: none;
-  border-color: var(--primary-color);
+.broadcast-actions {
+  margin-top: 16px;
+  text-align: center;
 }
 
-.broadcast-info {
-  margin: 1rem 0;
-  padding: 0.75rem;
-  background-color: var(--bg-color);
-  border-radius: 4px;
-  color: var(--text-secondary);
+:deep(.el-table) {
+  background: transparent;
 }
 
-.broadcast-info strong {
-  color: var(--primary-color);
+:deep(.el-table th) {
+  background: var(--bg-hover);
 }
 
-.btn-broadcast {
-  background-color: #17a2b8;
-  border-color: #17a2b8;
+:deep(.el-table tr) {
+  background: transparent;
 }
 
-.btn-broadcast:hover {
-  background-color: #138496;
-  border-color: #117a8b;
+:deep(.el-table td) {
+  background: transparent;
 }
 </style>

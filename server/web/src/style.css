@@ -1,241 +1,218 @@
+:root {
+  --primary-color: #5b8cff;
+  --primary-light: #8eb0ff;
+  --primary-dark: #3d6bd9;
+  --success-color: #67c23a;
+  --warning-color: #e6a23c;
+  --danger-color: #f56c6c;
+  --info-color: #909399;
+  
+  --bg-dark: #0d1117;
+  --bg-card: #161b22;
+  --bg-hover: #1c2128;
+  --border-color: #30363d;
+  
+  --text-primary: #e6edf3;
+  --text-secondary: #8b949e;
+  --text-muted: #6e7681;
+  
+  --gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  --gradient-success: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+  --gradient-dark: linear-gradient(135deg, #1a1f2e 0%, #0d1117 100%);
+  
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -2px rgba(0, 0, 0, 0.3);
+  --shadow-glow: 0 0 20px rgba(91, 140, 255, 0.3);
+}
+
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
 }
 
-:root {
-  --primary-color: #4a90d9;
-  --primary-hover: #3a7bc8;
-  --bg-color: #1a1a2e;
-  --bg-secondary: #16213e;
-  --text-color: #eaeaea;
-  --text-secondary: #a0a0a0;
-  --success-color: #4caf50;
-  --error-color: #f44336;
-  --border-color: #2a2a4a;
+html {
+  scroll-behavior: smooth;
 }
 
 body {
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  background-color: var(--bg-color);
-  color: var(--text-color);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  background: var(--bg-dark);
+  color: var(--text-primary);
   min-height: 100vh;
+  line-height: 1.6;
 }
 
-.app {
+#app {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
 }
 
-.navbar {
-  background-color: var(--bg-secondary);
-  padding: 1rem 2rem;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border-bottom: 1px solid var(--border-color);
+/* Element Plus 暗黑主题覆盖 */
+html.dark {
+  --el-bg-color: var(--bg-card);
+  --el-bg-color-page: var(--bg-dark);
+  --el-bg-color-overlay: var(--bg-card);
+  --el-text-color-primary: var(--text-primary);
+  --el-text-color-regular: var(--text-secondary);
+  --el-text-color-secondary: var(--text-muted);
+  --el-border-color: var(--border-color);
+  --el-border-color-light: var(--border-color);
+  --el-border-color-darker: var(--border-color);
+  --el-fill-color: var(--bg-hover);
+  --el-fill-color-light: var(--bg-hover);
+  --el-fill-color-blank: var(--bg-card);
 }
 
-.nav-brand a {
-  font-size: 1.5rem;
-  font-weight: bold;
-  color: var(--primary-color);
-  text-decoration: none;
+/* 自定义滚动条 */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
 }
 
-.nav-links {
-  display: flex;
-  gap: 1.5rem;
+::-webkit-scrollbar-track {
+  background: var(--bg-dark);
 }
 
-.nav-links a {
-  color: var(--text-color);
-  text-decoration: none;
-  padding: 0.5rem 1rem;
+::-webkit-scrollbar-thumb {
+  background: var(--border-color);
   border-radius: 4px;
-  transition: background-color 0.3s;
 }
 
-.nav-links a:hover,
-.nav-links a.router-link-active {
-  background-color: var(--primary-color);
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
 }
 
-.main-content {
-  flex: 1;
-  padding: 2rem;
-  max-width: 1200px;
-  margin: 0 auto;
-  width: 100%;
+/* 页面过渡动画 */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s ease;
 }
 
-.footer {
-  background-color: var(--bg-secondary);
-  padding: 1rem 2rem;
-  text-align: center;
-  color: var(--text-secondary);
-  border-top: 1px solid var(--border-color);
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
 }
 
-.card {
-  background-color: var(--bg-secondary);
-  border-radius: 8px;
-  padding: 1.5rem;
-  margin-bottom: 1rem;
+.slide-up-enter-active,
+.slide-up-leave-active {
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.slide-up-enter-from,
+.slide-up-leave-to {
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+/* 通用卡片样式 */
+.glass-card {
+  background: rgba(22, 27, 34, 0.8);
+  backdrop-filter: blur(10px);
   border: 1px solid var(--border-color);
+  border-radius: 12px;
+  box-shadow: var(--shadow-md);
 }
 
-.card-title {
-  font-size: 1.25rem;
-  margin-bottom: 1rem;
-  color: var(--primary-color);
+/* 霓虹文字效果 */
+.neon-text {
+  text-shadow: 0 0 10px rgba(91, 140, 255, 0.5),
+               0 0 20px rgba(91, 140, 255, 0.3),
+               0 0 30px rgba(91, 140, 255, 0.2);
 }
 
-.btn {
-  background-color: var(--primary-color);
-  color: white;
-  border: none;
-  padding: 0.75rem 1.5rem;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 1rem;
-  transition: background-color 0.3s;
+/* 渐变文字 */
+.gradient-text {
+  background: var(--gradient-primary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
-.btn:hover {
-  background-color: var(--primary-hover);
+/* 按钮光晕效果 */
+.glow-btn {
+  position: relative;
+  overflow: hidden;
 }
 
-.btn:disabled {
-  background-color: var(--text-secondary);
-  cursor: not-allowed;
-}
-
-.form-group {
-  margin-bottom: 1rem;
-}
-
-.form-group label {
-  display: block;
-  margin-bottom: 0.5rem;
-  color: var(--text-secondary);
-}
-
-.form-group input,
-.form-group select {
+.glow-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
   width: 100%;
-  padding: 0.75rem;
-  border: 1px solid var(--border-color);
-  border-radius: 4px;
-  background-color: #0f0f1a;
-  color: var(--text-color);
-  font-size: 1rem;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s;
 }
 
-.form-group input:focus,
-.form-group select:focus {
-  outline: none;
-  border-color: var(--primary-color);
+.glow-btn:hover::before {
+  left: 100%;
 }
 
-.alert {
-  padding: 1rem;
-  border-radius: 4px;
-  margin-bottom: 1rem;
+/* 统计数字动画 */
+@keyframes countUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-.alert-success {
-  background-color: rgba(76, 175, 80, 0.2);
-  border: 1px solid var(--success-color);
-  color: var(--success-color);
+.stat-number {
+  animation: countUp 0.6s ease-out;
 }
 
-.alert-error {
-  background-color: rgba(244, 67, 54, 0.2);
-  border: 1px solid var(--error-color);
-  color: var(--error-color);
+/* 脉冲动画 */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
 }
 
-.table {
-  width: 100%;
-  border-collapse: collapse;
+.pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
-.table th,
-.table td {
-  padding: 0.75rem;
-  text-align: left;
-  border-bottom: 1px solid var(--border-color);
+/* 浮动动画 */
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
 }
 
-.table th {
-  background-color: var(--bg-color);
-  color: var(--primary-color);
+.float {
+  animation: float 3s ease-in-out infinite;
 }
 
-.table tr:hover {
-  background-color: rgba(74, 144, 217, 0.1);
+/* 旋转动画 */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
-.badge {
-  display: inline-block;
-  padding: 0.25rem 0.5rem;
-  border-radius: 4px;
-  font-size: 0.875rem;
+.spin {
+  animation: spin 1s linear infinite;
 }
 
-.badge-online {
-  background-color: var(--success-color);
-  color: white;
-}
-
-.badge-offline {
-  background-color: var(--text-secondary);
-  color: white;
-}
-
-.badge-win {
-  background-color: #ffd700;
-  color: #333;
-}
-
-.loading {
-  text-align: center;
-  padding: 2rem;
-  color: var(--text-secondary);
-}
-
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1rem;
-}
-
-.stat-card {
-  background-color: var(--bg-color);
-  padding: 1rem;
-  border-radius: 8px;
-  text-align: center;
-}
-
-.stat-value {
-  font-size: 2rem;
-  font-weight: bold;
-  color: var(--primary-color);
-}
-
-.stat-label {
-  color: var(--text-secondary);
-  margin-top: 0.5rem;
-}
-
-a {
-  color: var(--primary-color);
-  text-decoration: none;
-}
-
-a:hover {
-  text-decoration: underline;
+/* 响应式布局 */
+@media (max-width: 768px) {
+  .main-content {
+    padding: 1rem !important;
+  }
 }

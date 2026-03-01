@@ -1,138 +1,194 @@
 <template>
-  <div class="profile">
-    <div class="card">
-      <h2 class="card-title">个人中心</h2>
+  <div class="profile-page">
+    <el-row :gutter="20">
+      <!-- 左侧：用户信息 -->
+      <el-col :xs="24" :lg="8">
+        <el-card class="user-card" shadow="hover">
+          <div class="user-header">
+            <el-avatar :size="80" :icon="UserFilled" class="user-avatar" />
+            <div class="user-info">
+              <h2>{{ authStore.user?.name }}</h2>
+              <el-tag :type="userInfo.role === '管理员' ? 'danger' : 'primary'" effect="dark" round>
+                {{ userInfo.role || '玩家' }}
+              </el-tag>
+            </div>
+          </div>
+          
+          <el-divider />
+          
+          <div class="user-details">
+            <div class="detail-item">
+              <el-icon><Message /></el-icon>
+              <span class="label">邮箱</span>
+              <span class="value">{{ userInfo.email || '-' }}</span>
+            </div>
+            <div class="detail-item">
+              <el-icon><Calendar /></el-icon>
+              <span class="label">注册时间</span>
+              <span class="value">{{ formatDate(userInfo.createdAt) }}</span>
+            </div>
+            <div class="detail-item">
+              <el-icon><Timer /></el-icon>
+              <span class="label">最后登录</span>
+              <span class="value">{{ userInfo.lastLoginAt ? formatDate(userInfo.lastLoginAt) : '从未登录' }}</span>
+            </div>
+            <div class="detail-item">
+              <el-icon><Location /></el-icon>
+              <span class="label">登录IP</span>
+              <span class="value">{{ userInfo.lastLoginIp || '-' }}</span>
+            </div>
+          </div>
+          
+          <el-divider />
+          
+          <div class="user-actions">
+            <el-button type="primary" @click="$router.push(`/player/${authStore.user?.name}`)">
+              <el-icon><View /></el-icon>
+              查看主页
+            </el-button>
+            <el-button type="danger" plain @click="handleLogout">
+              <el-icon><SwitchButton /></el-icon>
+              退出登录
+            </el-button>
+          </div>
+        </el-card>
+      </el-col>
 
-      <div class="user-info">
-        <div class="info-item">
-          <span class="label">用户名:</span>
-          <span class="value">{{ authStore.user?.name }}</span>
-        </div>
-        <div class="info-item">
-          <span class="label">身份:</span>
-          <span class="value">{{ authStore.user?.role }}</span>
-        </div>
-        <div class="info-item">
-          <span class="label">邮箱:</span>
-          <span class="value">{{ userInfo.email || '-' }}</span>
-        </div>
-        <div class="info-item">
-          <span class="label">注册时间:</span>
-          <span class="value">{{ userInfo.createdAt ? formatDate(userInfo.createdAt) : '-' }}</span>
-        </div>
-        <div class="info-item">
-          <span class="label">最后登录:</span>
-          <span class="value">{{ userInfo.lastLoginAt ? formatDate(userInfo.lastLoginAt) : '从未登录过' }}</span>
-        </div>
-        <div class="info-item">
-          <span class="label">登录IP:</span>
-          <span class="value">{{ userInfo.lastLoginIp || '从未登录过' }}</span>
-        </div>
-      </div>
-    </div>
+      <!-- 右侧：设置 -->
+      <el-col :xs="24" :lg="16">
+        <el-tabs v-model="activeTab" class="settings-tabs">
+          <el-tab-pane label="修改用户名" name="name">
+            <el-card shadow="hover" class="settings-card">
+              <template #header>
+                <div class="card-header">
+                  <el-icon><Edit /></el-icon>
+                  <span>修改用户名</span>
+                </div>
+              </template>
+              
+              <el-alert
+                v-if="nameMessage"
+                :title="nameMessage"
+                :type="nameSuccess ? 'success' : 'error'"
+                show-icon
+                :closable="false"
+                class="settings-alert"
+              />
+              
+              <el-form :model="nameForm" label-position="top">
+                <el-form-item label="新用户名">
+                  <el-input
+                    v-model="nameForm.newName"
+                    placeholder="请输入新用户名"
+                    :prefix-icon="User"
+                    clearable
+                  />
+                </el-form-item>
+                <el-form-item label="确认密码">
+                  <el-input
+                    v-model="nameForm.password"
+                    type="password"
+                    placeholder="请输入密码确认"
+                    :prefix-icon="Lock"
+                    show-password
+                    clearable
+                  />
+                </el-form-item>
+                <el-form-item>
+                  <el-button
+                    type="primary"
+                    @click="handleChangeName"
+                    :loading="nameLoading"
+                  >
+                    <el-icon><Check /></el-icon>
+                    确认修改
+                  </el-button>
+                </el-form-item>
+              </el-form>
+            </el-card>
+          </el-tab-pane>
 
-    <div class="card">
-      <h3 class="card-title">修改用户名</h3>
-
-      <div v-if="nameMessage" :class="['alert', nameSuccess ? 'alert-success' : 'alert-error']">
-        {{ nameMessage }}
-      </div>
-
-      <form @submit.prevent="handleChangeName">
-        <div class="form-group">
-          <label for="newName">新用户名</label>
-          <input
-            type="text"
-            id="newName"
-            v-model="nameForm.newName"
-            placeholder="请输入新用户名"
-            required
-          />
-        </div>
-
-        <div class="form-group">
-          <label for="namePassword">确认密码</label>
-          <input
-            type="password"
-            id="namePassword"
-            v-model="nameForm.password"
-            placeholder="请输入密码确认"
-            required
-          />
-        </div>
-
-        <button type="submit" class="btn" :disabled="nameLoading">
-          {{ nameLoading ? '修改中...' : '修改用户名' }}
-        </button>
-      </form>
-    </div>
-
-    <div class="card">
-      <h3 class="card-title">修改密码</h3>
-
-      <div v-if="pwdMessage" :class="['alert', pwdSuccess ? 'alert-success' : 'alert-error']">
-        {{ pwdMessage }}
-      </div>
-
-      <form @submit.prevent="handleChangePassword">
-        <div class="form-group">
-          <label for="oldPassword">原密码</label>
-          <input
-            type="password"
-            id="oldPassword"
-            v-model="pwdForm.oldPassword"
-            placeholder="请输入原密码"
-            required
-          />
-        </div>
-
-        <div class="form-group">
-          <label for="newPassword">新密码</label>
-          <input
-            type="password"
-            id="newPassword"
-            v-model="pwdForm.newPassword"
-            placeholder="请输入新密码"
-            required
-          />
-        </div>
-
-        <div class="form-group">
-          <label for="confirmPassword">确认新密码</label>
-          <input
-            type="password"
-            id="confirmPassword"
-            v-model="pwdForm.confirmPassword"
-            placeholder="请再次输入新密码"
-            required
-          />
-        </div>
-
-        <button type="submit" class="btn" :disabled="pwdLoading">
-          {{ pwdLoading ? '修改中...' : '修改密码' }}
-        </button>
-      </form>
-    </div>
-
-    <div class="card">
-      <h3 class="card-title">快捷操作</h3>
-      <router-link :to="`/player/${authStore.user?.name}`" class="btn">
-        查看我的主页
-      </router-link>
-      <button class="btn btn-danger" @click="handleLogout" style="margin-left: 1rem;">
-        退出登录
-      </button>
-    </div>
+          <el-tab-pane label="修改密码" name="password">
+            <el-card shadow="hover" class="settings-card">
+              <template #header>
+                <div class="card-header">
+                  <el-icon><Lock /></el-icon>
+                  <span>修改密码</span>
+                </div>
+              </template>
+              
+              <el-alert
+                v-if="pwdMessage"
+                :title="pwdMessage"
+                :type="pwdSuccess ? 'success' : 'error'"
+                show-icon
+                :closable="false"
+                class="settings-alert"
+              />
+              
+              <el-form :model="pwdForm" label-position="top">
+                <el-form-item label="原密码">
+                  <el-input
+                    v-model="pwdForm.oldPassword"
+                    type="password"
+                    placeholder="请输入原密码"
+                    :prefix-icon="Lock"
+                    show-password
+                    clearable
+                  />
+                </el-form-item>
+                <el-form-item label="新密码">
+                  <el-input
+                    v-model="pwdForm.newPassword"
+                    type="password"
+                    placeholder="请输入新密码"
+                    :prefix-icon="Key"
+                    show-password
+                    clearable
+                  />
+                </el-form-item>
+                <el-form-item label="确认新密码">
+                  <el-input
+                    v-model="pwdForm.confirmPassword"
+                    type="password"
+                    placeholder="请再次输入新密码"
+                    :prefix-icon="Key"
+                    show-password
+                    clearable
+                  />
+                </el-form-item>
+                <el-form-item>
+                  <el-button
+                    type="primary"
+                    @click="handleChangePassword"
+                    :loading="pwdLoading"
+                  >
+                    <el-icon><Check /></el-icon>
+                    确认修改
+                  </el-button>
+                </el-form-item>
+              </el-form>
+            </el-card>
+          </el-tab-pane>
+        </el-tabs>
+      </el-col>
+    </el-row>
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import {
+  UserFilled, Message, Calendar, Timer, Location,
+  View, SwitchButton, Edit, Lock, Key, Check
+} from '@element-plus/icons-vue'
 import { playerApi } from '../api'
 import { authStore } from '../store/auth'
 
 const router = useRouter()
+const activeTab = ref('name')
 
 const userInfo = ref({})
 
@@ -155,8 +211,7 @@ const pwdLoading = ref(false)
 const pwdMessage = ref('')
 const pwdSuccess = ref(false)
 
-// 获取用户详细信息（包含私密信息）
-async function loadUserInfo() {
+const loadUserInfo = async () => {
   if (!authStore.user?.name) return
   try {
     const res = await playerApi.getPlayerPrivateInfo(authStore.user.name)
@@ -168,17 +223,12 @@ async function loadUserInfo() {
   }
 }
 
-onMounted(() => {
-  loadUserInfo()
-})
-
-function formatDate(dateStr) {
+const formatDate = (dateStr) => {
   if (!dateStr) return '-'
-  const date = new Date(dateStr)
-  return date.toLocaleString('zh-CN')
+  return new Date(dateStr).toLocaleString('zh-CN')
 }
 
-async function handleChangeName() {
+const handleChangeName = async () => {
   if (!nameForm.newName.trim()) {
     nameSuccess.value = false
     nameMessage.value = '请输入新用户名'
@@ -207,13 +257,13 @@ async function handleChangeName() {
     }
   } catch (error) {
     nameSuccess.value = false
-    nameMessage.value = error.response?.data?.message || '修改失败，请稍后重试'
+    nameMessage.value = error.response?.data?.message || '修改失败'
   } finally {
     nameLoading.value = false
   }
 }
 
-async function handleChangePassword() {
+const handleChangePassword = async () => {
   if (pwdForm.newPassword !== pwdForm.confirmPassword) {
     pwdSuccess.value = false
     pwdMessage.value = '两次输入的新密码不一致'
@@ -242,55 +292,151 @@ async function handleChangePassword() {
     }
   } catch (error) {
     pwdSuccess.value = false
-    pwdMessage.value = error.response?.data?.message || '修改失败，请稍后重试'
+    pwdMessage.value = error.response?.data?.message || '修改失败'
   } finally {
     pwdLoading.value = false
   }
 }
 
-function handleLogout() {
-  authStore.logout()
-  router.push('/')
+const handleLogout = () => {
+  ElMessageBox.confirm('确定要退出登录吗？', '提示', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    type: 'warning'
+  }).then(() => {
+    authStore.logout()
+    ElMessage.success('已退出登录')
+    router.push('/')
+  }).catch(() => {})
 }
+
+onMounted(() => {
+  loadUserInfo()
+})
 </script>
 
 <style scoped>
-.profile {
-  max-width: 600px;
+.profile-page {
+  max-width: 1200px;
   margin: 0 auto;
 }
 
-.user-info {
-  padding: 1rem 0;
+.user-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  margin-bottom: 1rem;
 }
 
-.info-item {
+.user-header {
   display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 1rem;
+}
+
+.user-avatar {
+  background: var(--gradient-primary);
+}
+
+.user-info h2 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.5rem;
+}
+
+.user-details {
   padding: 0.5rem 0;
+}
+
+.detail-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 0;
   border-bottom: 1px solid var(--border-color);
 }
 
-.info-item:last-child {
+.detail-item:last-child {
   border-bottom: none;
 }
 
-.info-item .label {
-  width: 80px;
+.detail-item .el-icon {
+  color: var(--primary-color);
+  font-size: 1.1rem;
+}
+
+.detail-item .label {
   color: var(--text-secondary);
+  width: 80px;
 }
 
-.info-item .value {
+.detail-item .value {
   flex: 1;
-  font-weight: 500;
+  color: var(--text-primary);
 }
 
-.btn-danger {
-  background-color: #dc3545;
-  border-color: #dc3545;
+.user-actions {
+  display: flex;
+  gap: 0.75rem;
 }
 
-.btn-danger:hover {
-  background-color: #c82333;
-  border-color: #bd2130;
+.user-actions .el-button {
+  flex: 1;
+}
+
+.settings-tabs :deep(.el-tabs__header) {
+  margin-bottom: 1.5rem;
+}
+
+.settings-tabs :deep(.el-tabs__item) {
+  font-size: 1rem;
+}
+
+.settings-tabs :deep(.el-tabs__item.is-active) {
+  color: var(--primary-color);
+}
+
+.settings-tabs :deep(.el-tabs__active-bar) {
+  background-color: var(--primary-color);
+}
+
+.settings-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+}
+
+.card-header .el-icon {
+  color: var(--primary-color);
+}
+
+.settings-alert {
+  margin-bottom: 1.5rem;
+}
+
+:deep(.settings-card .el-input__wrapper) {
+  background: var(--bg-dark);
+  box-shadow: 0 0 0 1px var(--border-color) inset;
+}
+
+:deep(.settings-card .el-input__wrapper:hover),
+:deep(.settings-card .el-input__wrapper.is-focus) {
+  box-shadow: 0 0 0 1px var(--primary-color) inset;
+}
+
+@media (max-width: 768px) {
+  .user-header {
+    flex-direction: column;
+    text-align: center;
+  }
+  
+  .user-actions {
+    flex-direction: column;
+  }
 }
 </style>

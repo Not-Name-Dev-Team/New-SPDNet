@@ -1,57 +1,98 @@
 <template>
-  <div class="chat">
-    <div class="card">
-      <div class="chat-header">
-        <h2 class="card-title">聊天室</h2>
-        <button class="btn btn-sm" @click="loadMessages">刷新</button>
-      </div>
-
-      <div v-if="!authStore.isLoggedIn" class="alert alert-error">
-        请先登录后再参与聊天
-      </div>
-
-      <div class="chat-container" ref="chatContainer">
-        <div v-if="loading" class="loading">加载中...</div>
-        
-        <div v-else-if="messages.length === 0" class="no-messages">
-          暂无消息，来发送第一条消息吧！
+  <div class="chat-page">
+    <el-card class="chat-card" shadow="hover">
+      <template #header>
+        <div class="chat-header">
+          <div class="header-title">
+            <el-icon :size="24" color="var(--primary-color)"><ChatDotRound /></el-icon>
+            <span>聊天室</span>
+            <el-tag type="success" effect="dark" round size="small" v-if="authStore.isLoggedIn">
+              在线
+            </el-tag>
+          </div>
+          <div class="header-actions">
+            <el-button type="primary" text :icon="Refresh" @click="loadMessages" :loading="loading">
+              刷新
+            </el-button>
+          </div>
         </div>
+      </template>
 
-        <div v-else class="messages">
-          <div 
-            v-for="(msg, index) in reversedMessages" 
-            :key="index" 
-            :class="['message', { 'own-message': msg.name === authStore.user?.name }]"
+      <div class="chat-container" ref="chatContainer" v-loading="loading">
+        <el-empty v-if="!loading && messages.length === 0" description="暂无消息，来发送第一条消息吧！">
+          <template #image>
+            <el-icon :size="60" color="var(--text-muted)"><ChatLineRound /></el-icon>
+          </template>
+        </el-empty>
+
+        <div v-else class="messages-list">
+          <div
+            v-for="(msg, index) in messages"
+            :key="index"
+            :class="['message-item', { 'message-own': msg.name === authStore.user?.name }]"
           >
-            <div class="message-header">
-              <router-link :to="`/player/${msg.name}`" class="message-name">
-                {{ msg.name }}
-              </router-link>
-              <span class="message-own" v-if="msg.name === authStore.user?.name">(我)</span>
+            <el-avatar 
+              :size="40" 
+              :icon="UserFilled"
+              class="message-avatar"
+              :class="{ 'own-avatar': msg.name === authStore.user?.name }"
+            />
+            <div class="message-content">
+              <div class="message-header">
+                <router-link :to="`/player/${msg.name}`" class="message-author">
+                  {{ msg.name }}
+                </router-link>
+                <el-tag v-if="msg.name === authStore.user?.name" size="small" type="success" effect="plain">我</el-tag>
+              </div>
+              <div class="message-bubble">
+                {{ msg.message }}
+              </div>
             </div>
-            <div class="message-content">{{ msg.message }}</div>
           </div>
         </div>
       </div>
 
-      <form @submit.prevent="sendMessage" class="chat-input" v-if="authStore.isLoggedIn">
-        <input 
-          type="text" 
-          v-model="newMessage" 
-          placeholder="输入消息..." 
-          :disabled="sending"
-          maxlength="500"
+      <div class="chat-input-area">
+        <el-alert
+          v-if="!authStore.isLoggedIn"
+          title="请先登录后再参与聊天"
+          type="warning"
+          show-icon
+          :closable="false"
+          class="login-warning"
         />
-        <button type="submit" class="btn" :disabled="sending || !newMessage.trim()">
-          {{ sending ? '发送中...' : '发送' }}
-        </button>
-      </form>
-    </div>
+        <div v-else class="input-wrapper">
+          <el-input
+            v-model="newMessage"
+            type="textarea"
+            :rows="2"
+            placeholder="输入消息..."
+            maxlength="500"
+            show-word-limit
+            resize="none"
+            @keyup.enter.prevent="sendMessage"
+          />
+          <el-button
+            type="primary"
+            size="large"
+            :icon="Promotion"
+            :loading="sending"
+            :disabled="!newMessage.trim()"
+            @click="sendMessage"
+            class="send-btn"
+          >
+            发送
+          </el-button>
+        </div>
+      </div>
+    </el-card>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted, nextTick } from 'vue'
+import { ElMessage } from 'element-plus'
+import { ChatDotRound, Refresh, ChatLineRound, UserFilled, Promotion } from '@element-plus/icons-vue'
 import { chatApi } from '../api'
 import { authStore } from '../store/auth'
 
@@ -61,30 +102,31 @@ const sending = ref(false)
 const newMessage = ref('')
 const chatContainer = ref(null)
 
-const reversedMessages = computed(() => [...messages.value].reverse())
-
-async function loadMessages() {
+const loadMessages = async () => {
   loading.value = true
   try {
     const res = await chatApi.getMessages(100)
     if (res.data.success) {
       messages.value = res.data.data || []
+      await nextTick()
+      scrollToBottom()
     }
   } catch (error) {
     console.error('加载消息失败:', error)
+    ElMessage.error('加载消息失败')
   } finally {
     loading.value = false
   }
 }
 
-async function sendMessage() {
+const sendMessage = async () => {
   if (!newMessage.value.trim()) return
 
   sending.value = true
   try {
     const res = await chatApi.send(authStore.user.name, newMessage.value.trim())
     if (res.data.success) {
-      messages.value.unshift({
+      messages.value.push({
         name: authStore.user.name,
         message: newMessage.value.trim()
       })
@@ -92,16 +134,16 @@ async function sendMessage() {
       await nextTick()
       scrollToBottom()
     } else {
-      alert(res.data.message)
+      ElMessage.error(res.data.message)
     }
   } catch (error) {
-    alert(error.response?.data?.message || '发送失败')
+    ElMessage.error(error.response?.data?.message || '发送失败')
   } finally {
     sending.value = false
   }
 }
 
-function scrollToBottom() {
+const scrollToBottom = () => {
   if (chatContainer.value) {
     chatContainer.value.scrollTop = chatContainer.value.scrollHeight
   }
@@ -113,95 +155,173 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.chat {
-  max-width: 800px;
+.chat-page {
+  max-width: 900px;
   margin: 0 auto;
+  height: calc(100vh - 200px);
+  min-height: 500px;
+}
+
+.chat-card {
+  height: 100%;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+}
+
+:deep(.chat-card .el-card__body) {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  overflow: hidden;
 }
 
 .chat-header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  margin-bottom: 1rem;
+  justify-content: space-between;
+}
+
+.header-title {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 1.125rem;
+  font-weight: 600;
 }
 
 .chat-container {
-  height: 400px;
+  flex: 1;
   overflow-y: auto;
-  border: 1px solid var(--border-color);
-  border-radius: 4px;
-  padding: 1rem;
-  margin-bottom: 1rem;
-  background-color: var(--bg-color);
+  padding: 1.5rem;
+  background: var(--bg-dark);
 }
 
-.messages {
+.messages-list {
   display: flex;
   flex-direction: column;
+  gap: 1rem;
+}
+
+.message-item {
+  display: flex;
   gap: 0.75rem;
+  align-items: flex-start;
 }
 
-.message {
-  padding: 0.75rem;
-  border-radius: 8px;
-  background-color: var(--bg-secondary);
-  max-width: 80%;
+.message-item.message-own {
+  flex-direction: row-reverse;
 }
 
-.own-message {
-  align-self: flex-end;
-  background-color: rgba(76, 175, 80, 0.1);
-  border: 1px solid rgba(76, 175, 80, 0.3);
+.message-avatar {
+  background: var(--gradient-primary);
+  flex-shrink: 0;
 }
 
-.message-header {
-  margin-bottom: 0.25rem;
-}
-
-.message-name {
-  font-weight: 600;
-  color: var(--primary-color);
-  text-decoration: none;
-}
-
-.message-name:hover {
-  text-decoration: underline;
-}
-
-.message-own {
-  color: var(--text-secondary);
-  font-size: 0.875rem;
-  margin-left: 0.25rem;
+.message-avatar.own-avatar {
+  background: var(--gradient-success);
 }
 
 .message-content {
-  word-break: break-word;
-  color: var(--text-color);
+  max-width: 70%;
 }
 
-.no-messages {
-  text-align: center;
-  color: var(--text-secondary);
-  padding: 2rem;
+.message-own .message-content {
+  text-align: right;
 }
 
-.chat-input {
+.message-header {
   display: flex;
+  align-items: center;
   gap: 0.5rem;
+  margin-bottom: 0.25rem;
 }
 
-.chat-input input {
-  flex: 1;
-  padding: 0.75rem;
+.message-own .message-header {
+  justify-content: flex-end;
+}
+
+.message-author {
+  color: var(--primary-color);
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 0.875rem;
+}
+
+.message-author:hover {
+  text-decoration: underline;
+}
+
+.message-bubble {
+  background: var(--bg-card);
   border: 1px solid var(--border-color);
-  border-radius: 4px;
-  background-color: var(--bg-color);
-  color: var(--text-color);
-  font-size: 1rem;
+  border-radius: 12px;
+  padding: 0.75rem 1rem;
+  color: var(--text-primary);
+  word-break: break-word;
+  display: inline-block;
+  text-align: left;
 }
 
-.chat-input input:focus {
-  outline: none;
+.message-own .message-bubble {
+  background: var(--primary-color);
   border-color: var(--primary-color);
+  color: white;
+}
+
+.chat-input-area {
+  padding: 1rem 1.5rem;
+  border-top: 1px solid var(--border-color);
+  background: var(--bg-card);
+}
+
+.login-warning {
+  margin: 0;
+}
+
+.input-wrapper {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-end;
+}
+
+.input-wrapper .el-textarea {
+  flex: 1;
+}
+
+:deep(.input-wrapper .el-textarea__inner) {
+  background: var(--bg-dark);
+  border-color: var(--border-color);
+  color: var(--text-primary);
+}
+
+:deep(.input-wrapper .el-textarea__inner:focus) {
+  border-color: var(--primary-color);
+}
+
+.send-btn {
+  height: 52px;
+  padding: 0 1.5rem;
+}
+
+@media (max-width: 768px) {
+  .chat-page {
+    height: calc(100vh - 150px);
+  }
+  
+  .message-content {
+    max-width: 80%;
+  }
+  
+  .input-wrapper {
+    flex-direction: column;
+  }
+  
+  .send-btn {
+    width: 100%;
+    height: 40px;
+  }
 }
 </style>

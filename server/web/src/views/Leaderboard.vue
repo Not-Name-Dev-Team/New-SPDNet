@@ -1,147 +1,206 @@
 <template>
-  <div class="leaderboard">
-    <div class="card">
-      <h2 class="card-title">排行榜</h2>
-
-      <!-- 筛选面板 -->
-      <div class="filters-panel">
-        <div class="filter-row">
-          <div class="filter-group">
-            <label>排行榜类型</label>
-            <select v-model="filters.playerType" @change="onPlayerTypeChange">
-              <option value="all">所有玩家</option>
-              <option value="me">我的记录</option>
-            </select>
-          </div>
-
-          <div class="filter-group" v-if="filters.playerType === 'all'">
-            <label>搜索玩家</label>
-            <input 
-              type="text" 
-              v-model="filters.playerName" 
-              placeholder="输入玩家名"
-              @keyup.enter="loadLeaderboard"
-            />
-          </div>
-        </div>
-
-        <div class="filter-row">
-          <div class="filter-group">
-            <label>挑战数量</label>
-            <select v-model="filters.challengeCount" @change="loadLeaderboard">
-              <option :value="null">不筛选</option>
-              <option v-for="i in 10" :key="i-1" :value="i-1">{{ i-1 }}挑战</option>
-            </select>
-          </div>
-
-          <div class="filter-group">
-            <label>游戏模式</label>
-            <select v-model="filters.gameMode" @change="loadLeaderboard">
-              <option :value="null">不筛选</option>
-              <option value="STANDARD">标准模式</option>
-              <option value="DAILY">每日挑战</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="filter-row">
-          <div class="filter-group">
-            <label class="checkbox-label">
-              <input type="checkbox" v-model="filters.winOnly" @change="loadLeaderboard" />
-              只显示胜利
-            </label>
-          </div>
-
-          <div class="filter-group">
-            <label>排序方式</label>
-            <select v-model="filters.sortBy" @change="loadLeaderboard">
-              <option value="score">分数最高</option>
-              <option value="id">最近通关</option>
-              <option value="duration">通关时间最短</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="filter-actions">
-          <button class="btn btn-sm" @click="resetFilters">重置筛选</button>
-          <button class="btn btn-primary btn-sm" @click="loadLeaderboard">应用筛选</button>
+  <div class="leaderboard-page">
+    <div class="page-header">
+      <div class="header-title">
+        <el-icon :size="32" color="var(--primary-color)"><Trophy /></el-icon>
+        <div>
+          <h1>排行榜</h1>
+          <p>查看所有玩家的冒险成绩</p>
         </div>
       </div>
-
-      <div v-if="loading" class="loading">加载中...</div>
-
-      <table class="table" v-else-if="records.length > 0">
-        <thead>
-          <tr>
-            <th>排名</th>
-            <th>玩家</th>
-            <th>分数</th>
-            <th>层数</th>
-            <th>等级</th>
-            <th>挑战</th>
-            <th>模式</th>
-            <th>结果</th>
-            <th>角色</th>
-            <th>死亡原因</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="(record, index) in records" :key="record.id">
-            <td>{{ index + 1 + page * size }}</td>
-            <td>
-              <router-link :to="`/player/${record.player_name}`">
-                {{ record.player_name || '未知' }}
-              </router-link>
-            </td>
-            <td>{{ record.score }}</td>
-            <td>{{ record.maxDepth }}</td>
-            <td>{{ record.level || '-' }}</td>
-            <td>{{ countChallenges(record.challenges) }}</td>
-            <td>{{ getGameModeName(record.gameMode) }}</td>
-            <td>
-              <span :class="['badge', record.win ? 'badge-win' : 'badge-offline']">
-                {{ record.win ? '胜利' : '失败' }}
-              </span>
-            </td>
-            <td>{{ getHeroClassName(record.class) }}</td>
-            <td :title="record.cause" class="cause-cell">
-              {{ formatCause(record.cause) }}
-            </td>
-          </tr>
-        </tbody>
-      </table>
-
-      <div v-else class="loading">暂无记录</div>
-
-      <div class="pagination" v-if="totalPages > 1">
-        <button 
-          class="btn" 
-          :disabled="page === 0" 
-          @click="page--; loadLeaderboard()"
-        >
-          上一页
-        </button>
-        <span>第 {{ page + 1 }} / {{ totalPages }} 页</span>
-        <button 
-          class="btn" 
-          :disabled="page >= totalPages - 1" 
-          @click="page++; loadLeaderboard()"
-        >
-          下一页
-        </button>
-      </div>
+      <el-button 
+        type="primary" 
+        :icon="Refresh" 
+        @click="loadLeaderboard"
+        :loading="loading"
+        circle
+      />
     </div>
+
+    <el-card class="filter-card" shadow="hover">
+      <el-form :model="filters" inline class="filter-form">
+        <el-form-item label="玩家">
+          <el-select v-model="filters.playerType" @change="onPlayerTypeChange" style="width: 120px">
+            <el-option label="所有玩家" value="all" />
+            <el-option label="我的记录" value="me" />
+          </el-select>
+        </el-form-item>
+
+        <el-form-item label="搜索" v-if="filters.playerType === 'all'">
+          <el-input
+            v-model="filters.playerName"
+            placeholder="输入玩家名"
+            clearable
+            @keyup.enter="loadLeaderboard"
+            style="width: 150px"
+          />
+        </el-form-item>
+
+        <el-form-item label="挑战">
+          <el-select v-model="filters.challengeCount" @change="loadLeaderboard" clearable style="width: 120px">
+            <el-option label="不筛选" :value="null" />
+            <el-option v-for="i in 10" :key="i-1" :label="`${i-1}挑战`" :value="i-1" />
+          </el-select>
+        </el-form-item>
+
+        <el-form-item label="模式">
+          <el-select v-model="filters.gameMode" @change="loadLeaderboard" clearable style="width: 120px">
+            <el-option label="不筛选" :value="null" />
+            <el-option label="标准模式" value="STANDARD" />
+            <el-option label="每日挑战" value="DAILY" />
+          </el-select>
+        </el-form-item>
+
+        <el-form-item label="排序">
+          <el-select v-model="filters.sortBy" @change="loadLeaderboard" style="width: 140px">
+            <el-option label="分数最高" value="score" />
+            <el-option label="最近通关" value="id" />
+            <el-option label="时间最短" value="duration" />
+          </el-select>
+        </el-form-item>
+
+        <el-form-item>
+          <el-checkbox v-model="filters.winOnly" @change="loadLeaderboard">
+            只显示胜利
+          </el-checkbox>
+        </el-form-item>
+
+        <el-form-item>
+          <el-button @click="resetFilters" :icon="Delete">重置</el-button>
+          <el-button type="primary" @click="loadLeaderboard" :icon="Search">筛选</el-button>
+        </el-form-item>
+      </el-form>
+    </el-card>
+
+    <el-card class="table-card" shadow="hover" v-loading="loading">
+      <el-table
+        :data="records"
+        stripe
+        style="width: 100%"
+        :header-cell-style="{ background: 'var(--bg-hover)' }"
+      >
+        <el-table-column type="index" label="排名" width="80" align="center">
+          <template #default="{ $index }">
+            <div class="rank-cell">
+              <el-tag
+                v-if="page === 0 && $index < 3"
+                :type="['danger', 'warning', 'success'][$index]"
+                effect="dark"
+                round
+                size="small"
+              >
+                <el-icon><Trophy /></el-icon>
+                {{ $index + 1 }}
+              </el-tag>
+              <span v-else class="rank-number">{{ $index + 1 + page * size }}</span>
+            </div>
+          </template>
+        </el-table-column>
+
+        <el-table-column label="玩家" min-width="140">
+          <template #default="{ row }">
+            <router-link :to="`/player/${row.player_name}`" class="player-link">
+              <el-avatar :size="28" :icon="UserFilled" class="player-avatar" />
+              <span>{{ row.player_name || '未知' }}</span>
+            </router-link>
+          </template>
+        </el-table-column>
+
+        <el-table-column label="分数" width="100" sortable>
+          <template #default="{ row }">
+            <span class="score-value">{{ row.score.toLocaleString() }}</span>
+          </template>
+        </el-table-column>
+
+        <el-table-column label="层数" width="80" align="center">
+          <template #default="{ row }">
+            <el-tag size="small" type="info" effect="plain">{{ row.maxDepth }}</el-tag>
+          </template>
+        </el-table-column>
+
+        <el-table-column label="等级" width="80" align="center">
+          <template #default="{ row }">
+            <span v-if="row.level" class="level-value">Lv.{{ row.level }}</span>
+            <span v-else class="text-muted">-</span>
+          </template>
+        </el-table-column>
+
+        <el-table-column label="挑战" width="80" align="center">
+          <template #default="{ row }">
+            <el-tag
+              v-if="countChallenges(row.challenges) > 0"
+              type="warning"
+              size="small"
+              effect="dark"
+            >
+              {{ countChallenges(row.challenges) }}
+            </el-tag>
+            <span v-else class="text-muted">-</span>
+          </template>
+        </el-table-column>
+
+        <el-table-column label="模式" width="100" align="center">
+          <template #default="{ row }">
+            <el-tag :type="row.gameMode === 'DAILY' ? 'success' : 'info'" size="small" effect="plain">
+              {{ getGameModeName(row.gameMode) }}
+            </el-tag>
+          </template>
+        </el-table-column>
+
+        <el-table-column label="结果" width="70" align="center">
+          <template #default="{ row }">
+            <el-tag :type="row.win ? 'success' : 'danger'" effect="dark" round size="small">
+              {{ row.win ? '胜' : '败' }}
+            </el-tag>
+          </template>
+        </el-table-column>
+
+        <el-table-column label="角色" width="100" align="center">
+          <template #default="{ row }">
+            <el-tag type="primary" size="small" effect="plain">
+              {{ getHeroClassName(row.class) }}
+            </el-tag>
+          </template>
+        </el-table-column>
+
+        <el-table-column label="死亡原因" min-width="150" show-overflow-tooltip>
+          <template #default="{ row }">
+            <span class="cause-text">{{ formatCause(row.cause) }}</span>
+          </template>
+        </el-table-column>
+      </el-table>
+
+      <el-empty v-if="!loading && records.length === 0" description="暂无记录" />
+
+      <div class="pagination-wrapper" v-if="totalPages > 1">
+        <el-pagination
+          v-model:current-page="page"
+          v-model:page-size="size"
+          :page-sizes="[10, 20, 50]"
+          :total="totalPages * size"
+          layout="total, sizes, prev, pager, next"
+          @size-change="loadLeaderboard"
+          @current-change="loadLeaderboard"
+          background
+        />
+      </div>
+    </el-card>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, watch } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
+import { ElMessage } from 'element-plus'
+import {
+  Trophy, Refresh, Delete, Search,
+  UserFilled, CircleCheck, CircleClose
+} from '@element-plus/icons-vue'
 import { leaderboardApi } from '../api'
 import { authStore } from '../store/auth'
 
 const CHALLENGE_MASKS = [128, 256, 1, 2, 4, 8, 16, 32, 64]
 
-function countChallenges(challenges) {
+const countChallenges = (challenges) => {
   if (!challenges) return 0
   let count = 0
   for (const mask of CHALLENGE_MASKS) {
@@ -150,7 +209,7 @@ function countChallenges(challenges) {
   return count
 }
 
-function getGameModeName(mode) {
+const getGameModeName = (mode) => {
   if (!mode) return '标准'
   const modeMap = {
     'STANDARD': '标准',
@@ -159,7 +218,7 @@ function getGameModeName(mode) {
   return modeMap[mode] || mode
 }
 
-function getHeroClassName(heroClass) {
+const getHeroClassName = (heroClass) => {
   if (!heroClass) return '-'
   const classMap = {
     'WARRIOR': '战士',
@@ -172,18 +231,13 @@ function getHeroClassName(heroClass) {
   return classMap[heroClass] || heroClass
 }
 
-function formatCause(cause) {
+const formatCause = (cause) => {
   if (!cause) return '-'
-  // 简化死亡原因显示
   const simplified = cause
     .replace('com.shatteredpixel.shatteredpixeldungeon.actors.', '')
     .replace('com.shatteredpixel.shatteredpixeldungeon.', '')
     .replace('com.watabou.', '')
-  // 如果太长则截断
-  if (simplified.length > 25) {
-    return simplified.substring(0, 22) + '...'
-  }
-  return simplified
+  return simplified.length > 30 ? simplified.substring(0, 27) + '...' : simplified
 }
 
 const records = ref([])
@@ -201,7 +255,7 @@ const filters = reactive({
   sortBy: 'score'
 })
 
-function onPlayerTypeChange() {
+const onPlayerTypeChange = () => {
   if (filters.playerType === 'me') {
     filters.playerName = authStore.user?.name || ''
   } else {
@@ -210,7 +264,7 @@ function onPlayerTypeChange() {
   loadLeaderboard()
 }
 
-function resetFilters() {
+const resetFilters = () => {
   filters.playerType = 'all'
   filters.playerName = ''
   filters.challengeCount = null
@@ -221,26 +275,15 @@ function resetFilters() {
   loadLeaderboard()
 }
 
-async function loadLeaderboard() {
+const loadLeaderboard = async () => {
   loading.value = true
   try {
     const apiFilters = {}
-    
-    if (filters.playerName && filters.playerName.trim()) {
-      apiFilters.playerName = filters.playerName.trim()
-    }
-    if (filters.challengeCount !== null) {
-      apiFilters.challengeCount = filters.challengeCount
-    }
-    if (filters.gameMode) {
-      apiFilters.gameMode = filters.gameMode
-    }
-    if (filters.winOnly) {
-      apiFilters.winOnly = true
-    }
-    if (filters.sortBy) {
-      apiFilters.sortBy = filters.sortBy
-    }
+    if (filters.playerName?.trim()) apiFilters.playerName = filters.playerName.trim()
+    if (filters.challengeCount !== null) apiFilters.challengeCount = filters.challengeCount
+    if (filters.gameMode) apiFilters.gameMode = filters.gameMode
+    if (filters.winOnly) apiFilters.winOnly = true
+    if (filters.sortBy) apiFilters.sortBy = filters.sortBy
 
     const res = await leaderboardApi.getLeaderboard(page.value, size.value, apiFilters)
     if (res.data.success) {
@@ -249,6 +292,7 @@ async function loadLeaderboard() {
     }
   } catch (error) {
     console.error('加载排行榜失败:', error)
+    ElMessage.error('加载排行榜失败')
   } finally {
     loading.value = false
   }
@@ -260,98 +304,129 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.filters-panel {
-  background-color: var(--bg-color);
-  border-radius: 8px;
-  padding: 1rem;
-  margin-bottom: 1rem;
+.leaderboard-page {
+  max-width: 1400px;
+  margin: 0 auto;
 }
 
-.filter-row {
+.page-header {
   display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 2rem;
+}
+
+.header-title {
+  display: flex;
+  align-items: center;
   gap: 1rem;
-  margin-bottom: 0.75rem;
-  flex-wrap: wrap;
 }
 
-.filter-group {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  flex: 1;
-  min-width: 150px;
+.header-title h1 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin: 0;
+  color: var(--text-primary);
 }
 
-.filter-group label {
-  font-size: 0.875rem;
+.header-title p {
+  margin: 0;
   color: var(--text-secondary);
 }
 
-.filter-group input,
-.filter-group select {
-  padding: 0.5rem;
+.filter-card {
+  margin-bottom: 1.5rem;
+  background: var(--bg-card);
   border: 1px solid var(--border-color);
-  border-radius: 4px;
-  background-color: #0f0f1a;
-  color: var(--text-color);
 }
 
-.checkbox-label {
+.filter-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+:deep(.filter-form .el-form-item) {
+  margin-bottom: 0;
+  margin-right: 0;
+}
+
+.table-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+}
+
+.rank-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.rank-number {
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.player-link {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  cursor: pointer;
-  padding-top: 1.5rem;
+  color: var(--text-primary);
+  text-decoration: none;
+  transition: color 0.3s;
 }
 
-.checkbox-label input[type="checkbox"] {
-  width: 18px;
-  height: 18px;
+.player-link:hover {
+  color: var(--primary-color);
 }
 
-.filter-actions {
-  display: flex;
-  gap: 0.5rem;
-  justify-content: flex-end;
-  margin-top: 0.5rem;
-  padding-top: 0.75rem;
-  border-top: 1px solid var(--border-color);
+.player-avatar {
+  background: var(--gradient-primary);
 }
 
-.btn-sm {
-  padding: 0.375rem 0.75rem;
-  font-size: 0.875rem;
+.score-value {
+  font-weight: 600;
+  color: var(--primary-color);
 }
 
-.btn-primary {
-  background-color: var(--primary-color);
-  border-color: var(--primary-color);
+.level-value {
+  color: var(--warning-color);
+  font-weight: 500;
 }
 
-.cause-cell {
-  max-width: 200px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: 0.875rem;
+.cause-text {
   color: var(--text-secondary);
+  font-size: 0.875rem;
 }
 
-.pagination {
+.text-muted {
+  color: var(--text-muted);
+}
+
+.pagination-wrapper {
+  margin-top: 1.5rem;
   display: flex;
   justify-content: center;
-  align-items: center;
-  gap: 1rem;
-  margin-top: 1rem;
-  padding-top: 1rem;
-  border-top: 1px solid var(--border-color);
 }
 
-.badge-win {
-  background-color: #28a745;
+:deep(.el-pagination.is-background .el-pager li:not(.is-disabled).is-active) {
+  background: var(--primary-color);
 }
 
-.badge-offline {
-  background-color: #dc3545;
+@media (max-width: 768px) {
+  .filter-form {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  :deep(.filter-form .el-form-item) {
+    width: 100%;
+  }
+  
+  :deep(.filter-form .el-select,
+         .filter-form .el-input) {
+    width: 100% !important;
+  }
 }
 </style>
