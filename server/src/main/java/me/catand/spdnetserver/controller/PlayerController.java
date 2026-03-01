@@ -2,11 +2,8 @@ package me.catand.spdnetserver.controller;
 
 import me.catand.spdnetserver.SocketService;
 import me.catand.spdnetserver.controller.dto.*;
-import me.catand.spdnetserver.entitys.GameRecord;
-import me.catand.spdnetserver.entitys.Player;
-import me.catand.spdnetserver.entitys.UserRole;
-import me.catand.spdnetserver.repositories.GameRecordRepository;
-import me.catand.spdnetserver.repositories.PlayerRepository;
+import me.catand.spdnetserver.entitys.*;
+import me.catand.spdnetserver.repositories.*;
 import me.catand.spdnetserver.service.MailService;
 import me.catand.spdnetserver.service.VerificationCodeService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,6 +30,15 @@ public class PlayerController {
 
     @Autowired
     private GameRecordRepository gameRecordRepository;
+
+    @Autowired
+    private PlayerBestiaryRepository bestiaryRepository;
+
+    @Autowired
+    private PlayerCatalogRepository catalogRepository;
+
+    @Autowired
+    private PlayerDocumentRepository documentRepository;
 
     @Autowired
     private SocketService socketService;
@@ -297,17 +303,79 @@ public class PlayerController {
         data.put("name", player.getName());
         data.put("role", player.getRole().getDisplayName());
         data.put("online", isOnline);
+
+        // 成就数量
         data.put("achievementCount", player.getAchievements() != null ? player.getAchievements().size() : 0);
 
+        // 游戏统计
         long totalGames = gameRecordRepository.countByPlayer(player);
         long wins = gameRecordRepository.countByPlayerAndWinTrue(player);
         data.put("totalGames", totalGames);
         data.put("wins", wins);
 
+        // 计算总分数（所有游戏记录分数之和）
+        List<GameRecord> allRecords = gameRecordRepository.findByPlayerOrderByScoreDesc(player);
+        long totalScore = allRecords.stream().mapToLong(GameRecord::getScore).sum();
+        data.put("totalScore", totalScore);
+
+        // 最高记录
+        int maxScore = allRecords.isEmpty() ? 0 : allRecords.get(0).getScore();
+        int maxDepth = allRecords.stream().mapToInt(GameRecord::getMaxDepth).max().orElse(0);
+        int maxLevel = allRecords.stream().mapToInt(r -> r.getLevel() > 0 ? r.getLevel() : 1).max().orElse(1);
+        data.put("maxScore", maxScore);
+        data.put("maxDepth", maxDepth);
+        data.put("maxLevel", maxLevel);
+
         // 注册时间和最后登录信息（公开信息）
         data.put("createdAt", player.getCreatedAt());
         data.put("lastLoginAt", player.getLastLoginAt());
-        // 注意：lastLoginIp 和 email 是私密信息，不在公开接口返回
+
+        // 图鉴、日志、文档信息
+        List<PlayerBestiary> bestiaryList = bestiaryRepository.findByPlayerId(player.getId());
+        List<PlayerCatalog> catalogList = catalogRepository.findByPlayerId(player.getId());
+        List<PlayerDocument> documentList = documentRepository.findByPlayerId(player.getId());
+
+        // 图鉴统计
+        long bestiarySeen = bestiaryList.stream().filter(PlayerBestiary::isSeen).count();
+        data.put("bestiaryTotal", bestiaryList.size());
+        data.put("bestiarySeen", bestiarySeen);
+
+        // 物品图鉴统计
+        long catalogSeen = catalogList.stream().filter(PlayerCatalog::isSeen).count();
+        data.put("catalogTotal", catalogList.size());
+        data.put("catalogSeen", catalogSeen);
+
+        // 文档统计
+        long documentFound = documentList.stream().filter(PlayerDocument::isFound).count();
+        data.put("documentTotal", documentList.size());
+        data.put("documentFound", documentFound);
+
+        // 详细列表（可选，如果需要展示具体项目）
+        data.put("bestiaryList", bestiaryList.stream()
+            .filter(PlayerBestiary::isSeen)
+            .map(b -> Map.of(
+                "type", b.getBestiaryType(),
+                "entity", b.getEntityClass(),
+                "encountered", b.getEncountered()
+            ))
+            .collect(Collectors.toList()));
+
+        data.put("catalogList", catalogList.stream()
+            .filter(PlayerCatalog::isSeen)
+            .map(c -> Map.of(
+                "type", c.getCatalogType(),
+                "item", c.getItemClass(),
+                "useCount", c.getUseCount()
+            ))
+            .collect(Collectors.toList()));
+
+        data.put("documentList", documentList.stream()
+            .filter(PlayerDocument::isFound)
+            .map(d -> Map.of(
+                "type", d.getDocumentType(),
+                "page", d.getPageName()
+            ))
+            .collect(Collectors.toList()));
 
         return ApiResponse.success("获取成功", data);
     }

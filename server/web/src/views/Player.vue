@@ -6,7 +6,7 @@
       <div class="header-content">
         <div class="player-avatar-wrapper">
           <el-avatar :size="120" :icon="UserFilled" class="player-avatar" />
-          <div class="online-status" v-if="playerInfo.isOnline">
+          <div class="online-status" v-if="playerInfo.online">
             <span class="status-dot"></span>
             <span>在线</span>
           </div>
@@ -17,26 +17,174 @@
             <el-tag :type="playerInfo.role === '管理员' ? 'danger' : 'primary'" effect="light" round size="large">
               {{ playerInfo.role || '玩家' }}
             </el-tag>
-            <el-tag type="info" effect="light" round size="large" v-if="playerInfo.isOnline">
+            <el-tag type="info" effect="light" round size="large" v-if="playerInfo.online">
               <el-icon><CircleCheck /></el-icon>
               游戏中
             </el-tag>
+          </div>
+          <div class="player-meta">
+            <span><el-icon><Calendar /></el-icon> 注册于 {{ formatDate(playerInfo.createdAt) }}</span>
+            <span v-if="playerInfo.lastLoginAt"><el-icon><Timer /></el-icon> 最后登录 {{ formatDate(playerInfo.lastLoginAt) }}</span>
           </div>
         </div>
       </div>
     </div>
 
     <!-- Stats Grid -->
-    <div class="stats-grid">
-      <div class="stat-card" v-for="(stat, index) in stats" :key="index">
-        <div class="stat-icon" :style="{ background: stat.gradient }">
-          <el-icon :size="24" color="white"><component :is="stat.icon" /></el-icon>
-        </div>
-        <div class="stat-content">
-          <div class="stat-value">{{ stat.value }}</div>
-          <div class="stat-label">{{ stat.label }}</div>
+    <div class="stats-section">
+      <h2 class="section-title">
+        <el-icon><TrendCharts /></el-icon>
+        游戏统计
+      </h2>
+      <div class="stats-grid">
+        <div class="stat-card" v-for="(stat, index) in gameStats" :key="index">
+          <div class="stat-icon" :style="{ background: stat.gradient }">
+            <el-icon :size="24" color="white"><component :is="stat.icon" /></el-icon>
+          </div>
+          <div class="stat-content">
+            <div class="stat-value">{{ stat.value }}</div>
+            <div class="stat-label">{{ stat.label }}</div>
+          </div>
         </div>
       </div>
+    </div>
+
+    <!-- Collection Stats -->
+    <div class="collection-section">
+      <h2 class="section-title">
+        <el-icon><Collection /></el-icon>
+        收集进度
+      </h2>
+      <div class="collection-grid">
+        <!-- 成就 -->
+        <div class="collection-card">
+          <div class="collection-header">
+            <div class="collection-icon" style="background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%)">
+              <el-icon :size="28"><Trophy /></el-icon>
+            </div>
+            <div class="collection-info">
+              <h3>成就</h3>
+              <p>{{ playerInfo.achievementCount || 0 }} 个解锁</p>
+            </div>
+          </div>
+          <div class="collection-progress">
+            <div class="progress-bar">
+              <div class="progress-fill" :style="{ width: '100%' }"></div>
+            </div>
+            <span class="progress-text">已获得</span>
+          </div>
+        </div>
+
+        <!-- 怪物图鉴 -->
+        <div class="collection-card">
+          <div class="collection-header">
+            <div class="collection-icon" style="background: linear-gradient(135deg, #ec4899 0%, #f43f5e 100%)">
+              <el-icon :size="28"><View /></el-icon>
+            </div>
+            <div class="collection-info">
+              <h3>怪物图鉴</h3>
+              <p>{{ playerInfo.bestiarySeen || 0 }} / {{ playerInfo.bestiaryTotal || 0 }} 已发现</p>
+            </div>
+          </div>
+          <div class="collection-progress">
+            <div class="progress-bar">
+              <div class="progress-fill" :style="{ width: bestiaryProgress + '%' }"></div>
+            </div>
+            <span class="progress-text">{{ bestiaryProgress }}%</span>
+          </div>
+        </div>
+
+        <!-- 物品图鉴 -->
+        <div class="collection-card">
+          <div class="collection-header">
+            <div class="collection-icon" style="background: linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%)">
+              <el-icon :size="28"><Goods /></el-icon>
+            </div>
+            <div class="collection-info">
+              <h3>物品图鉴</h3>
+              <p>{{ playerInfo.catalogSeen || 0 }} / {{ playerInfo.catalogTotal || 0 }} 已收集</p>
+            </div>
+          </div>
+          <div class="collection-progress">
+            <div class="progress-bar">
+              <div class="progress-fill" :style="{ width: catalogProgress + '%' }"></div>
+            </div>
+            <span class="progress-text">{{ catalogProgress }}%</span>
+          </div>
+        </div>
+
+        <!-- 文档日志 -->
+        <div class="collection-card">
+          <div class="collection-header">
+            <div class="collection-icon" style="background: linear-gradient(135deg, #10b981 0%, #06b6d4 100%)">
+              <el-icon :size="28"><Document /></el-icon>
+            </div>
+            <div class="collection-info">
+              <h3>文档日志</h3>
+              <p>{{ playerInfo.documentFound || 0 }} / {{ playerInfo.documentTotal || 0 }} 已发现</p>
+            </div>
+          </div>
+          <div class="collection-progress">
+            <div class="progress-bar">
+              <div class="progress-fill" :style="{ width: documentProgress + '%' }"></div>
+            </div>
+            <span class="progress-text">{{ documentProgress }}%</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Collection Details -->
+    <div class="details-section" v-if="hasCollectionData">
+      <el-tabs type="border-card" class="collection-tabs">
+        <!-- 怪物图鉴详情 -->
+        <el-tab-pane label="怪物图鉴" v-if="playerInfo.bestiaryList?.length > 0">
+          <div class="detail-list">
+            <div v-for="(item, index) in playerInfo.bestiaryList" :key="index" class="detail-item">
+              <div class="detail-icon">
+                <el-icon><Warning /></el-icon>
+              </div>
+              <div class="detail-content">
+                <span class="detail-name">{{ formatEntityName(item.entity) }}</span>
+                <span class="detail-type">{{ item.type }}</span>
+              </div>
+              <el-tag size="small" type="info">遭遇 {{ item.encountered }} 次</el-tag>
+            </div>
+          </div>
+        </el-tab-pane>
+
+        <!-- 物品图鉴详情 -->
+        <el-tab-pane label="物品图鉴" v-if="playerInfo.catalogList?.length > 0">
+          <div class="detail-list">
+            <div v-for="(item, index) in playerInfo.catalogList" :key="index" class="detail-item">
+              <div class="detail-icon">
+                <el-icon><Goods /></el-icon>
+              </div>
+              <div class="detail-content">
+                <span class="detail-name">{{ formatItemName(item.item) }}</span>
+                <span class="detail-type">{{ item.type }}</span>
+              </div>
+              <el-tag size="small" type="info">使用 {{ item.useCount }} 次</el-tag>
+            </div>
+          </div>
+        </el-tab-pane>
+
+        <!-- 文档日志详情 -->
+        <el-tab-pane label="文档日志" v-if="playerInfo.documentList?.length > 0">
+          <div class="detail-list">
+            <div v-for="(item, index) in playerInfo.documentList" :key="index" class="detail-item">
+              <div class="detail-icon">
+                <el-icon><Document /></el-icon>
+              </div>
+              <div class="detail-content">
+                <span class="detail-name">{{ formatPageName(item.page) }}</span>
+                <span class="detail-type">{{ item.type }}</span>
+              </div>
+              <el-tag size="small" type="success">已发现</el-tag>
+            </div>
+          </div>
+        </el-tab-pane>
+      </el-tabs>
     </div>
 
     <!-- Records Section -->
@@ -145,8 +293,9 @@ import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import {
-  UserFilled, CircleCheck, Trophy, Clock,
-  TrendCharts, FirstAidKit, OfficeBuilding, Medal
+  UserFilled, CircleCheck, Trophy, Clock, Calendar, Timer,
+  TrendCharts, FirstAidKit, OfficeBuilding, Medal, Collection,
+  View, Goods, Document, Warning
 } from '@element-plus/icons-vue'
 import { playerApi, leaderboardApi } from '../api'
 
@@ -209,15 +358,71 @@ const formatCause = (cause) => {
 
 const formatDate = (dateStr) => {
   if (!dateStr) return '-'
-  return new Date(dateStr).toLocaleString('zh-CN')
+  const date = new Date(dateStr)
+  return date.toLocaleDateString('zh-CN', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric'
+  })
 }
 
-const stats = computed(() => [
+const formatEntityName = (entityClass) => {
+  if (!entityClass) return '未知'
+  const parts = entityClass.split('.')
+  const name = parts[parts.length - 1]
+  return name.replace(/([A-Z])/g, ' $1').trim()
+}
+
+const formatItemName = (itemClass) => {
+  if (!itemClass) return '未知'
+  const parts = itemClass.split('.')
+  const name = parts[parts.length - 1]
+  return name.replace(/([A-Z])/g, ' $1').trim()
+}
+
+const formatPageName = (pageName) => {
+  if (!pageName) return '未知'
+  return pageName.replace(/_/g, ' ')
+}
+
+// 计算进度百分比
+const bestiaryProgress = computed(() => {
+  const total = playerInfo.value.bestiaryTotal || 0
+  const seen = playerInfo.value.bestiarySeen || 0
+  return total > 0 ? Math.round((seen / total) * 100) : 0
+})
+
+const catalogProgress = computed(() => {
+  const total = playerInfo.value.catalogTotal || 0
+  const seen = playerInfo.value.catalogSeen || 0
+  return total > 0 ? Math.round((seen / total) * 100) : 0
+})
+
+const documentProgress = computed(() => {
+  const total = playerInfo.value.documentTotal || 0
+  const found = playerInfo.value.documentFound || 0
+  return total > 0 ? Math.round((found / total) * 100) : 0
+})
+
+const hasCollectionData = computed(() => {
+  return playerInfo.value.bestiaryList?.length > 0 ||
+         playerInfo.value.catalogList?.length > 0 ||
+         playerInfo.value.documentList?.length > 0
+})
+
+// 游戏统计数据
+const gameStats = computed(() => [
   {
-    label: '最高分数',
-    value: playerInfo.value.maxScore?.toLocaleString() || 0,
+    label: '总分数',
+    value: (playerInfo.value.totalScore || 0).toLocaleString(),
     icon: 'TrendCharts',
     gradient: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)'
+  },
+  {
+    label: '最高分数',
+    value: (playerInfo.value.maxScore || 0).toLocaleString(),
+    icon: 'Trophy',
+    gradient: 'linear-gradient(135deg, #f59e0b 0%, #f97316 100%)'
   },
   {
     label: '最深到达',
@@ -235,7 +440,13 @@ const stats = computed(() => [
     label: '游戏次数',
     value: playerInfo.value.totalGames || 0,
     icon: 'FirstAidKit',
-    gradient: 'linear-gradient(135deg, #f59e0b 0%, #f97316 100%)'
+    gradient: 'linear-gradient(135deg, #10b981 0%, #06b6d4 100%)'
+  },
+  {
+    label: '胜利次数',
+    value: playerInfo.value.wins || 0,
+    icon: 'CircleCheck',
+    gradient: 'linear-gradient(135deg, #22c55e 0%, #10b981 100%)'
   }
 ])
 
@@ -355,6 +566,10 @@ onMounted(() => {
   animation: pulse 2s ease-in-out infinite;
 }
 
+.player-info {
+  flex: 1;
+}
+
 .player-info h1 {
   font-size: 2rem;
   font-weight: 700;
@@ -365,14 +580,42 @@ onMounted(() => {
 .player-tags {
   display: flex;
   gap: var(--space-2);
+  margin-bottom: var(--space-3);
 }
 
-/* Stats Grid */
+.player-meta {
+  display: flex;
+  gap: var(--space-4);
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+}
+
+.player-meta span {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+/* Section Title */
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 0 0 var(--space-4);
+  color: var(--text-primary);
+}
+
+/* Stats Section */
+.stats-section {
+  margin-bottom: var(--space-8);
+}
+
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: var(--space-4);
-  margin-bottom: var(--space-8);
 }
 
 .stat-card {
@@ -419,6 +662,164 @@ onMounted(() => {
   margin-top: var(--space-1);
 }
 
+/* Collection Section */
+.collection-section {
+  margin-bottom: var(--space-8);
+}
+
+.collection-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-4);
+}
+
+.collection-card {
+  background: var(--surface-1);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  transition: all var(--transition-base);
+}
+
+.collection-card:hover {
+  border-color: var(--border-default);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.collection-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.collection-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+}
+
+.collection-info h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0 0 var(--space-1);
+  color: var(--text-primary);
+}
+
+.collection-info p {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.collection-progress {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.progress-bar {
+  flex: 1;
+  height: 8px;
+  background: var(--surface-2);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: var(--gradient-primary);
+  border-radius: var(--radius-full);
+  transition: width 0.5s ease;
+}
+
+.progress-text {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--primary-400);
+  min-width: 40px;
+  text-align: right;
+}
+
+/* Details Section */
+.details-section {
+  margin-bottom: var(--space-8);
+}
+
+:deep(.collection-tabs) {
+  background: var(--surface-1);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+}
+
+:deep(.collection-tabs .el-tabs__header) {
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+:deep(.collection-tabs .el-tabs__item) {
+  color: var(--text-secondary);
+}
+
+:deep(.collection-tabs .el-tabs__item.is-active) {
+  color: var(--primary-400);
+}
+
+:deep(.collection-tabs .el-tabs__content) {
+  padding: var(--space-4);
+}
+
+.detail-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.detail-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  background: var(--surface-2);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+}
+
+.detail-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-md);
+  background: var(--surface-3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--primary-400);
+}
+
+.detail-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.detail-name {
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.detail-type {
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+}
+
 /* Records Section */
 .records-section {
   background: var(--surface-1);
@@ -427,7 +828,7 @@ onMounted(() => {
   overflow: hidden;
 }
 
-.section-header {
+.records-section .section-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -632,6 +1033,10 @@ onMounted(() => {
     grid-template-columns: repeat(2, 1fr);
   }
 
+  .collection-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
   .record-cards {
     grid-template-columns: 1fr;
   }
@@ -648,15 +1053,20 @@ onMounted(() => {
     padding: var(--space-6);
   }
 
-  .player-tags {
-    justify-content: center;
+  .player-meta {
+    flex-direction: column;
+    gap: var(--space-2);
   }
 
   .stats-grid {
     grid-template-columns: 1fr;
   }
 
-  .section-header {
+  .collection-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .records-section .section-header {
     flex-direction: column;
     gap: var(--space-3);
     align-items: flex-start;
