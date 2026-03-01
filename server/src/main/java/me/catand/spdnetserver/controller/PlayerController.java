@@ -350,20 +350,177 @@ public class PlayerController {
         List<PlayerCatalog> catalogList = catalogRepository.findByPlayerId(player.getId());
         List<PlayerDocument> documentList = documentRepository.findByPlayerId(player.getId());
 
-        // 图鉴统计 (Bestiary总数量 = 136个实体，来自core模块)
+        // ========== 成就统计 ==========
+        data.put("achievementTotal", 94);
+        data.put("achievementCount", achievements != null ? achievements.size() : 0);
+
+        // ========== 地牢指南统计 (冒险者指南 13页) ==========
+        long adventurersGuideFound = documentList.stream()
+            .filter(d -> d.getDocumentType().equals("ADVENTURERS_GUIDE") && d.isFound())
+            .count();
+        data.put("adventurersGuideTotal", 13);
+        data.put("adventurersGuideFound", adventurersGuideFound);
+
+        // ========== 炼金指南统计 (炼金指南 9页) ==========
+        long alchemyGuideFound = documentList.stream()
+            .filter(d -> d.getDocumentType().equals("ALCHEMY_GUIDE") && d.isFound())
+            .count();
+        data.put("alchemyGuideTotal", 9);
+        data.put("alchemyGuideFound", alchemyGuideFound);
+
+        // ========== 图鉴 - 装备统计 (165个) ==========
+        // 装备分类：近战武器、护甲、附魔、刻印、投掷武器、魔杖、戒指、神器、饰品、杂项装备
+        Set<String> equipmentTypes = Set.of(
+            "MELEE_WEAPONS", "ARMOR", "ENCHANTMENTS", "GLYPHS", "THROWN_WEAPONS",
+            "WANDS", "RINGS", "ARTIFACTS", "TRINKETS", "MISC_EQUIPMENT"
+        );
+        long equipmentSeen = catalogList.stream()
+            .filter(c -> equipmentTypes.contains(c.getCatalogType()) && c.isSeen())
+            .count();
+        data.put("equipmentTotal", 165);
+        data.put("equipmentSeen", equipmentSeen);
+
+        // 装备子分类统计
+        Map<String, Integer> equipmentSubtotals = Map.of(
+            "MELEE_WEAPONS", 33,      // 近战武器
+            "ARMOR", 11,              // 护甲
+            "ENCHANTMENTS", 21,       // 附魔与诅咒
+            "GLYPHS", 21,             // 刻印与诅咒
+            "THROWN_WEAPONS", 16,     // 投掷武器
+            "WANDS", 13,              // 法杖
+            "RINGS", 12,              // 戒指
+            "ARTIFACTS", 13,          // 神器
+            "TRINKETS", 17,           // 饰品
+            "MISC_EQUIPMENT", 8       // 杂项装备
+        );
+        Map<String, Object> equipmentDetails = new HashMap<>();
+        equipmentSubtotals.forEach((type, total) -> {
+            long seen = catalogList.stream()
+                .filter(c -> c.getCatalogType().equals(type) && c.isSeen())
+                .count();
+            Map<String, Object> detail = new HashMap<>();
+            detail.put("total", total);
+            detail.put("seen", seen);
+            equipmentDetails.put(type, detail);
+        });
+        data.put("equipmentDetails", equipmentDetails);
+
+        // ========== 图鉴 - 消耗品统计 (161个) ==========
+        Set<String> consumableTypes = Set.of(
+            "POTIONS", "SEEDS", "SCROLLS", "STONES", "FOOD",
+            "EXOTIC_POTIONS", "EXOTIC_SCROLLS", "BOMBS", "TIPPED_DARTS",
+            "BREWS_ELIXIRS", "SPELLS", "MISC_CONSUMABLES"
+        );
+        long consumablesSeen = catalogList.stream()
+            .filter(c -> consumableTypes.contains(c.getCatalogType()) && c.isSeen())
+            .count();
+        data.put("consumablesTotal", 161);
+        data.put("consumablesSeen", consumablesSeen);
+
+        // 消耗品子分类统计
+        Map<String, Integer> consumableSubtotals = new HashMap<>();
+        consumableSubtotals.put("POTIONS", 12);            // 药剂
+        consumableSubtotals.put("SCROLLS", 12);            // 卷轴
+        consumableSubtotals.put("SEEDS", 12);              // 种子
+        consumableSubtotals.put("STONES", 12);             // 符石
+        consumableSubtotals.put("FOOD", 12);               // 食物
+        consumableSubtotals.put("EXOTIC_POTIONS", 12);     // 合剂
+        consumableSubtotals.put("EXOTIC_SCROLLS", 12);     // 秘卷
+        consumableSubtotals.put("BOMBS", 11);              // 炸弹
+        consumableSubtotals.put("TIPPED_DARTS", 12);       // 涂药飞镖
+        consumableSubtotals.put("BREWS_ELIXIRS", 14);      // 魔药与秘药
+        consumableSubtotals.put("SPELLS", 11);             // 法术结晶
+        consumableSubtotals.put("MISC_CONSUMABLES", 29);   // 杂项消耗品
+        Map<String, Object> consumablesDetails = new HashMap<>();
+        consumableSubtotals.forEach((type, total) -> {
+            long seen = catalogList.stream()
+                .filter(c -> c.getCatalogType().equals(type) && c.isSeen())
+                .count();
+            Map<String, Object> detail = new HashMap<>();
+            detail.put("total", total);
+            detail.put("seen", seen);
+            consumablesDetails.put(type, detail);
+        });
+        data.put("consumablesDetails", consumablesDetails);
+
+        // ========== 图鉴 - 单位图鉴统计 (143个) ==========
         long bestiarySeen = bestiaryList.stream().filter(PlayerBestiary::isSeen).count();
-        data.put("bestiaryTotal", 136);
+        data.put("bestiaryTotal", 143);  // 30+12+8+15+12+8+10+31+16 = 143
         data.put("bestiarySeen", bestiarySeen);
 
-        // 物品图鉴统计 (Catalog总数量，来自core模块Generator定义)
-        long catalogSeen = catalogList.stream().filter(PlayerCatalog::isSeen).count();
-        data.put("catalogTotal", 285); // 基于Generator中定义的物品总数
-        data.put("catalogSeen", catalogSeen);
+        // 单位图鉴子分类统计
+        Map<String, Integer> bestiarySubtotals = new HashMap<>();
+        bestiarySubtotals.put("REGIONAL", 30);      // 区域敌人
+        bestiarySubtotals.put("BOSSES", 12);        // 区域Boss
+        bestiarySubtotals.put("UNIVERSAL", 8);      // 全局敌人
+        bestiarySubtotals.put("RARE", 15);          // 稀有敌人
+        bestiarySubtotals.put("QUEST", 12);         // 任务敌人与Boss
+        bestiarySubtotals.put("NEUTRAL", 8);        // 中立角色
+        bestiarySubtotals.put("ALLY", 10);          // 盟友
+        bestiarySubtotals.put("TRAP", 31);          // 陷阱
+        bestiarySubtotals.put("PLANT", 16);         // 植物
+        Map<String, Object> bestiaryDetails = new HashMap<>();
+        bestiarySubtotals.forEach((type, total) -> {
+            long seen = bestiaryList.stream()
+                .filter(b -> b.getBestiaryType().equals(type) && b.isSeen())
+                .count();
+            Map<String, Object> detail = new HashMap<>();
+            detail.put("total", total);
+            detail.put("seen", seen);
+            bestiaryDetails.put(type, detail);
+        });
+        data.put("bestiaryDetails", bestiaryDetails);
 
-        // 文档统计 (Document总页面数 = 58页，来自core模块)
-        long documentFound = documentList.stream().filter(PlayerDocument::isFound).count();
-        data.put("documentTotal", 58);
-        data.put("documentFound", documentFound);
+        // ========== 图鉴 - 背景故事统计 (36页) ==========
+        // 背景故事文档：INTROS, SEWERS_GUARD, PRISON_WARDEN, CAVES_EXPLORER, CITY_WARLOCK, HALLS_KING
+        // HALLS_KING共6页，其中第6页(KING_ATTRITION/attrition)是隐藏页，需要特殊条件触发
+        // 注意：INTROS的第一页"Dungeon"默认解锁，不需要在数据库中存储
+        Set<String> loreDocTypes = Set.of(
+            "INTROS", "SEWERS_GUARD", "PRISON_WARDEN",
+            "CAVES_EXPLORER", "CITY_WARLOCK", "HALLS_KING"
+        );
+
+        // 计算背景故事已发现数量，INTROS的"Dungeon"页面默认已发现
+        long loreFound = documentList.stream()
+            .filter(d -> loreDocTypes.contains(d.getDocumentType()) && d.isFound())
+            .count();
+        // 如果数据库中没有INTROS的"Dungeon"记录，默认算作已发现
+        boolean hasIntrosDungeon = documentList.stream()
+            .anyMatch(d -> "INTROS".equals(d.getDocumentType()) && "Dungeon".equals(d.getPageName()) && d.isFound());
+        if (!hasIntrosDungeon) {
+            loreFound += 1;  // 默认解锁INTROS的第一页
+        }
+
+        data.put("loreTotal", 36);  // 6+6+6+6+6+6 = 36 (包含HALLS_KING的隐藏页)
+        data.put("loreFound", loreFound);
+
+        // 背景故事子分类统计
+        Map<String, Integer> loreSubtotals = new HashMap<>();
+        loreSubtotals.put("INTROS", 6);           // 地牢区域介绍
+        loreSubtotals.put("SEWERS_GUARD", 6);     // 巡逻队员的信件
+        loreSubtotals.put("PRISON_WARDEN", 6);    // 监狱长日志
+        loreSubtotals.put("CAVES_EXPLORER", 6);   // 探险者日志
+        loreSubtotals.put("CITY_WARLOCK", 6);     // 矮人术士手记
+        loreSubtotals.put("HALLS_KING", 6);       // ？？？录 (6页，第6页是隐藏页)
+        Map<String, Object> loreDetails = new HashMap<>();
+        loreSubtotals.forEach((type, total) -> {
+            long found = documentList.stream()
+                .filter(d -> d.getDocumentType().equals(type) && d.isFound())
+                .count();
+            // INTROS的"Dungeon"页面默认已发现
+            if ("INTROS".equals(type)) {
+                boolean hasDungeon = documentList.stream()
+                    .anyMatch(d -> "INTROS".equals(d.getDocumentType()) && "Dungeon".equals(d.getPageName()) && d.isFound());
+                if (!hasDungeon) {
+                    found += 1;  // 默认解锁INTROS的第一页
+                }
+            }
+            Map<String, Object> detail = new HashMap<>();
+            detail.put("total", total);
+            detail.put("found", found);
+            loreDetails.put(type, detail);
+        });
+        data.put("loreDetails", loreDetails);
 
         // 详细列表（可选，如果需要展示具体项目）
         data.put("bestiaryList", bestiaryList.stream()

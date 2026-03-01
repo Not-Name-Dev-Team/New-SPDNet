@@ -139,7 +139,8 @@
               <h3>游戏进度</h3>
             </div>
             <div class="progress-list">
-              <div class="progress-item">
+              <!-- 成就 -->
+              <div class="progress-item" @click="toggleDetail('achievement')">
                 <div class="progress-icon" style="background: rgba(245, 158, 11, 0.12); color: #f59e0b;">
                   <el-icon><Trophy /></el-icon>
                 </div>
@@ -147,75 +148,148 @@
                   <span class="progress-name">成就</span>
                   <span class="progress-desc">{{ playerInfo?.achievementCount || 0 }}/{{ playerInfo?.achievementTotal || 94 }}</span>
                 </div>
-                <div class="progress-bar-mini">
-                  <div class="progress-fill-mini" :style="{ width: ((playerInfo?.achievementCount || 0) / (playerInfo?.achievementTotal || 94) * 100) + '%' }"></div>
+                <div class="progress-right">
+                  <div class="progress-bar-mini">
+                    <div class="progress-fill-mini" :style="{ width: ((playerInfo?.achievementCount || 0) / (playerInfo?.achievementTotal || 94) * 100) + '%' }"></div>
+                  </div>
+                  <el-icon class="expand-icon" :class="{ expanded: expandedDetail === 'achievement' }"><ArrowRight /></el-icon>
                 </div>
               </div>
-              <div class="progress-item">
+
+              <!-- 图鉴主分类 -->
+              <div class="progress-item" @click="toggleDetail('catalog')">
                 <div class="progress-icon" style="background: rgba(139, 92, 246, 0.12); color: #8b5cf6;">
                   <el-icon><View /></el-icon>
                 </div>
                 <div class="progress-info">
                   <span class="progress-name">图鉴</span>
-                  <span class="progress-desc">{{ playerInfo?.bestiarySeen || 0 }}/{{ playerInfo?.bestiaryTotal || 136 }}</span>
+                  <span class="progress-desc">{{ totalCatalogSeen }}/{{ totalCatalogCount }}</span>
                 </div>
-                <div class="progress-bar-mini">
-                  <div class="progress-fill-mini" :style="{ width: ((playerInfo?.bestiarySeen || 0) / (playerInfo?.bestiaryTotal || 136) * 100) + '%' }"></div>
+                <div class="progress-right">
+                  <div class="progress-bar-mini">
+                    <div class="progress-fill-mini" :style="{ width: (totalCatalogSeen / totalCatalogCount * 100) + '%' }"></div>
+                  </div>
+                  <el-icon class="expand-icon" :class="{ expanded: expandedDetail === 'catalog' }"><ArrowRight /></el-icon>
                 </div>
               </div>
-              <div class="progress-item">
+
+              <!-- 图鉴展开详情 -->
+              <div v-if="expandedDetail === 'catalog'" class="progress-detail">
+                <!-- 装备 -->
+                <div class="detail-section">
+                  <div class="detail-header" @click="toggleSubDetail('equipment')">
+                    <span class="detail-title">装备</span>
+                    <span class="detail-count">{{ playerInfo?.equipmentSeen || 0 }}/{{ playerInfo?.equipmentTotal || 165 }}</span>
+                    <el-icon class="expand-icon" :class="{ expanded: expandedSubDetail === 'equipment' }"><ArrowRight /></el-icon>
+                  </div>
+                  <div v-if="expandedSubDetail === 'equipment'" class="detail-items">
+                    <div class="detail-item"><span>近战武器</span><span>{{ getEquipmentDetail('MELEE_WEAPONS') }}</span></div>
+                    <div class="detail-item"><span>护甲</span><span>{{ getEquipmentDetail('ARMOR') }}</span></div>
+                    <div class="detail-item"><span>附魔与诅咒</span><span>{{ getEquipmentDetail('ENCHANTMENTS') }}</span></div>
+                    <div class="detail-item"><span>刻印与诅咒</span><span>{{ getEquipmentDetail('GLYPHS') }}</span></div>
+                    <div class="detail-item"><span>投掷武器</span><span>{{ getEquipmentDetail('THROWN_WEAPONS') }}</span></div>
+                    <div class="detail-item"><span>法杖</span><span>{{ getEquipmentDetail('WANDS') }}</span></div>
+                    <div class="detail-item"><span>戒指</span><span>{{ getEquipmentDetail('RINGS') }}</span></div>
+                    <div class="detail-item"><span>神器</span><span>{{ getEquipmentDetail('ARTIFACTS') }}</span></div>
+                    <div class="detail-item"><span>饰品</span><span>{{ getEquipmentDetail('TRINKETS') }}</span></div>
+                    <div class="detail-item"><span>杂项装备</span><span>{{ getEquipmentDetail('MISC_EQUIPMENT') }}</span></div>
+                  </div>
+                </div>
+                <!-- 消耗品 -->
+                <div class="detail-section">
+                  <div class="detail-header" @click="toggleSubDetail('consumables')">
+                    <span class="detail-title">消耗品</span>
+                    <span class="detail-count">{{ playerInfo?.consumablesSeen || 0 }}/{{ playerInfo?.consumablesTotal || 161 }}</span>
+                    <el-icon class="expand-icon" :class="{ expanded: expandedSubDetail === 'consumables' }"><ArrowRight /></el-icon>
+                  </div>
+                  <div v-if="expandedSubDetail === 'consumables'" class="detail-items">
+                    <div class="detail-item"><span>药剂</span><span>{{ getConsumableDetail('POTIONS') }}</span></div>
+                    <div class="detail-item"><span>卷轴</span><span>{{ getConsumableDetail('SCROLLS') }}</span></div>
+                    <div class="detail-item"><span>种子</span><span>{{ getConsumableDetail('SEEDS') }}</span></div>
+                    <div class="detail-item"><span>符石</span><span>{{ getConsumableDetail('STONES') }}</span></div>
+                    <div class="detail-item"><span>食物</span><span>{{ getConsumableDetail('FOOD') }}</span></div>
+                    <div class="detail-item"><span>合剂</span><span>{{ getConsumableDetail('EXOTIC_POTIONS') }}</span></div>
+                    <div class="detail-item"><span>秘卷</span><span>{{ getConsumableDetail('EXOTIC_SCROLLS') }}</span></div>
+                    <div class="detail-item"><span>炸弹</span><span>{{ getConsumableDetail('BOMBS') }}</span></div>
+                    <div class="detail-item"><span>涂药飞镖</span><span>{{ getConsumableDetail('TIPPED_DARTS') }}</span></div>
+                    <div class="detail-item"><span>魔药与秘药</span><span>{{ getConsumableDetail('BREWS_ELIXIRS') }}</span></div>
+                    <div class="detail-item"><span>法术结晶</span><span>{{ getConsumableDetail('SPELLS') }}</span></div>
+                    <div class="detail-item"><span>杂项消耗品</span><span>{{ getConsumableDetail('MISC_CONSUMABLES') }}</span></div>
+                  </div>
+                </div>
+                <!-- 单位图鉴 -->
+                <div class="detail-section">
+                  <div class="detail-header" @click="toggleSubDetail('bestiary')">
+                    <span class="detail-title">单位图鉴</span>
+                    <span class="detail-count">{{ playerInfo?.bestiarySeen || 0 }}/{{ playerInfo?.bestiaryTotal || 143 }}</span>
+                    <el-icon class="expand-icon" :class="{ expanded: expandedSubDetail === 'bestiary' }"><ArrowRight /></el-icon>
+                  </div>
+                  <div v-if="expandedSubDetail === 'bestiary'" class="detail-items">
+                    <div class="detail-item"><span>区域敌人</span><span>{{ getBestiaryDetail('REGIONAL') }}</span></div>
+                    <div class="detail-item"><span>区域Boss</span><span>{{ getBestiaryDetail('BOSSES') }}</span></div>
+                    <div class="detail-item"><span>全局敌人</span><span>{{ getBestiaryDetail('UNIVERSAL') }}</span></div>
+                    <div class="detail-item"><span>稀有敌人</span><span>{{ getBestiaryDetail('RARE') }}</span></div>
+                    <div class="detail-item"><span>任务敌人与Boss</span><span>{{ getBestiaryDetail('QUEST') }}</span></div>
+                    <div class="detail-item"><span>中立角色</span><span>{{ getBestiaryDetail('NEUTRAL') }}</span></div>
+                    <div class="detail-item"><span>盟友</span><span>{{ getBestiaryDetail('ALLY') }}</span></div>
+                    <div class="detail-item"><span>陷阱</span><span>{{ getBestiaryDetail('TRAP') }}</span></div>
+                    <div class="detail-item"><span>植物</span><span>{{ getBestiaryDetail('PLANT') }}</span></div>
+                  </div>
+                </div>
+                <!-- 背景故事 -->
+                <div class="detail-section">
+                  <div class="detail-header" @click="toggleSubDetail('lore')">
+                    <span class="detail-title">背景故事</span>
+                    <span class="detail-count">{{ playerInfo?.loreFound || 0 }}/{{ playerInfo?.loreTotal || 36 }}</span>
+                    <el-icon class="expand-icon" :class="{ expanded: expandedSubDetail === 'lore' }"><ArrowRight /></el-icon>
+                  </div>
+                  <div v-if="expandedSubDetail === 'lore'" class="detail-items">
+                    <div class="detail-item"><span>地牢区域介绍</span><span>{{ getLoreDetail('INTROS') }}</span></div>
+                    <div class="detail-item"><span>巡逻队员的信件</span><span>{{ getLoreDetail('SEWERS_GUARD') }}</span></div>
+                    <div class="detail-item"><span>监狱长日志</span><span>{{ getLoreDetail('PRISON_WARDEN') }}</span></div>
+                    <div class="detail-item"><span>探险者日志</span><span>{{ getLoreDetail('CAVES_EXPLORER') }}</span></div>
+                    <div class="detail-item"><span>矮人术士手记</span><span>{{ getLoreDetail('CITY_WARLOCK') }}</span></div>
+                    <div class="detail-item"><span>？？？录</span><span>{{ getLoreDetail('HALLS_KING') }}</span></div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 地牢指南 -->
+              <div class="progress-item" @click="toggleDetail('guide')">
+                <div class="progress-icon" style="background: rgba(16, 185, 129, 0.12); color: #10b981;">
+                  <el-icon><Notebook /></el-icon>
+                </div>
+                <div class="progress-info">
+                  <span class="progress-name">地牢指南</span>
+                  <span class="progress-desc">{{ playerInfo?.adventurersGuideFound || 0 }}/{{ playerInfo?.adventurersGuideTotal || 13 }}</span>
+                </div>
+                <div class="progress-right">
+                  <div class="progress-bar-mini">
+                    <div class="progress-fill-mini" :style="{ width: ((playerInfo?.adventurersGuideFound || 0) / (playerInfo?.adventurersGuideTotal || 13) * 100) + '%' }"></div>
+                  </div>
+                  <el-icon class="expand-icon" :class="{ expanded: expandedDetail === 'guide' }"><ArrowRight /></el-icon>
+                </div>
+              </div>
+
+              <!-- 炼金指南 -->
+              <div class="progress-item" @click="toggleDetail('alchemy')">
                 <div class="progress-icon" style="background: rgba(6, 182, 212, 0.12); color: #06b6d4;">
-                  <el-icon><Goods /></el-icon>
+                  <el-icon><FirstAidKit /></el-icon>
                 </div>
                 <div class="progress-info">
-                  <span class="progress-name">物品图鉴</span>
-                  <span class="progress-desc">{{ playerInfo?.catalogSeen || 0 }}/{{ playerInfo?.catalogTotal || 285 }}</span>
+                  <span class="progress-name">炼金指南</span>
+                  <span class="progress-desc">{{ playerInfo?.alchemyGuideFound || 0 }}/{{ playerInfo?.alchemyGuideTotal || 9 }}</span>
                 </div>
-                <div class="progress-bar-mini">
-                  <div class="progress-fill-mini" :style="{ width: ((playerInfo?.catalogSeen || 0) / (playerInfo?.catalogTotal || 285) * 100) + '%' }"></div>
-                </div>
-              </div>
-              <div class="progress-item">
-                <div class="progress-icon" style="background: rgba(236, 72, 153, 0.12); color: #ec4899;">
-                  <el-icon><Document /></el-icon>
-                </div>
-                <div class="progress-info">
-                  <span class="progress-name">文档</span>
-                  <span class="progress-desc">{{ playerInfo?.documentFound || 0 }}/{{ playerInfo?.documentTotal || 58 }}</span>
-                </div>
-                <div class="progress-bar-mini">
-                  <div class="progress-fill-mini" :style="{ width: ((playerInfo?.documentFound || 0) / (playerInfo?.documentTotal || 58) * 100) + '%' }"></div>
+                <div class="progress-right">
+                  <div class="progress-bar-mini">
+                    <div class="progress-fill-mini" :style="{ width: ((playerInfo?.alchemyGuideFound || 0) / (playerInfo?.alchemyGuideTotal || 9) * 100) + '%' }"></div>
+                  </div>
+                  <el-icon class="expand-icon" :class="{ expanded: expandedDetail === 'alchemy' }"><ArrowRight /></el-icon>
                 </div>
               </div>
             </div>
           </div>
 
-          <!-- Achievements -->
-          <div class="info-card">
-            <div class="card-header">
-              <div class="header-icon-wrapper" style="background: linear-gradient(135deg, #8b5cf6 0%, #a855f7 100%);">
-                <el-icon :size="20" color="white"><StarFilled /></el-icon>
-              </div>
-              <h3>成就</h3>
-            </div>
-            <div class="achievements-list">
-              <div
-                v-for="(achievement, index) in achievements"
-                :key="index"
-                class="achievement-item"
-                :class="{ unlocked: achievement.unlocked }"
-              >
-                <div class="achievement-icon">
-                  <el-icon :size="20"><component :is="achievement.icon" /></el-icon>
-                </div>
-                <div class="achievement-info">
-                  <span class="achievement-name">{{ achievement.name }}</span>
-                  <span class="achievement-desc">{{ achievement.description }}</span>
-                </div>
-                <el-icon v-if="achievement.unlocked" class="achievement-check"><CircleCheckFilled /></el-icon>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
     </div>
@@ -229,7 +303,7 @@ import { ElMessage } from 'element-plus'
 import {
   UserFilled, User, Trophy, Location, Medal, TrendCharts,
   Clock, StarFilled, CircleCheckFilled, Check, Close, Warning,
-  Collection, Goods, Document, Flag, View
+  Collection, Goods, Document, Flag, View, Notebook, FirstAidKit, ArrowRight
 } from '@element-plus/icons-vue'
 import { playerApi, leaderboardApi } from '../api'
 
@@ -239,6 +313,56 @@ const playerRank = ref(null)
 const rankDiff = ref(0)
 const recentGames = ref([])
 const loading = ref(false)
+const expandedDetail = ref(null)
+const expandedSubDetail = ref(null)
+
+// 图鉴总数量计算
+const totalCatalogCount = computed(() => {
+  return (playerInfo.value?.equipmentTotal || 165) +
+         (playerInfo.value?.consumablesTotal || 161) +
+         (playerInfo.value?.bestiaryTotal || 137) +
+         (playerInfo.value?.loreTotal || 37)
+})
+
+const totalCatalogSeen = computed(() => {
+  return (playerInfo.value?.equipmentSeen || 0) +
+         (playerInfo.value?.consumablesSeen || 0) +
+         (playerInfo.value?.bestiarySeen || 0) +
+         (playerInfo.value?.loreFound || 0)
+})
+
+const toggleDetail = (detail) => {
+  expandedDetail.value = expandedDetail.value === detail ? null : detail
+  expandedSubDetail.value = null
+}
+
+const toggleSubDetail = (subDetail) => {
+  expandedSubDetail.value = expandedSubDetail.value === subDetail ? null : subDetail
+}
+
+const getEquipmentDetail = (type) => {
+  const detail = playerInfo.value?.equipmentDetails?.[type]
+  if (!detail) return '0/0'
+  return `${detail.seen}/${detail.total}`
+}
+
+const getConsumableDetail = (type) => {
+  const detail = playerInfo.value?.consumablesDetails?.[type]
+  if (!detail) return '0/0'
+  return `${detail.seen}/${detail.total}`
+}
+
+const getBestiaryDetail = (type) => {
+  const detail = playerInfo.value?.bestiaryDetails?.[type]
+  if (!detail) return '0/0'
+  return `${detail.seen}/${detail.total}`
+}
+
+const getLoreDetail = (type) => {
+  const detail = playerInfo.value?.loreDetails?.[type]
+  if (!detail) return '0/0'
+  return `${detail.found}/${detail.total}`
+}
 
 const statsList = computed(() => [
   {
@@ -276,17 +400,6 @@ const progressPercent = computed(() => {
   const base = playerInfo.value.maxScore - rankDiff.value
   if (base <= 0) return 100
   return Math.min(100, Math.round((playerInfo.value.maxScore / (base + rankDiff.value)) * 100))
-})
-
-// 成就列表来自数据库
-const achievements = computed(() => {
-  const achievementList = playerInfo.value?.achievements || []
-  return achievementList.map(name => ({
-    name: name,
-    description: '已获得成就',
-    icon: 'StarFilled',
-    unlocked: true
-  }))
 })
 
 const getRoleType = (role) => {
@@ -887,62 +1000,6 @@ onMounted(() => {
   transition: width 0.5s ease;
 }
 
-/* Achievements */
-.achievements-list {
-  padding: var(--space-2);
-}
-
-.achievement-item {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-3);
-  border-radius: var(--radius-md);
-  transition: all var(--transition-fast);
-  opacity: 0.5;
-}
-
-.achievement-item.unlocked {
-  opacity: 1;
-  background: rgba(16, 185, 129, 0.05);
-}
-
-.achievement-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: var(--radius-md);
-  background: var(--surface-2);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--text-tertiary);
-}
-
-.achievement-item.unlocked .achievement-icon {
-  background: rgba(16, 185, 129, 0.12);
-  color: var(--accent-emerald);
-}
-
-.achievement-info {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-}
-
-.achievement-name {
-  font-weight: 500;
-  color: var(--text-primary);
-}
-
-.achievement-desc {
-  font-size: 0.8125rem;
-  color: var(--text-tertiary);
-}
-
-.achievement-check {
-  color: var(--accent-emerald);
-}
-
 /* Game Progress */
 .progress-list {
   padding: var(--space-2);
@@ -1004,6 +1061,82 @@ onMounted(() => {
   background: linear-gradient(135deg, #10b981 0%, #06b6d4 100%);
   border-radius: var(--radius-full);
   transition: width 0.5s ease;
+}
+
+.progress-right {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.expand-icon {
+  color: var(--text-tertiary);
+  transition: transform 0.3s ease;
+  font-size: 14px;
+}
+
+.expand-icon.expanded {
+  transform: rotate(90deg);
+}
+
+/* Progress Detail */
+.progress-detail {
+  margin-left: var(--space-12);
+  margin-bottom: var(--space-2);
+  border-left: 2px solid var(--border-subtle);
+  padding-left: var(--space-3);
+}
+
+.detail-section {
+  margin-bottom: var(--space-2);
+}
+
+.detail-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.detail-header:hover {
+  background: var(--surface-2);
+}
+
+.detail-title {
+  flex: 1;
+  font-weight: 500;
+  color: var(--text-primary);
+  font-size: 0.875rem;
+}
+
+.detail-count {
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+}
+
+.detail-items {
+  margin-left: var(--space-8);
+  padding: var(--space-1) 0;
+}
+
+.detail-item {
+  display: flex;
+  justify-content: space-between;
+  padding: var(--space-1) var(--space-3);
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+}
+
+.detail-item span:first-child {
+  color: var(--text-tertiary);
+}
+
+.detail-item span:last-child {
+  color: var(--text-secondary);
+  font-family: monospace;
 }
 
 /* Responsive */
