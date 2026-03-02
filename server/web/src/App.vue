@@ -102,7 +102,7 @@
           <div class="footer-icon">
             <el-icon :size="18"><Connection /></el-icon>
           </div>
-          <span>联机破碎地牢 SPDNet</span>
+          <span>绫中之书-SPDNET</span>
         </div>
         <div class="footer-links">
           <a href="https://github.com/Not-Name-Dev-Team/New-SPDNet" target="_blank" class="footer-link">
@@ -110,8 +110,10 @@
             <span>GitHub</span>
           </a>
         </div>
-        <div class="footer-copy">
-          © 2024 SPDNet. All rights reserved.
+        <div class="footer-bottom">
+          <span>绫中之书-SPDNET</span>
+          <span class="divider">|</span>
+          <a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener noreferrer">蜀ICP备2025127308号-2</a>
         </div>
       </div>
     </footer>
@@ -542,9 +544,27 @@ const handleCommand = (command) => {
   color: var(--primary-400);
 }
 
-.footer-copy {
+.footer-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
   color: var(--text-tertiary);
   font-size: 0.75rem;
+}
+
+.footer-bottom .divider {
+  opacity: 0.5;
+}
+
+.footer-bottom a {
+  color: var(--text-tertiary);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+
+.footer-bottom a:hover {
+  color: var(--primary-400);
 }
 
 /* Page Transition */
