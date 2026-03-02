@@ -201,9 +201,21 @@ const validateEmail = (rule, value, callback) => {
   }
 }
 
+// SPDNet: 验证用户名只能包含英文、数字和中文字符
+const validateUsername = (rule, value, callback) => {
+  const usernameRegex = /^[a-zA-Z0-9\u4e00-\u9fa5]+$/
+  if (value === '') {
+    callback(new Error('请输入用户名'))
+  } else if (!usernameRegex.test(value)) {
+    callback(new Error('用户名只能包含英文、数字和中文字符'))
+  } else {
+    callback()
+  }
+}
+
 const rules = {
   name: [
-    { required: true, message: '请输入用户名', trigger: 'blur' },
+    { required: true, validator: validateUsername, trigger: 'blur' },
     { min: 2, max: 16, message: '长度在 2 到 16 个字符', trigger: 'blur' }
   ],
   email: [

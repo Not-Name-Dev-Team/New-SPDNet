@@ -117,8 +117,13 @@ public class PlayerController {
         }
 
         if (name.length() < 2 || name.length() > 16) {
-            return ApiResponse.error("用户名长度需在2-16个字符之间");
-        }
+			return ApiResponse.error("用户名长度需在2-16个字符之间");
+		}
+
+		// SPDNet: 用户名只允许英文、数字和中文字符
+		if (!name.matches("^[a-zA-Z0-9\\u4e00-\\u9fa5]+$")) {
+			return ApiResponse.error("用户名只能包含英文、数字和中文字符");
+		}
 
         if (email == null || email.trim().isEmpty()) {
             return ApiResponse.error("邮箱不能为空");
@@ -620,8 +625,13 @@ public class PlayerController {
         }
 
         if (newName.length() < 2 || newName.length() > 16) {
-            return ApiResponse.error("新用户名长度需在2-16个字符之间");
-        }
+			return ApiResponse.error("新用户名长度需在2-16个字符之间");
+		}
+
+		// SPDNet: 用户名只允许英文、数字和中文字符
+		if (!newName.matches("^[a-zA-Z0-9\\u4e00-\\u9fa5]+$")) {
+			return ApiResponse.error("用户名只能包含英文、数字和中文字符");
+		}
 
         Player player = playerRepository.findByName(currentName);
         if (player == null) {
