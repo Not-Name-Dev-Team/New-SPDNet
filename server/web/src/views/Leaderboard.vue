@@ -96,6 +96,7 @@
           </div>
           <div class="podium-info">
             <router-link :to="`/player/${player.name}`" class="podium-name">
+              <span v-if="player.prefix" class="player-prefix" :style="getPrefixStyle(player.prefix)">{{ player.prefix.displayText }}</span>
               {{ player.name }}
             </router-link>
             <div class="podium-score">
@@ -149,6 +150,7 @@
             <div class="col-player">
               <el-avatar :size="32" :icon="UserFilled" class="player-avatar" />
               <router-link :to="`/player/${player.name}`" class="player-name">
+                <span v-if="player.prefix" class="player-prefix" :style="getPrefixStyle(player.prefix)">{{ player.prefix.displayText }}</span>
                 {{ player.name }}
               </router-link>
             </div>
@@ -242,6 +244,20 @@ const rankIcons = [Trophy, Medal, StarFilled]
 
 const getRankIcon = (index) => rankIcons[index] || Medal
 
+// SPDNet: 前缀系统 - 获取前缀样式
+const getPrefixStyle = (prefix) => {
+  return {
+    color: prefix.color || '#ffffff',
+    backgroundColor: prefix.backgroundColor || 'rgba(139, 92, 246, 0.8)',
+    padding: '2px 8px',
+    borderRadius: '4px',
+    fontSize: '12px',
+    fontWeight: 'bold',
+    marginRight: '6px',
+    display: 'inline-block'
+  }
+}
+
 // 是否应用了筛选
 const filtersActive = computed(() => {
   return filters.value.playerType !== 'all' ||
@@ -329,7 +345,9 @@ const loadData = async () => {
           challengeAmount: record.challengeAmount || 0,
           daily: record.daily || false,
           win: record.win || false,
-          gameMode: record.gameMode || 'NORMAL'
+          gameMode: record.gameMode || 'NORMAL',
+          // SPDNet: 前缀系统 - 添加前缀信息
+          prefix: record.prefix || null
         }
       })
       totalElements.value = data.totalElements || records.length
@@ -713,6 +731,11 @@ onMounted(() => {
 
 .player-name:hover {
   color: var(--primary-400);
+}
+
+.player-prefix {
+  display: inline-block;
+  vertical-align: middle;
 }
 
 .col-score {

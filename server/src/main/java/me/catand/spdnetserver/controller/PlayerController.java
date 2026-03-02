@@ -275,14 +275,19 @@ public class PlayerController {
             records = gameRecordRepository.findAll(pageable);
         }
 
+        // SPDNet: 转换为DTO并添加前缀信息
+        List<LeaderboardRecordDTO> dtoList = new ArrayList<>();
         for (GameRecord record : records.getContent()) {
-            if (record.getPlayer() != null) {
-                record.setPlayerName(record.getPlayer().getName());
+            LeaderboardRecordDTO dto = LeaderboardRecordDTO.fromGameRecord(record);
+            // 获取玩家前缀信息
+            if (dto.getPlayerName() != null) {
+                dto.setPrefix(playerPrefixService.getActivePrefixDTO(dto.getPlayerName()));
             }
+            dtoList.add(dto);
         }
 
         Map<String, Object> data = new HashMap<>();
-        data.put("records", records.getContent());
+        data.put("records", dtoList);
         data.put("totalElements", records.getTotalElements());
         data.put("totalPages", records.getTotalPages());
         data.put("currentPage", page);
