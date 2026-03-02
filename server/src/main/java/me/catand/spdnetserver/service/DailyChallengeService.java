@@ -9,6 +9,9 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -24,6 +27,11 @@ public class DailyChallengeService {
 
 	@Getter
 	private LocalDate currentDate;
+
+	private static final int[] CHALLENGE_MASKS = {128, 256, 1, 2, 4, 8, 16, 32, 64};
+	private static final String[] CHALLENGE_NAMES = {
+			"精英强敌", "绝命头目", "缩餐节食", "信念护体", "恐药异症", "荒芜之地", "集群智能", "没入黑暗", "禁忌咒文"
+	};
 
 	public DailyChallengeService() {
 		this.currentDate = LocalDate.now(ZONE_ID);
@@ -105,5 +113,59 @@ public class DailyChallengeService {
 			case 2 -> "大师(7-9挑)";
 			default -> "未知组别";
 		};
+	}
+
+	public int getChallengesForGroup(long seed, int groupIndex) {
+		int[] minChallenges = {0, 4, 7};
+		int[] maxChallenges = {3, 6, 9};
+
+		int min = minChallenges[groupIndex];
+		int max = maxChallenges[groupIndex];
+
+		if (min == 0 && max == 0) {
+			return 0;
+		}
+
+		java.util.Random random = new java.util.Random(seed);
+		int count = min + random.nextInt(max - min + 1);
+
+		if (count == 0) {
+			return 0;
+		}
+		if (count == 9) {
+			return 511;
+		}
+
+		List<Integer> availableMasks = new ArrayList<>();
+		for (int mask : CHALLENGE_MASKS) {
+			availableMasks.add(mask);
+		}
+		Collections.shuffle(availableMasks, random);
+
+		int result = 0;
+		for (int i = 0; i < count; i++) {
+			result += availableMasks.get(i);
+		}
+		return result;
+	}
+
+	public int getChallengeCount(int challenges) {
+		int count = 0;
+		for (int mask : CHALLENGE_MASKS) {
+			if ((challenges & mask) != 0) {
+				count++;
+			}
+		}
+		return count;
+	}
+
+	public List<String> getChallengeNames(int challenges) {
+		List<String> names = new ArrayList<>();
+		for (int i = 0; i < CHALLENGE_MASKS.length; i++) {
+			if ((challenges & CHALLENGE_MASKS[i]) != 0) {
+				names.add(CHALLENGE_NAMES[i]);
+			}
+		}
+		return names;
 	}
 }

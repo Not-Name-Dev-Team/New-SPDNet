@@ -11,6 +11,7 @@ import Home from './views/Home.vue'
 import Register from './views/Register.vue'
 import Login from './views/Login.vue'
 import Leaderboard from './views/Leaderboard.vue'
+import DailyChallenge from './views/DailyChallenge.vue'
 import Player from './views/Player.vue'
 import Profile from './views/Profile.vue'
 import Admin from './views/Admin.vue'
@@ -22,11 +23,11 @@ const routes = [
   { path: '/register', component: Register, meta: { title: '注册' } },
   { path: '/login', component: Login, meta: { title: '登录' } },
   { path: '/leaderboard', component: Leaderboard, meta: { title: '排行榜' } },
+  { path: '/daily-challenge', component: DailyChallenge, meta: { title: '每日挑战' } },
   { path: '/player/:name', component: Player, meta: { title: '玩家详情' } },
   { path: '/dashboard', component: Profile, meta: { title: '个人中心' } },
   { path: '/admin', component: Admin, meta: { title: '后台管理' } },
   { path: '/chat', component: Chat, meta: { title: '聊天室' } },
-  // SPDNet: 前缀详情页面
   { path: '/prefix/:id', component: PrefixDetail, meta: { title: '前缀详情' } }
 ]
 

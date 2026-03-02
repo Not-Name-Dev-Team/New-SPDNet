@@ -126,7 +126,7 @@ import { authStore } from './store/auth'
 import ParticleBackground from './components/ParticleBackground.vue'
 import {
   House, Trophy, ChatDotRound, User, Plus, UserFilled,
-  ArrowDown, View, Setting, SwitchButton, Link, Connection
+  ArrowDown, View, Setting, SwitchButton, Link, Connection, Calendar
 } from '@element-plus/icons-vue'
 
 const router = useRouter()
@@ -136,6 +136,7 @@ const isScrolled = ref(false)
 const navItems = [
   { path: '/', label: '首页', icon: House },
   { path: '/leaderboard', label: '排行榜', icon: Trophy },
+  { path: '/daily-challenge', label: '每日挑战', icon: Calendar },
   { path: '/chat', label: '聊天室', icon: ChatDotRound }
 ]
 

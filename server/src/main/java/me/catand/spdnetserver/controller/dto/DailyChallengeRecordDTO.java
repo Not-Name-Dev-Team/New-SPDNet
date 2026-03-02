@@ -29,6 +29,8 @@ public class DailyChallengeRecordDTO {
 	private String completedAt;
 	private Long gameRecordId;
 
+	private PlayerPrefixDTO prefix;
+
 	public static DailyChallengeRecordDTO fromEntity(DailyGameRecord record) {
 		DailyChallengeRecordDTO dto = new DailyChallengeRecordDTO();
 		dto.setId(record.getId());

@@ -70,6 +70,38 @@ export const leaderboardApi = {
   }
 }
 
+export const dailyChallengeApi = {
+  getTodaySeeds() {
+    return api.get('/daily-challenge/today')
+  },
+
+  getDailyChallengeInfo(date = null) {
+    const params = date ? { date } : {}
+    return api.get('/daily-challenge/info', { params })
+  },
+
+  getDailyChallengeInfoByGroup(groupIndex, date = null) {
+    const params = date ? { date } : {}
+    return api.get(`/daily-challenge/info/${groupIndex}`, { params })
+  },
+
+  getRecords(date = null, groupIndex = null) {
+    const params = {}
+    if (date) params.date = date
+    if (groupIndex !== null) params.groupIndex = groupIndex
+    return api.get('/daily-challenge/records', { params })
+  },
+
+  getPlayerRecords(playerName, date = null) {
+    const params = date ? { date } : {}
+    return api.get(`/daily-challenge/records/${playerName}`, { params })
+  },
+
+  getSeedsByDate(date) {
+    return api.get(`/daily-challenge/seeds/${date}`)
+  }
+}
+
 export const adminApi = {
   getStats() {
     return api.get('/admin/stats')
@@ -117,7 +149,6 @@ export const adminApi = {
     return api.post(`/admin/kick/${encodeURIComponent(name)}`)
   },
 
-  // SPDNet: 前缀系统管理接口（管理员）
   getPrefixes() {
     return api.get('/admin/prefixes')
   },
@@ -134,45 +165,36 @@ export const adminApi = {
     return api.delete(`/admin/prefixes/${id}`)
   },
 
-  // 获取玩家的前缀列表
   getPlayerPrefixes(playerName) {
     return api.get(`/admin/prefixes/player/${encodeURIComponent(playerName)}`)
   },
 
-  // 给玩家分配前缀
   assignPrefixToPlayer(playerName, prefixId) {
     return api.post(`/admin/prefixes/player/${encodeURIComponent(playerName)}/assign`, { prefixId })
   },
 
-  // 移除玩家的前缀
   removePrefixFromPlayer(playerName, prefixId) {
     return api.delete(`/admin/prefixes/player/${encodeURIComponent(playerName)}/remove`, { params: { prefixId } })
   }
 }
 
-// SPDNet: 前缀系统接口（玩家）
 export const prefixApi = {
-  // 获取我的所有前缀
   getMyPrefixes(playerName) {
     return api.get('/admin/prefixes/my', { params: { playerName } })
   },
 
-  // 获取当前激活的前缀
   getMyActivePrefix(playerName) {
     return api.get('/admin/prefixes/my/active', { params: { playerName } })
   },
 
-  // 设置激活的前缀
   setMyActivePrefix(playerName, assignmentId) {
     return api.post('/admin/prefixes/my/active', { assignmentId }, { params: { playerName } })
   },
 
-  // SPDNet: 获取前缀详细信息（公开）
   getPrefixInfo(prefixId) {
     return api.get(`/admin/prefixes/public/${prefixId}`)
   },
 
-  // SPDNet: 获取前缀的拥有者列表（公开）
   getPrefixOwners(prefixId, params = {}) {
     return api.get(`/admin/prefixes/public/${prefixId}/owners`, { params })
   }

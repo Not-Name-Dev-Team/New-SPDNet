@@ -18,6 +18,9 @@ public interface DailyGameRecordRepository extends JpaRepository<DailyGameRecord
 	@Query("SELECT d FROM DailyGameRecord d LEFT JOIN FETCH d.gameRecord WHERE d.recordDate = :recordDate ORDER BY d.groupIndex ASC, d.gameRecord.totalScore DESC")
 	List<DailyGameRecord> findByRecordDateOrderByGroupIndexAscScoreDesc(@Param("recordDate") LocalDate recordDate);
 
+	@Query("SELECT d FROM DailyGameRecord d WHERE d.recordDate = :recordDate AND d.groupIndex = :groupIndex")
+	List<DailyGameRecord> findByRecordDateAndGroupIndex(@Param("recordDate") LocalDate recordDate, @Param("groupIndex") Integer groupIndex);
+
 	Optional<DailyGameRecord> findByPlayerAndRecordDateAndGroupIndex(Player player, LocalDate recordDate, Integer groupIndex);
 
 	Optional<DailyGameRecord> findByPlayerIdAndRecordDateAndGroupIndex(Long playerId, LocalDate recordDate, Integer groupIndex);
