@@ -481,6 +481,16 @@ onUnmounted(() => {
   font-size: 0.8125rem;
 }
 
+.header-actions .el-button {
+  color: white;
+  background: rgba(168, 85, 247, 0.2);
+}
+
+.header-actions .el-button:hover {
+  color: white;
+  background: rgba(168, 85, 247, 0.3);
+}
+
 /* Messages Wrapper - 独立滚动区域 */
 .messages-wrapper {
   flex: 1;

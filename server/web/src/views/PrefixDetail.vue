@@ -329,6 +329,25 @@ onMounted(() => {
 
 .back-btn {
   font-weight: 500;
+  color: white;
+  background: rgba(168, 85, 247, 0.3);
+  border-color: var(--primary-400);
+}
+
+.back-btn:hover {
+  color: white;
+  background: rgba(168, 85, 247, 0.5);
+  border-color: var(--primary-300);
+}
+
+.owner-actions .el-button {
+  color: white;
+  background: rgba(168, 85, 247, 0.3);
+}
+
+.owner-actions .el-button:hover {
+  color: white;
+  background: rgba(168, 85, 247, 0.5);
 }
 
 /* Loading State */

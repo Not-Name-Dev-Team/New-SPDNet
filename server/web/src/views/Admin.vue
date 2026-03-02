@@ -665,11 +665,13 @@ onMounted(() => {
 .refresh-btn {
   background: linear-gradient(135deg, #8b5cf6, #a855f7);
   border: none;
+  color: white;
 }
 
 .refresh-btn:hover {
   background: linear-gradient(135deg, #7c3aed, #9333ea);
   box-shadow: 0 0 20px rgba(139, 92, 246, 0.4);
+  color: white;
 }
 
 /* Stats Section */
@@ -1013,12 +1015,13 @@ onMounted(() => {
 }
 
 .action-menu-btn {
-  color: #a78bfa;
+  color: white;
+  background: rgba(139, 92, 246, 0.3);
 }
 
 .action-menu-btn:hover {
-  color: #c084fc;
-  background: rgba(139, 92, 246, 0.1);
+  color: white;
+  background: rgba(139, 92, 246, 0.5);
 }
 
 /* Custom Dropdown */

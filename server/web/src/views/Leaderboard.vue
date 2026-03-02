@@ -445,6 +445,15 @@ onMounted(() => {
 
 .refresh-btn {
   font-weight: 500;
+  color: white;
+  border-color: var(--primary-400);
+  background: rgba(168, 85, 247, 0.2);
+}
+
+.refresh-btn:hover {
+  color: white;
+  border-color: var(--primary-300);
+  background: rgba(168, 85, 247, 0.3);
 }
 
 /* Filter Section */

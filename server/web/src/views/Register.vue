@@ -539,11 +539,16 @@ onMounted(() => {
   font-weight: 500;
   border-radius: var(--radius-md);
   white-space: nowrap;
+  background: var(--gradient-primary);
+  border: none;
+  color: white;
 }
 
 .send-code-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+  background: var(--surface-3);
+  color: var(--text-tertiary);
 }
 
 .submit-btn {

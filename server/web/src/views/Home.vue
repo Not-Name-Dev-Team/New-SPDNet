@@ -606,6 +606,12 @@ onMounted(() => {
 
 .refresh-btn {
   font-weight: 500;
+  color: white;
+}
+
+.refresh-btn:hover {
+  color: white;
+  background: rgba(168, 85, 247, 0.2);
 }
 
 .players-grid {
