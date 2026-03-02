@@ -24,6 +24,7 @@ import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.actions.CPl
 import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.actions.CPlayerMove;
 import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.actions.CRequestLeaderboard;
 import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.actions.CRequestPlayerList;
+import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.actions.CRequestDailyChallenge;
 import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.actions.CViewHero;
 
 /**
@@ -100,6 +101,10 @@ public class Sender {
 
 	public static void sendRequestPlayerList(CRequestPlayerList requestPlayerList) {
 		getSocket().emit(Actions.REQUEST_PLAYER_LIST.getName(), "{}");
+	}
+
+	public static void sendRequestDailyChallenge(CRequestDailyChallenge requestDailyChallenge) {
+		getSocket().emit(Actions.REQUEST_DAILY_CHALLENGE.getName(), JSON.toJSONString(requestDailyChallenge));
 	}
 
 	public static void sendViewHero(CViewHero viewHero) {

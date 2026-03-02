@@ -110,6 +110,12 @@ public class Receiver {
 		Emitter.Listener onJournals = args -> {
 			Handler.handleJournals(JSON.parseObject(args[0].toString(), SJournals.class));
 		};
+		Emitter.Listener onAllowDailyChallenge = args -> {
+			Handler.handleAllowDailyChallenge(JSON.parseObject(args[0].toString(), SAllowDailyChallenge.class));
+		};
+		Emitter.Listener onRejectDailyChallenge = args -> {
+			Handler.handleRejectDailyChallenge(JSON.parseObject(args[0].toString(), SRejectDailyChallenge.class));
+		};
 		getSocket().on(Socket.EVENT_CONNECT, onConnected);
 		getSocket().on(Socket.EVENT_DISCONNECT, onDisconnected);
 		getSocket().on(Socket.EVENT_CONNECT_ERROR, onConnectionError);
@@ -134,6 +140,8 @@ public class Receiver {
 		getSocket().on(Events.SERVER_MESSAGE.getName(), onServerMessage);
 		getSocket().on(Events.VIEW_HERO.getName(), onViewHero);
 		getSocket().on("journals", onJournals);
+		getSocket().on(Events.ALLOW_DAILY_CHALLENGE.getName(), onAllowDailyChallenge);
+		getSocket().on(Events.REJECT_DAILY_CHALLENGE.getName(), onRejectDailyChallenge);
 	}
 
 	public static void cancelAll() {

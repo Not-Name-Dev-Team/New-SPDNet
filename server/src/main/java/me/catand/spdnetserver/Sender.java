@@ -97,6 +97,18 @@ public class Sender {
 		client.sendEvent(Events.LEADERBOARD.getName(), data);
 	}
 
+	public void sendAllowDailyChallenge(SocketIOClient client, SAllowDailyChallenge data) {
+		client.sendEvent(Events.ALLOW_DAILY_CHALLENGE.getName(), data);
+	}
+
+	public void sendRejectDailyChallenge(SocketIOClient client, SRejectDailyChallenge data) {
+		client.sendEvent(Events.REJECT_DAILY_CHALLENGE.getName(), data);
+	}
+
+	public void sendError(SocketIOClient client, SError data) {
+		client.sendEvent(Events.ERROR.getName(), data);
+	}
+
 	// SPDNet: 发送 Journal 数据给客户端
 	public void sendJournals(SocketIOClient client, SJournals data) {
 		client.sendEvent("journals", data);

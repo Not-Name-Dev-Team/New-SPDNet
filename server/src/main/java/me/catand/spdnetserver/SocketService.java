@@ -13,11 +13,13 @@ import me.catand.spdnetserver.entitys.GameRecord;
 import me.catand.spdnetserver.entitys.Player;
 import me.catand.spdnetserver.entitys.UserRole;
 import me.catand.spdnetserver.repositories.GameRecordRepository;
+import me.catand.spdnetserver.repositories.DailyGameRecordRepository;
 import me.catand.spdnetserver.repositories.PlayerRepository;
 import me.catand.spdnetserver.repositories.PlayerCatalogRepository;
 import me.catand.spdnetserver.repositories.PlayerBestiaryRepository;
 import me.catand.spdnetserver.repositories.PlayerDocumentRepository;
 import me.catand.spdnetserver.service.PlayerPrefixService;
+import me.catand.spdnetserver.service.DailyChallengeService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -41,6 +43,8 @@ public class SocketService {
 	@Autowired
 	private GameRecordRepository gameRecordRepository;
 	@Autowired
+	private DailyGameRecordRepository dailyGameRecordRepository;
+	@Autowired
 	private PlayerCatalogRepository playerCatalogRepository;
 	@Autowired
 	private PlayerBestiaryRepository playerBestiaryRepository;
@@ -52,6 +56,8 @@ public class SocketService {
 private ChatService chatService;
 @Autowired
 private PlayerPrefixService playerPrefixService;
+@Autowired
+private DailyChallengeService dailyChallengeService;
 private SocketIOServer server;
 	private Map<UUID, Player> playerMap = new ConcurrentHashMap<>();
 	private Sender sender;
@@ -83,12 +89,14 @@ private SocketIOServer server;
 		if (seeds.isEmpty()) {
 			seeds.put("seedFUN", getNoonTimestamp());
 		}
+		seeds.putAll(dailyChallengeService.getDailySeeds());
 		server.start();
 		startAll();
 		sender = new Sender(server);
 		handler = new Handler(playerRepository, gameRecordRepository,
 		                      playerCatalogRepository, playerBestiaryRepository, playerDocumentRepository,
-		                      playerPrefixService, this, sender, playerMap, chatService);
+		                      dailyGameRecordRepository, playerPrefixService, dailyChallengeService,
+		                      this, sender, playerMap, chatService);
 	}
 
 	@PreDestroy
@@ -220,7 +228,13 @@ private SocketIOServer server;
 		spdNetNamespace.addEventListener(Actions.GAME_END.getName(), String.class, (client, data, ackSender) -> {
 			JSONObject cGameEndJson = JSON.parseObject(data, JSONObject.class);
 			CGameEnd gameEnd = new CGameEnd(JSONObject.parseObject(cGameEndJson.getString("record"), GameRecord.class));
-			handler.handleGameEnd(playerMap.get(client.getSessionId()), gameEnd);
+			if (cGameEndJson.containsKey("dailyGroupIndex") && cGameEndJson.getInteger("dailyGroupIndex") != null) {
+				Integer dailyGroupIndex = cGameEndJson.getInteger("dailyGroupIndex");
+				Long dailySeed = cGameEndJson.getLong("dailySeed");
+				handler.handleDailyGameEnd(client, playerMap.get(client.getSessionId()), gameEnd, dailyGroupIndex, dailySeed);
+			} else {
+				handler.handleGameEnd(playerMap.get(client.getSessionId()), gameEnd);
+			}
 		});
 		spdNetNamespace.addEventListener(Actions.GIVE_ITEM.getName(), String.class, (client, data, ackSender) -> {
 			handler.handleGiveItem(playerMap.get(client.getSessionId()), JSON.parseObject(data, CGiveItem.class));
@@ -246,6 +260,9 @@ private SocketIOServer server;
 		spdNetNamespace.addEventListener(Actions.VIEW_HERO.getName(), String.class, (client, data, ackSender) -> {
 			handler.handleViewHero(playerMap.get(client.getSessionId()), JSON.parseObject(data, CViewHero.class));
 		});
+		spdNetNamespace.addEventListener(Actions.REQUEST_DAILY_CHALLENGE.getName(), String.class, (client, data, ackSender) -> {
+			handler.handleRequestDailyChallenge(client, playerMap.get(client.getSessionId()), JSON.parseObject(data, CRequestDailyChallenge.class));
+		});
 
 		// SPDNet: Journal 相关事件监听
 		spdNetNamespace.addEventListener("catalogUpdate", String.class, (client, data, ackSender) -> {
@@ -264,6 +281,8 @@ private SocketIOServer server;
 	public void doSomething() {
 		seeds.clear();
 		seeds.put("seedFUN", getNoonTimestamp());
+		dailyChallengeService.resetDailySeeds();
+		seeds.putAll(dailyChallengeService.getDailySeeds());
 		sender.sendBroadcastError(new SError("换种子了嗷"));
 		spdNetNamespace.getAllClients().forEach(ClientOperations::disconnect);
 	}

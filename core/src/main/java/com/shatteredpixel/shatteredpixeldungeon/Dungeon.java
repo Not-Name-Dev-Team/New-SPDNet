@@ -244,6 +244,10 @@ public class Dungeon {
 
 		initialVersion = version = Game.versionCode;
 		challenges = SPDSettings.challenges();
+		// SPDNet: 每日挑战模式下使用服务端指定的挑战
+		if (NetInProgress.isDailyChallenge()) {
+			challenges = NetInProgress.dailyChallenges;
+		}
 		mobsToChampion = 1;
 
 		Actor.clear();

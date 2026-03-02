@@ -14,4 +14,14 @@ import lombok.Setter;
 @NoArgsConstructor
 public class CEnterDungeon extends Data {
 	private Status status;
+	private Integer dailyGroupIndex;
+	private Long dailySeed;
+	private String dailyRecordDate;
+
+	public CEnterDungeon(Status status) {
+		this.status = status;
+		this.dailyGroupIndex = null;
+		this.dailySeed = null;
+		this.dailyRecordDate = null;
+	}
 }

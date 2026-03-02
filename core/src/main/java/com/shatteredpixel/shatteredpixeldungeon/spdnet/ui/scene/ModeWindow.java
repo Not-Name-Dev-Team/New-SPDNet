@@ -8,6 +8,7 @@ import com.shatteredpixel.shatteredpixeldungeon.spdnet.ui.SPDNetChrome;
 import com.shatteredpixel.shatteredpixeldungeon.ui.RenderedTextBlock;
 import com.shatteredpixel.shatteredpixeldungeon.ui.StyledButton;
 import com.shatteredpixel.shatteredpixeldungeon.ui.Window;
+import com.watabou.noosa.Game;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -53,6 +54,8 @@ public class ModeWindow extends Window {
 		@Override
 		protected void onClick() {
 			if (mode == Mode.DAILY) {
+				window.destroy();
+				Game.scene().add(new DailyGroupSelector());
 				return;
 			}
 			window.destroy();
@@ -64,9 +67,27 @@ public class ModeWindow extends Window {
 			super.update();
 			if (mode == NetInProgress.mode) {
 				bg = Chrome.get(Chrome.Type.RED_BUTTON);
+				if (mode == Mode.DAILY && NetInProgress.dailyGroupIndex >= 0) {
+					String suffix = getDailySuffix(NetInProgress.dailyGroupIndex);
+					text(mode.getName().substring(0, 2) + "-" + suffix);
+				}
 			} else {
 				bg = SPDNetChrome.get(SPDNetChrome.Type.BUTTON);
+				if (mode == Mode.DAILY) {
+					text(mode.getName().substring(0, 2));
+				}
 			}
+		}
+
+		private String getDailySuffix(int groupIndex) {
+			if (groupIndex == 0) {
+				return "新手";
+			} else if (groupIndex == 1) {
+				return "高手";
+			} else if (groupIndex == 2) {
+				return "大师";
+			}
+			return "";
 		}
 	}
 }

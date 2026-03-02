@@ -21,6 +21,7 @@ import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.Status;
 import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.actions.CHero;
 import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.actions.CRequestPlayerList;
 import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.events.*;
+import com.shatteredpixel.shatteredpixeldungeon.spdnet.ui.scene.DailyChallengeDetailWindow;
 import com.shatteredpixel.shatteredpixeldungeon.spdnet.windows.NetWindow;
 import com.shatteredpixel.shatteredpixeldungeon.spdnetbutcopy.windows.NetWndPlayerInfo;
 import com.watabou.noosa.Game;
@@ -137,6 +138,11 @@ public class Handler {
 	}
 
 	public static void handleGiveItem(SGiveItem giveItem) {
+		if (NetInProgress.isDailyChallenge()) {
+			String displayName = PrefixUtils.formatNameWithPrefix(giveItem.getName(), giveItem.getPrefix());
+			NLog.h(displayName + "想给你物品，但每日挑战模式下无法接收物品");
+			return;
+		}
 		Item item = giveItem.getItemObject();
 		if (item != null && ShatteredPixelDungeon.scene() instanceof GameScene) {
 			if (NetInProgress.mode == Mode.IRONMAN) {
@@ -281,6 +287,25 @@ public class Handler {
 	public static void handleJournals(SJournals journals) {
 		// SPDNet: 从服务器加载 Journal 数据
 		Journal.loadFromCloud(journals.getCatalogs(), journals.getBestiaries(), journals.getDocuments());
+	}
+
+	public static void handleAllowDailyChallenge(SAllowDailyChallenge allowDailyChallenge) {
+		Game.runOnRenderThread(() -> {
+			Game.scene().add(new DailyChallengeDetailWindow(
+				allowDailyChallenge.getGroupIndex(),
+				allowDailyChallenge.getSeed(),
+				allowDailyChallenge.getRecordDate(),
+				allowDailyChallenge.isHasExistingRecord(),
+				allowDailyChallenge.getChallenges()
+			));
+		});
+	}
+
+	public static void handleRejectDailyChallenge(SRejectDailyChallenge rejectDailyChallenge) {
+		NetInProgress.resetDailyChallenge();
+		String reason = rejectDailyChallenge.getReason();
+		NetWindow.error("每日挑战: " + reason);
+		NLog.n("每日挑战被拒绝: " + reason);
 	}
 
 	public static void handleViewHero(SViewHero viewHero) {

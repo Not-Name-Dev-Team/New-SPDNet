@@ -15,4 +15,14 @@ import lombok.Setter;
 @NoArgsConstructor
 public class CGameEnd extends Data {
 	private String record;
+	private Integer dailyGroupIndex;
+	private Long dailySeed;
+	private String dailyRecordDate;
+
+	public CGameEnd(String record) {
+		this.record = record;
+		this.dailyGroupIndex = null;
+		this.dailySeed = null;
+		this.dailyRecordDate = null;
+	}
 }

@@ -168,7 +168,13 @@ public enum Rankings {
 		// 发送死亡/胜利信息
 		Bundle bundle = new Bundle();
 		rec.storeInNetBundle(bundle);
-		Sender.sendGameEnd(new CGameEnd(bundle.toString()));
+		CGameEnd gameEnd = new CGameEnd(bundle.toString());
+		if (NetInProgress.isDailyChallenge()) {
+			gameEnd.setDailyGroupIndex(NetInProgress.dailyGroupIndex);
+			gameEnd.setDailySeed(NetInProgress.seed);
+			gameEnd.setDailyRecordDate(NetInProgress.dailyRecordDate);
+		}
+		Sender.sendGameEnd(gameEnd);
 
 		save();
 	}

@@ -10,14 +10,33 @@ import com.watabou.noosa.Game;
 public class ModeButton extends StyledButton {
 
 	public ModeButton(Mode mode) {
-		super(Chrome.Type.RED_BUTTON, mode.getName(), 9);
+		super(Chrome.Type.RED_BUTTON, getDisplayText(mode), 9);
 		icon(mode.getIcon());
 		width = 70;
 		height = 20;
 	}
 
+	private static String getDisplayText(Mode mode) {
+		if (mode == Mode.DAILY && NetInProgress.isDailyChallenge()) {
+			String suffix = getDailySuffix(NetInProgress.dailyGroupIndex);
+			return mode.getName() + "-" + suffix;
+		}
+		return mode.getName();
+	}
+
+	private static String getDailySuffix(int groupIndex) {
+		if (groupIndex == 0) {
+			return "新手";
+		} else if (groupIndex == 1) {
+			return "高手";
+		} else if (groupIndex == 2) {
+			return "大师";
+		}
+		return "";
+	}
+
 	public void setMode(Mode mode) {
-		text(mode.getName());
+		text(getDisplayText(mode));
 		icon(mode.getIcon());
 	}
 

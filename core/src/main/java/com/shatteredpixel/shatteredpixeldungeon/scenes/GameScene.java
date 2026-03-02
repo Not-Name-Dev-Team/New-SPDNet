@@ -800,7 +800,13 @@ public class GameScene extends PixelScene {
 				Dungeon.depth,
 				Dungeon.hero.tier(),
 				Dungeon.hero.pos);
-		Sender.sendEnterDungeon(new CEnterDungeon(status1));
+		CEnterDungeon enterDungeon = new CEnterDungeon(status1);
+		if (NetInProgress.isDailyChallenge()) {
+			enterDungeon.setDailyGroupIndex(NetInProgress.dailyGroupIndex);
+			enterDungeon.setDailySeed(NetInProgress.seed);
+			enterDungeon.setDailyRecordDate(NetInProgress.dailyRecordDate);
+		}
+		Sender.sendEnterDungeon(enterDungeon);
 		// 同步玩家列表
 		NetHero.syncWithCurrentLevel();
 	}

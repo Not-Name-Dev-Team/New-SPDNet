@@ -8,7 +8,7 @@ import lombok.Getter;
 public enum Mode {
 	IRONMAN("铁人模式", "玩家之间没有实质性交互，随机种子，使用你的技巧争夺排行榜上的高分，证明自己是地牢高手。", Assets.Sprites.RATKING, 0, 3, 14, 14),
 	FUN("娱乐模式", "随便摸，乐就行了。 : )", Assets.Sprites.RAT, 0, 2, 14, 13),
-	DAILY("每日挑战", "未开放\n正在开发中\n每天都有新的地牢，每天都有新排行榜", Assets.Sprites.RAT, 0, 17, 14, 13);
+	DAILY("每日挑战", "每天都有新的地牢，每天都有新排行榜。选择组别开始挑战！", Assets.Sprites.RAT, 0, 17, 14, 13);
 	// SPECTATOR("观战模式", "观看其他玩家的游戏", Assets.Sprites.RAT, 0, 17, 14, 13);
 	@Getter
 	private final String name;

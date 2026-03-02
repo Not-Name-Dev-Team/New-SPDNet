@@ -26,6 +26,8 @@ public enum Events {
 	PLAYER_LIST("playerList"),
 	PLAYER_MOVE("playerMove"),
 	SERVER_MESSAGE("serverMessage"),
+	ALLOW_DAILY_CHALLENGE("allowDailyChallenge"),
+	REJECT_DAILY_CHALLENGE("rejectDailyChallenge"),
 	VIEW_HERO("viewHero");
 
 

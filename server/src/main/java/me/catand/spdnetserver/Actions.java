@@ -22,6 +22,7 @@ public enum Actions {
 	PLAYER_MOVE("playerMove"),
 	REQUEST_LEADERBOARD("requestLeaderboard"),
 	REQUEST_PLAYER_LIST("requestPlayerList"),
+	REQUEST_DAILY_CHALLENGE("requestDailyChallenge"),
 	VIEW_HERO("viewHero");
 	private final String name;
 

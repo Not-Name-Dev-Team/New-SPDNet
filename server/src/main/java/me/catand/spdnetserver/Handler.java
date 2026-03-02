@@ -6,15 +6,20 @@ import lombok.extern.slf4j.Slf4j;
 import me.catand.spdnetserver.data.Status;
 import me.catand.spdnetserver.data.actions.*;
 import me.catand.spdnetserver.data.events.*;
+import me.catand.spdnetserver.entitys.DailyGameRecord;
 import me.catand.spdnetserver.entitys.GameRecord;
 import me.catand.spdnetserver.entitys.Player;
 import me.catand.spdnetserver.repositories.*;
+import me.catand.spdnetserver.service.DailyChallengeService;
 import me.catand.spdnetserver.service.PlayerPrefixService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -26,7 +31,9 @@ public class Handler {
 	private final PlayerCatalogRepository playerCatalogRepository;
 	private final PlayerBestiaryRepository playerBestiaryRepository;
 	private final PlayerDocumentRepository playerDocumentRepository;
+	private final DailyGameRecordRepository dailyGameRecordRepository;
 	private final PlayerPrefixService playerPrefixService;
+	private final DailyChallengeService dailyChallengeService;
 	private SocketService socketService;
 	private Sender sender;
 	private Map<UUID, Player> playerMap;
@@ -34,14 +41,17 @@ public class Handler {
 
 	public Handler(PlayerRepository playerRepository, GameRecordRepository gameRecordRepository,
 	               PlayerCatalogRepository playerCatalogRepository, PlayerBestiaryRepository playerBestiaryRepository,
-	               PlayerDocumentRepository playerDocumentRepository, PlayerPrefixService playerPrefixService,
+	               PlayerDocumentRepository playerDocumentRepository, DailyGameRecordRepository dailyGameRecordRepository,
+	               PlayerPrefixService playerPrefixService, DailyChallengeService dailyChallengeService,
 	               SocketService socketService, Sender sender, Map<UUID, Player> playerMap, ChatService chatService) {
 		this.playerRepository = playerRepository;
 		this.gameRecordRepository = gameRecordRepository;
 		this.playerCatalogRepository = playerCatalogRepository;
 		this.playerBestiaryRepository = playerBestiaryRepository;
 		this.playerDocumentRepository = playerDocumentRepository;
+		this.dailyGameRecordRepository = dailyGameRecordRepository;
 		this.playerPrefixService = playerPrefixService;
+		this.dailyChallengeService = dailyChallengeService;
 		this.socketService = socketService;
 		this.sender = sender;
 		this.playerMap = playerMap;
@@ -104,6 +114,42 @@ public class Handler {
 		Status status = cEnterDungeon.getStatus();
 		player.setStatus(status);
 		playerMap.put(client.getSessionId(), player);
+
+		Integer dailyGroupIndex = cEnterDungeon.getDailyGroupIndex();
+		Long dailySeed = cEnterDungeon.getDailySeed();
+		String dailyRecordDate = cEnterDungeon.getDailyRecordDate();
+
+		if (dailyGroupIndex != null && dailySeed != null) {
+			LocalDate today = LocalDate.now(ZoneId.of("Asia/Shanghai"));
+
+			if (!dailyChallengeService.validateSeed(today, dailyGroupIndex, dailySeed)) {
+				log.warn("玩家{}尝试进入每日挑战但种子无效: 期望={}, 实际={}", player.getName(), dailyChallengeService.generateSeed(today, dailyGroupIndex), dailySeed);
+			} else {
+				Player dbPlayer = playerRepository.findByName(player.getName());
+				if (dbPlayer == null) {
+					log.error("玩家{}不存在，无法创建每日挑战记录", player.getName());
+				} else {
+					boolean hasExistingRecord = dailyGameRecordRepository.existsByPlayerAndRecordDateAndGroupIndexAndStatusIn(
+						dbPlayer, today, dailyGroupIndex,
+						Arrays.asList(DailyGameRecord.DailyRecordStatus.CREATED, DailyGameRecord.DailyRecordStatus.COMPLETED)
+					);
+
+					if (hasExistingRecord) {
+						log.info("玩家{}已有今日组别{}的每日挑战记录，本次游玩不计入成绩", player.getName(), dailyGroupIndex);
+					} else {
+						DailyGameRecord dailyRecord = new DailyGameRecord();
+						dailyRecord.setPlayer(dbPlayer);
+						dailyRecord.setRecordDate(today);
+						dailyRecord.setGroupIndex(dailyGroupIndex);
+						dailyRecord.setSeed(dailySeed);
+						dailyRecord.setStatus(DailyGameRecord.DailyRecordStatus.CREATED);
+						dailyGameRecordRepository.save(dailyRecord);
+						log.info("玩家{}创建了每日挑战记录: 组别={}, 种子={}", player.getName(), dailyGroupIndex, dailySeed);
+					}
+				}
+			}
+		}
+
 		String prefixName = getPlayerPrefixName(player.getName());
 		sender.sendBroadcastEnterDungeon(new SEnterDungeon(player.getName(), status, prefixName));
 		log.info("玩家{}以{}挑进入了{}地牢第{}层", player.getName(), Challenges.countActiveChallenges(status.getChallenges()), status.getSeed(), status.getDepth());
@@ -132,6 +178,110 @@ public class Handler {
 		gameRecordRepository.save(gameRecord);
 		String prefixName = getPlayerPrefixName(player.getName());
 		sender.sendBroadcastGameEnd(new SGameEnd(player.getName(), gameRecord, prefixName));
+	}
+
+	public void handleDailyGameEnd(SocketIOClient client, Player player, CGameEnd cGameEnd, Integer groupIndex, Long dailySeed) {
+		log.info("玩家{}{}了每日挑战游戏，组别：{}，分数：{}", player.getName(), cGameEnd.getRecord().isWin() ? "通关" : "结束", groupIndex, cGameEnd.getRecord().getTotalScore());
+
+		LocalDate today = LocalDate.now(ZoneId.of("Asia/Shanghai"));
+
+		if (!dailyChallengeService.validateSeed(today, groupIndex, dailySeed)) {
+			log.warn("玩家{}提交的每日挑战种子无效: 期望={}, 实际={}", player.getName(), dailyChallengeService.generateSeed(today, groupIndex), dailySeed);
+			handleGameEnd(player, cGameEnd);
+			return;
+		}
+
+		Player dbPlayer = playerRepository.findByName(player.getName());
+		if (dbPlayer == null) {
+			log.warn("玩家{}不存在，作为普通模式处理", player.getName());
+			handleGameEnd(player, cGameEnd);
+			return;
+		}
+
+		DailyGameRecord dailyRecord = dailyGameRecordRepository.findByPlayerAndRecordDateAndGroupIndex(dbPlayer, today, groupIndex)
+			.orElse(null);
+
+		if (dailyRecord == null || dailyRecord.getStatus() != DailyGameRecord.DailyRecordStatus.CREATED) {
+			log.warn("玩家{}没有进行中的每日挑战记录: 组别={}，作为普通模式处理", player.getName(), groupIndex);
+			handleGameEnd(player, cGameEnd);
+			return;
+		}
+
+		GameRecord gameRecord = cGameEnd.getRecord();
+		gameRecord.setPlayer(player);
+		gameRecord.setDaily(true);
+		gameRecordRepository.save(gameRecord);
+
+		dailyRecord.setGameRecord(gameRecord);
+		dailyRecord.markCompleted();
+		dailyGameRecordRepository.save(dailyRecord);
+
+		String prefixName = getPlayerPrefixName(player.getName());
+		sender.sendBroadcastGameEnd(new SGameEnd(player.getName(), gameRecord, prefixName));
+		log.info("玩家{}每日挑战记录已更新: 组别={}, 分数={}, 胜利={}", player.getName(), groupIndex, gameRecord.getTotalScore(), gameRecord.isWin());
+	}
+
+	public void handleRequestDailyChallenge(SocketIOClient client, Player player, CRequestDailyChallenge cRequestDailyChallenge) {
+		Integer groupIndex = cRequestDailyChallenge.getGroupIndex();
+		if (groupIndex == null || groupIndex < 0 || groupIndex > 2) {
+			log.warn("玩家{}请求的每日挑战组别无效: {}", player.getName(), groupIndex);
+			sender.sendRejectDailyChallenge(client, new SRejectDailyChallenge(groupIndex, "无效的组别", false));
+			return;
+		}
+
+		LocalDate today = LocalDate.now(ZoneId.of("Asia/Shanghai"));
+		Player dbPlayer = playerRepository.findByName(player.getName());
+		if (dbPlayer == null) {
+			log.error("玩家{}不存在，无法查询每日挑战", player.getName());
+			sender.sendRejectDailyChallenge(client, new SRejectDailyChallenge(groupIndex, "玩家不存在", false));
+			return;
+		}
+
+		long seed = dailyChallengeService.generateSeed(today, groupIndex);
+		int challenges = getChallengesForGroup(seed, groupIndex);
+
+		boolean hasExistingRecord = dailyGameRecordRepository.existsByPlayerAndRecordDateAndGroupIndexAndStatusIn(
+			dbPlayer, today, groupIndex,
+			Arrays.asList(DailyGameRecord.DailyRecordStatus.CREATED, DailyGameRecord.DailyRecordStatus.COMPLETED)
+		);
+
+		log.info("玩家{}查询每日挑战: 组别={}, 种子={}, 已有记录={}", player.getName(), groupIndex, seed, hasExistingRecord);
+		sender.sendAllowDailyChallenge(client, new SAllowDailyChallenge(groupIndex, seed, today.toString(), hasExistingRecord, challenges));
+	}
+
+	private int getChallengesForGroup(long seed, int groupIndex) {
+		int[] minChallenges = {0, 4, 7};
+		int[] maxChallenges = {3, 6, 9};
+
+		int min = minChallenges[groupIndex];
+		int max = maxChallenges[groupIndex];
+
+		if (min == 0 && max == 0) {
+			return 0;
+		}
+
+		java.util.Random random = new java.util.Random(seed);
+		int count = min + random.nextInt(max - min + 1);
+
+		if (count == 0) {
+			return 0;
+		}
+		if (count == 9) {
+			return 511;
+		}
+
+		int[] masks = {128, 256, 1, 2, 4, 8, 16, 32, 64};
+		java.util.List<Integer> availableMasks = new java.util.ArrayList<>();
+		for (int mask : masks) {
+			availableMasks.add(mask);
+		}
+		java.util.Collections.shuffle(availableMasks, random);
+
+		int result = 0;
+		for (int i = 0; i < count; i++) {
+			result += availableMasks.get(i);
+		}
+		return result;
 	}
 
 	public void handleGiveItem(Player player, CGiveItem cGiveItem) {

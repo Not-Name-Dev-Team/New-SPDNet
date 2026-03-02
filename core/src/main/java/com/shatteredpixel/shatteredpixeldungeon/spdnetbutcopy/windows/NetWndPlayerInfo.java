@@ -15,6 +15,7 @@ import com.shatteredpixel.shatteredpixeldungeon.messages.Messages;
 import com.shatteredpixel.shatteredpixeldungeon.scenes.GameScene;
 import com.shatteredpixel.shatteredpixeldungeon.scenes.PixelScene;
 import com.shatteredpixel.shatteredpixeldungeon.spdnet.Mode;
+import com.shatteredpixel.shatteredpixeldungeon.spdnet.NetInProgress;
 import com.shatteredpixel.shatteredpixeldungeon.spdnetbutcopy.ui.NetTalentsPane;
 import com.shatteredpixel.shatteredpixeldungeon.spdnet.utils.NLog;
 import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.Net;
@@ -254,6 +255,10 @@ public class NetWndPlayerInfo extends WndTabbed {
 					@Override
 					protected void onClick() {
 						super.onClick();
+						if (NetInProgress.isDailyChallenge()) {
+							NLog.h("每日挑战模式下无法赠送物品");
+							return;
+						}
 						GameScene.selectItem(new WndBag.ItemSelector() {
 							@Override
 							public String textPrompt() {

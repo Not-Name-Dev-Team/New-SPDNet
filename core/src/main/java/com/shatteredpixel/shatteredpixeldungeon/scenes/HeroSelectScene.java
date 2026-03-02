@@ -546,8 +546,9 @@ public class HeroSelectScene extends PixelScene {
 //		updateOptionsColor();
 		// 模式选择按钮的可见性
 		btnMode.visible = btnMode.active = true;
-		// 挑战选择按钮的可见性
-		btnChallenge.visible = btnChallenge.active = true;
+		// 挑战选择按钮的可见性（每日挑战模式下隐藏）
+		boolean isDaily = NetInProgress.isDailyChallenge();
+		btnChallenge.visible = btnChallenge.active = !isDaily;
 	}
 
 	private float uiAlpha;
@@ -601,9 +602,10 @@ public class HeroSelectScene extends PixelScene {
 		// 模式选择按钮的渐隐
 		btnMode.enable(alpha != 0);
 		btnMode.alpha(alpha);
-		// 挑战选择按钮的渐隐
-		btnChallenge.enable(alpha != 0);
+		// 挑战选择按钮的渐隐 如果是每日挑战模式那么不使用此按钮来设置挑战数
+		btnChallenge.enable(alpha != 0 && !NetInProgress.isDailyChallenge());
 		btnChallenge.alpha(alpha);
+		btnChallenge.visible = !NetInProgress.isDailyChallenge();
 
 		infoButton.enable(alpha != 0);
 		infoButton.icon().alpha(alpha);
