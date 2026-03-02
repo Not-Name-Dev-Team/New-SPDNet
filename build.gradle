@@ -10,6 +10,9 @@ buildscript {
         // 添加获取调试信息用的Firebase
         classpath 'com.google.gms:google-services:4.4.1'
         classpath 'com.google.firebase:firebase-crashlytics-gradle:2.9.9'
+        
+        // SPDNet: 修复 Gradle 与 Spring Boot bootJar 的兼容性问题
+        classpath 'org.apache.commons:commons-compress:1.26.1'
     }
 }
 
