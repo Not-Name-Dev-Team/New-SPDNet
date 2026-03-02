@@ -36,7 +36,6 @@ import java.util.ArrayList;
 /**
  * SPDNet: RankingsScene 的复制版本，用于显示在线排行榜
  * 原类: RankingsScene
- * 
  * 与原类的差异（用于上游合并追踪）:
  * ================================================
  * - 从服务器获取数据替代本地 Rankings
@@ -44,9 +43,6 @@ import java.util.ArrayList;
  * - 添加筛选功能（玩家名、挑战数、胜利状态、游戏模式）
  * - 添加分页显示支持
  * - 使用 NetRecordButton 替代 Record 内部类
- * 
- * 已同步上游版本: 3.2.5
- * 
  * 用途: 显示在线排行榜场景。
  */
 public class NetRankingsScene extends PixelScene {

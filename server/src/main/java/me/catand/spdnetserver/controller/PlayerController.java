@@ -1,6 +1,7 @@
 package me.catand.spdnetserver.controller;
 
 import me.catand.spdnetserver.SocketService;
+import me.catand.spdnetserver.SpdProperties;
 import me.catand.spdnetserver.controller.dto.*;
 import me.catand.spdnetserver.entitys.*;
 import me.catand.spdnetserver.repositories.*;
@@ -54,6 +55,9 @@ public class PlayerController {
 
     @Autowired
     private PlayerPrefixService playerPrefixService;
+
+    @Autowired
+    private SpdProperties spdProperties;
 
     private BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
@@ -602,8 +606,8 @@ public class PlayerController {
     @GetMapping("/server/info")
     public ApiResponse<Map<String, Object>> getServerInfo() {
         Map<String, Object> data = new HashMap<>();
-        data.put("version", "3.2.5");
-        data.put("netVersion", "0.0.1");
+        data.put("version", spdProperties.getVersion());
+        data.put("netVersion", spdProperties.getNetVersion());
         data.put("onlineCount", socketService.getPlayerMap().size());
         data.put("totalPlayers", playerRepository.count());
         data.put("adminCount", playerRepository.countByRole(UserRole.ADMIN));
