@@ -76,6 +76,8 @@ import { Medal, Check } from '@element-plus/icons-vue'
 import { prefixApi } from '../api'
 import { authStore } from '../store/auth'
 
+const emit = defineEmits(['prefix-changed'])
+
 const loading = ref(false)
 const myPrefixes = ref([])
 const activePrefix = ref(null)
@@ -141,6 +143,8 @@ const selectPrefix = async (assignment) => {
       } else {
         activePrefix.value = null
       }
+      // 通知父组件前缀已更改
+      emit('prefix-changed')
     } else {
       ElMessage.error(res.data.message || '设置失败')
     }

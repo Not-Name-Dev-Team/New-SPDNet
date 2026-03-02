@@ -102,7 +102,7 @@
         <!-- Right Column -->
         <div class="right-column">
           <!-- My Prefix Selector -->
-          <MyPrefixSelector />
+          <MyPrefixSelector @prefix-changed="loadUserInfo" />
 
           <!-- Account Settings -->
           <div class="info-card">
