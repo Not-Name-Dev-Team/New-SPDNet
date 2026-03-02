@@ -373,7 +373,13 @@ public class Handler {
 			return;
 		}
 
-		me.catand.spdnetserver.entitys.PlayerCatalog catalog = new me.catand.spdnetserver.entitys.PlayerCatalog();
+		me.catand.spdnetserver.entitys.PlayerCatalog catalog = playerCatalogRepository
+				.findByPlayerIdAndCatalogTypeAndItemClass(
+						dbPlayer.getId(),
+						cCatalogUpdate.getCatalogType(),
+						cCatalogUpdate.getItemClass())
+				.orElse(new me.catand.spdnetserver.entitys.PlayerCatalog());
+
 		catalog.setPlayerId(dbPlayer.getId());
 		catalog.setCatalogType(cCatalogUpdate.getCatalogType());
 		catalog.setItemClass(cCatalogUpdate.getItemClass());
@@ -392,7 +398,13 @@ public class Handler {
 			return;
 		}
 
-		me.catand.spdnetserver.entitys.PlayerBestiary bestiary = new me.catand.spdnetserver.entitys.PlayerBestiary();
+		me.catand.spdnetserver.entitys.PlayerBestiary bestiary = playerBestiaryRepository
+				.findByPlayerIdAndBestiaryTypeAndEntityClass(
+						dbPlayer.getId(),
+						cBestiaryUpdate.getBestiaryType(),
+						cBestiaryUpdate.getEntityClass())
+				.orElse(new me.catand.spdnetserver.entitys.PlayerBestiary());
+
 		bestiary.setPlayerId(dbPlayer.getId());
 		bestiary.setBestiaryType(cBestiaryUpdate.getBestiaryType());
 		bestiary.setEntityClass(cBestiaryUpdate.getEntityClass());
@@ -411,7 +423,13 @@ public class Handler {
 			return;
 		}
 
-		me.catand.spdnetserver.entitys.PlayerDocument document = new me.catand.spdnetserver.entitys.PlayerDocument();
+		me.catand.spdnetserver.entitys.PlayerDocument document = playerDocumentRepository
+				.findByPlayerIdAndDocumentTypeAndPageName(
+						dbPlayer.getId(),
+						cDocumentUpdate.getDocumentType(),
+						cDocumentUpdate.getPageName())
+				.orElse(new me.catand.spdnetserver.entitys.PlayerDocument());
+
 		document.setPlayerId(dbPlayer.getId());
 		document.setDocumentType(cDocumentUpdate.getDocumentType());
 		document.setPageName(cDocumentUpdate.getPageName());

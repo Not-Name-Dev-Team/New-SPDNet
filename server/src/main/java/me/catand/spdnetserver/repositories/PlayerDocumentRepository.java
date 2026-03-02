@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface PlayerDocumentRepository extends JpaRepository<PlayerDocument, Long> {
 
@@ -14,4 +15,6 @@ public interface PlayerDocumentRepository extends JpaRepository<PlayerDocument, 
 
 	@Transactional
 	void deleteByPlayerIdAndDocumentType(Long playerId, String documentType);
+
+	Optional<PlayerDocument> findByPlayerIdAndDocumentTypeAndPageName(Long playerId, String documentType, String pageName);
 }
