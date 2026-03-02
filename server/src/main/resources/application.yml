@@ -1,5 +1,5 @@
 server:
-  port: 15447
+  port: 80
 spring:
   datasource:
     url: jdbc:sqlite:SPDNetData.db
