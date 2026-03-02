@@ -117,7 +117,13 @@
                   </div>
                   <div class="player-info">
                     <span class="player-name">
-                      <span v-if="row.prefix" class="player-prefix" :style="getPrefixStyle(row.prefix)">{{ row.prefix.displayText }}</span>
+                      <span
+                        v-if="row.prefix"
+                        class="player-prefix clickable-prefix"
+                        :style="getPrefixStyle(row.prefix)"
+                        @click.stop="goToPrefix(row.prefix)"
+                        title="点击查看前缀详情"
+                      >{{ row.prefix.displayText }}</span>
                       {{ row.name }}
                     </span>
                     <span class="player-id">ID: {{ row.id }}</span>
@@ -375,8 +381,15 @@ const getPrefixStyle = (prefix) => {
     borderRadius: '4px',
     fontSize: '12px',
     fontWeight: 'bold',
-    marginRight: '4px',
+    marginRight: '6px',
     display: 'inline-block'
+  }
+}
+
+// SPDNet: 跳转到前缀详情页
+const goToPrefix = (prefix) => {
+  if (prefix && prefix.id) {
+    router.push(`/prefix/${prefix.id}`)
   }
 }
 
@@ -931,6 +944,16 @@ onMounted(() => {
   color: #fbbf24;
   font-weight: bold;
   margin-right: 4px;
+}
+
+.clickable-prefix {
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.clickable-prefix:hover {
+  transform: scale(1.05);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .player-id {

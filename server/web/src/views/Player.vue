@@ -11,7 +11,13 @@
           </div>
           <div class="player-info">
             <h1 class="player-name">
-              <span v-if="playerInfo?.prefix" class="player-prefix" :style="getPrefixStyle(playerInfo.prefix)">{{ playerInfo.prefix.displayText }}</span>
+              <span
+                v-if="playerInfo?.prefix"
+                class="player-prefix clickable-prefix"
+                :style="getPrefixStyle(playerInfo.prefix)"
+                @click="goToPrefix(playerInfo.prefix)"
+                title="点击查看前缀详情"
+              >{{ playerInfo.prefix.displayText }}</span>
               {{ playerInfo?.name || '加载中...' }}
             </h1>
             <div class="player-badges">
@@ -301,7 +307,7 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import {
   UserFilled, User, Trophy, Location, Medal, TrendCharts,
@@ -311,6 +317,7 @@ import {
 import { playerApi, leaderboardApi } from '../api'
 
 const route = useRoute()
+const router = useRouter()
 const playerInfo = ref(null)
 const playerRank = ref(null)
 const rankDiff = ref(0)
@@ -424,6 +431,13 @@ const getPrefixStyle = (prefix) => {
     fontWeight: 'bold',
     marginRight: '8px',
     display: 'inline-block'
+  }
+}
+
+// SPDNet: 跳转到前缀详情页
+const goToPrefix = (prefix) => {
+  if (prefix && prefix.id) {
+    router.push(`/prefix/${prefix.id}`)
   }
 }
 
@@ -613,6 +627,16 @@ onMounted(() => {
 
 .player-prefix {
   display: inline-block;
+}
+
+.clickable-prefix {
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.clickable-prefix:hover {
+  transform: scale(1.05);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .player-badges {

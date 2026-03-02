@@ -11,7 +11,13 @@
           </div>
           <div class="user-info">
             <h1 class="user-name">
-              <span v-if="userInfo?.prefix" class="user-prefix" :style="getPrefixStyle(userInfo.prefix)">{{ userInfo.prefix.displayText }}</span>
+              <span
+                v-if="userInfo?.prefix"
+                class="user-prefix clickable-prefix"
+                :style="getPrefixStyle(userInfo.prefix)"
+                @click="goToPrefix(userInfo.prefix)"
+                title="点击查看前缀详情"
+              >{{ userInfo.prefix.displayText }}</span>
               {{ userInfo?.name || '加载中...' }}
             </h1>
             <div class="user-badges">
@@ -308,6 +314,13 @@ const getPrefixStyle = (prefix) => {
   }
 }
 
+// SPDNet: 跳转到前缀详情页
+const goToPrefix = (prefix) => {
+  if (prefix && prefix.id) {
+    router.push(`/prefix/${prefix.id}`)
+  }
+}
+
 const formatDate = (time) => {
   if (!time) return '-'
   const date = new Date(time)
@@ -526,6 +539,16 @@ onMounted(() => {
 
 .user-prefix {
   display: inline-block;
+}
+
+.clickable-prefix {
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.clickable-prefix:hover {
+  transform: scale(1.05);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .user-badges {

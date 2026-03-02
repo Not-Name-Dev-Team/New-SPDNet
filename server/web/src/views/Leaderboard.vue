@@ -96,7 +96,13 @@
           </div>
           <div class="podium-info">
             <router-link :to="`/player/${player.name}`" class="podium-name">
-              <span v-if="player.prefix" class="player-prefix" :style="getPrefixStyle(player.prefix)">{{ player.prefix.displayText }}</span>
+              <span
+                v-if="player.prefix"
+                class="player-prefix clickable-prefix"
+                :style="getPrefixStyle(player.prefix)"
+                @click.prevent.stop="goToPrefix(player.prefix)"
+                title="点击查看前缀详情"
+              >{{ player.prefix.displayText }}</span>
               {{ player.name }}
             </router-link>
             <div class="podium-score">
@@ -150,7 +156,13 @@
             <div class="col-player">
               <el-avatar :size="32" :icon="UserFilled" class="player-avatar" />
               <router-link :to="`/player/${player.name}`" class="player-name">
-                <span v-if="player.prefix" class="player-prefix" :style="getPrefixStyle(player.prefix)">{{ player.prefix.displayText }}</span>
+                <span
+                  v-if="player.prefix"
+                  class="player-prefix clickable-prefix"
+                  :style="getPrefixStyle(player.prefix)"
+                  @click.prevent.stop="goToPrefix(player.prefix)"
+                  title="点击查看前缀详情"
+                >{{ player.prefix.displayText }}</span>
                 {{ player.name }}
               </router-link>
             </div>
@@ -215,6 +227,7 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import {
   Trophy, Refresh, UserFilled, Medal, Location,
@@ -222,6 +235,8 @@ import {
 } from '@element-plus/icons-vue'
 import { leaderboardApi } from '../api'
 import { authStore } from '../store/auth'
+
+const router = useRouter()
 
 const leaderboard = ref([])
 const loading = ref(false)
@@ -255,6 +270,13 @@ const getPrefixStyle = (prefix) => {
     fontWeight: 'bold',
     marginRight: '6px',
     display: 'inline-block'
+  }
+}
+
+// SPDNet: 跳转到前缀详情页
+const goToPrefix = (prefix) => {
+  if (prefix && prefix.id) {
+    router.push(`/prefix/${prefix.id}`)
   }
 }
 
@@ -585,6 +607,11 @@ onMounted(() => {
   font-size: 1.5rem;
 }
 
+.podium-info {
+  position: relative;
+  z-index: 1;
+}
+
 .podium-name {
   font-size: 1.125rem;
   font-weight: 600;
@@ -736,6 +763,16 @@ onMounted(() => {
 .player-prefix {
   display: inline-block;
   vertical-align: middle;
+}
+
+.clickable-prefix {
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.clickable-prefix:hover {
+  transform: scale(1.05);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .col-score {

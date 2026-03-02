@@ -211,6 +211,7 @@ public class PlayerPrefixService {
 		if (activePrefix.isPresent()) {
 			PlayerPrefix prefix = activePrefix.get().getPrefix();
 			me.catand.spdnetserver.controller.dto.PlayerPrefixDTO dto = new me.catand.spdnetserver.controller.dto.PlayerPrefixDTO();
+			dto.setId(prefix.getId());
 			dto.setName(prefix.getName());
 			dto.setDisplayText(prefix.getDisplayText());
 			dto.setColor(prefix.getColor());

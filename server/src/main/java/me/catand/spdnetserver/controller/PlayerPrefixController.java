@@ -1,15 +1,22 @@
 package me.catand.spdnetserver.controller;
 
 import me.catand.spdnetserver.controller.dto.ApiResponse;
+import me.catand.spdnetserver.controller.dto.PrefixOwnerDTO;
 import me.catand.spdnetserver.entitys.PlayerPrefix;
 import me.catand.spdnetserver.entitys.PlayerPrefixAssignment;
+import me.catand.spdnetserver.repositories.PlayerPrefixAssignmentRepository;
+import me.catand.spdnetserver.repositories.PlayerPrefixRepository;
 import me.catand.spdnetserver.service.PlayerPrefixService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
@@ -23,6 +30,12 @@ public class PlayerPrefixController {
 
 	@Autowired
 	private PlayerPrefixService prefixService;
+
+	@Autowired
+	private PlayerPrefixRepository prefixRepository;
+
+	@Autowired
+	private PlayerPrefixAssignmentRepository assignmentRepository;
 
 	// ==================== 前缀管理（管理员） ====================
 
@@ -203,6 +216,79 @@ public class PlayerPrefixController {
 		} else {
 			return ApiResponse.success("当前没有激活的前缀", null);
 		}
+	}
+
+	// ==================== 前缀详情（公开） ====================
+
+	/**
+	 * SPDNet: 获取前缀详细信息（公开接口）
+	 */
+	@GetMapping("/public/{id}")
+	public ApiResponse<Map<String, Object>> getPrefixInfo(@PathVariable Long id) {
+		Optional<PlayerPrefix> prefixOpt = prefixRepository.findById(id);
+		if (prefixOpt.isEmpty()) {
+			return ApiResponse.error("前缀不存在");
+		}
+
+		PlayerPrefix prefix = prefixOpt.get();
+		Map<String, Object> data = convertPrefixToMap(prefix);
+
+		// 获取拥有者数量
+		long ownerCount = assignmentRepository.countByPrefix(prefix);
+		data.put("ownerCount", ownerCount);
+
+		return ApiResponse.success("获取成功", data);
+	}
+
+	/**
+	 * SPDNet: 获取前缀的拥有者列表（公开接口）
+	 */
+	@GetMapping("/public/{id}/owners")
+	public ApiResponse<Map<String, Object>> getPrefixOwners(
+			@PathVariable Long id,
+			@RequestParam(defaultValue = "0") int page,
+			@RequestParam(defaultValue = "20") int size) {
+
+		Optional<PlayerPrefix> prefixOpt = prefixRepository.findById(id);
+		if (prefixOpt.isEmpty()) {
+			return ApiResponse.error("前缀不存在");
+		}
+
+		PlayerPrefix prefix = prefixOpt.get();
+		Pageable pageable = PageRequest.of(page, size);
+
+		// 获取该前缀的所有分配记录
+		List<PlayerPrefixAssignment> assignments = assignmentRepository.findAll().stream()
+				.filter(a -> a.getPrefix().getId().equals(id))
+				.sorted((a1, a2) -> a2.getAssignedAt().compareTo(a1.getAssignedAt())) // 按分配时间倒序
+				.collect(Collectors.toList());
+
+		// 手动分页
+		int total = assignments.size();
+		int start = (int) pageable.getOffset();
+		int end = Math.min(start + pageable.getPageSize(), total);
+
+		List<PlayerPrefixAssignment> pageContent = start < total
+				? assignments.subList(start, end)
+				: List.of();
+
+		// 转换为DTO
+		List<PrefixOwnerDTO> owners = pageContent.stream()
+				.map(a -> new PrefixOwnerDTO(
+						a.getId(),
+						a.getPlayer().getName(),
+						a.isActive(),
+						a.getAssignedAt()
+				))
+				.collect(Collectors.toList());
+
+		Map<String, Object> data = new HashMap<>();
+		data.put("owners", owners);
+		data.put("totalElements", total);
+		data.put("totalPages", (int) Math.ceil((double) total / size));
+		data.put("currentPage", page);
+
+		return ApiResponse.success("获取成功", data);
 	}
 
 	// ==================== 辅助方法 ====================

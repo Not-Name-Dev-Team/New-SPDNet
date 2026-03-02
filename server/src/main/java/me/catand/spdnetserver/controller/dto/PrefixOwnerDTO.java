@@ -5,18 +5,19 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.time.LocalDateTime;
+
 /**
- * SPDNet: 玩家前缀信息DTO
- * 包含完整的前缀样式信息
+ * SPDNet: 前缀拥有者DTO
+ * 包含玩家信息和获得前缀的时间
  */
 @Getter
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-public class PlayerPrefixDTO {
+public class PrefixOwnerDTO {
 	private Long id;
-	private String name;
-	private String displayText;
-	private String color;
-	private String backgroundColor;
+	private String playerName;
+	private boolean active;
+	private LocalDateTime assignedAt;
 }

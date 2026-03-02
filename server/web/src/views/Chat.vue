@@ -25,7 +25,16 @@
               <span class="online-dot"></span>
             </div>
             <div class="user-info">
-              <span class="user-name">{{ user.name }}</span>
+              <span class="user-name">
+                <span
+                  v-if="user.prefix"
+                  class="user-prefix clickable-prefix"
+                  :style="getPrefixStyle(user.prefix)"
+                  @click.prevent.stop="goToPrefix(user.prefix)"
+                  title="点击查看前缀详情"
+                >{{ user.prefix.displayText }}</span>
+                {{ user.name }}
+              </span>
               <el-tag :type="getRoleType(user.role)" size="small" effect="dark" round>
                 {{ user.role }}
               </el-tag>
@@ -87,6 +96,11 @@
             <div class="message-content">
               <div class="message-header">
                 <router-link :to="`/player/${msg.name}`" class="message-author">
+                  <span
+                    v-if="msg.prefix"
+                    class="message-prefix"
+                    :style="getPrefixStyle(msg.prefix)"
+                  >{{ msg.prefix.displayText }}</span>
                   {{ msg.name }}
                 </router-link>
                 <span class="message-time">{{ formatTime(msg.time) }}</span>
@@ -133,12 +147,15 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import {
   UserFilled, User, ChatDotRound, Refresh, Promotion, InfoFilled
 } from '@element-plus/icons-vue'
 import { playerApi, chatApi } from '../api'
 import { authStore } from '../store/auth'
+
+const router = useRouter()
 
 const onlineUsers = ref([])
 const messages = ref([])
@@ -158,6 +175,27 @@ const getRoleType = (role) => {
     '玩家': 'primary'
   }
   return types[role] || 'primary'
+}
+
+// SPDNet: 前缀系统 - 获取前缀样式
+const getPrefixStyle = (prefix) => {
+  return {
+    color: prefix.color || '#ffffff',
+    backgroundColor: prefix.backgroundColor || 'rgba(139, 92, 246, 0.8)',
+    padding: '1px 6px',
+    borderRadius: '4px',
+    fontSize: '11px',
+    fontWeight: 'bold',
+    marginRight: '4px',
+    display: 'inline-block'
+  }
+}
+
+// SPDNet: 跳转到前缀详情页
+const goToPrefix = (prefix) => {
+  if (prefix && prefix.id) {
+    router.push(`/prefix/${prefix.id}`)
+  }
 }
 
 const isSelfMessage = (msg) => {
@@ -201,7 +239,18 @@ const loadMessages = async () => {
     const res = await chatApi.getMessages(50)
     if (res.data.success) {
       const newMessages = res.data.data || []
-      const reversedMessages = [...newMessages].reverse()
+      // SPDNet: 解析前缀JSON
+      const parsedMessages = newMessages.map(msg => {
+        if (msg.prefix && typeof msg.prefix === 'string') {
+          try {
+            msg.prefix = JSON.parse(msg.prefix)
+          } catch (e) {
+            msg.prefix = null
+          }
+        }
+        return msg
+      })
+      const reversedMessages = [...parsedMessages].reverse()
       if (JSON.stringify(reversedMessages) !== JSON.stringify(messages.value)) {
         messages.value = reversedMessages
         scrollToBottom()
@@ -358,6 +407,20 @@ onUnmounted(() => {
   text-overflow: ellipsis;
 }
 
+.user-prefix {
+  display: inline-block;
+}
+
+.clickable-prefix {
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.clickable-prefix:hover {
+  transform: scale(1.05);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
 .empty-users {
   display: flex;
   flex-direction: column;
@@ -502,6 +565,14 @@ onUnmounted(() => {
 
 .message-author:hover {
   text-decoration: underline;
+}
+
+.message-prefix {
+  display: inline-block;
+  font-size: 10px;
+  padding: 1px 4px;
+  border-radius: 3px;
+  margin-right: 3px;
 }
 
 .message-time {

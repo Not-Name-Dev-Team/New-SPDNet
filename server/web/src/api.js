@@ -165,6 +165,16 @@ export const prefixApi = {
   // 设置激活的前缀
   setMyActivePrefix(playerName, assignmentId) {
     return api.post('/admin/prefixes/my/active', { assignmentId }, { params: { playerName } })
+  },
+
+  // SPDNet: 获取前缀详细信息（公开）
+  getPrefixInfo(prefixId) {
+    return api.get(`/admin/prefixes/public/${prefixId}`)
+  },
+
+  // SPDNet: 获取前缀的拥有者列表（公开）
+  getPrefixOwners(prefixId, params = {}) {
+    return api.get(`/admin/prefixes/public/${prefixId}/owners`, { params })
   }
 }
 

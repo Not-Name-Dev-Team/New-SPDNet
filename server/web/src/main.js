@@ -15,6 +15,7 @@ import Player from './views/Player.vue'
 import Profile from './views/Profile.vue'
 import Admin from './views/Admin.vue'
 import Chat from './views/Chat.vue'
+import PrefixDetail from './views/PrefixDetail.vue'
 
 const routes = [
   { path: '/', component: Home, meta: { title: '首页' } },
@@ -24,7 +25,9 @@ const routes = [
   { path: '/player/:name', component: Player, meta: { title: '玩家详情' } },
   { path: '/dashboard', component: Profile, meta: { title: '个人中心' } },
   { path: '/admin', component: Admin, meta: { title: '后台管理' } },
-  { path: '/chat', component: Chat, meta: { title: '聊天室' } }
+  { path: '/chat', component: Chat, meta: { title: '聊天室' } },
+  // SPDNet: 前缀详情页面
+  { path: '/prefix/:id', component: PrefixDetail, meta: { title: '前缀详情' } }
 ]
 
 const router = createRouter({
