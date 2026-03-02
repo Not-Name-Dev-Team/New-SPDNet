@@ -3,6 +3,7 @@ package me.catand.spdnetserver;
 import com.alibaba.fastjson2.JSON;
 import me.catand.spdnetserver.controller.dto.PlayerPrefixDTO;
 import me.catand.spdnetserver.data.events.SChatMessage;
+import me.catand.spdnetserver.service.BannedWordsService;
 import me.catand.spdnetserver.service.PlayerPrefixService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -20,6 +21,9 @@ public class ChatService {
 
     @Autowired
     private PlayerPrefixService playerPrefixService;
+
+    @Autowired
+    private BannedWordsService bannedWordsService;
 
     public void addMessage(String name, String message, String time) {
         // SPDNet: 如果客户端没有提供时间，则使用服务端时间
@@ -41,7 +45,15 @@ public class ChatService {
         int i = 0;
         for (SChatMessage msg : messages) {
             if (i >= count) break;
-            result.add(msg);
+            // SPDNet: 获取消息时将屏蔽词替换为星号
+            String censoredMessage = bannedWordsService.censorText(msg.getMessage());
+            SChatMessage censoredMsg = new SChatMessage(
+                msg.getName(),
+                censoredMessage,
+                msg.getTime(),
+                msg.getPrefix()
+            );
+            result.add(censoredMsg);
             i++;
         }
         return result;

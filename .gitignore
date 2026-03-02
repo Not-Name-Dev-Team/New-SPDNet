@@ -111,3 +111,5 @@ coverage/
 
 ### AI ###
 .trae
+
+/server/banned_words.txt

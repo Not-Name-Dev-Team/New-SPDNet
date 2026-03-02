@@ -13,4 +13,5 @@ public class SpdProperties {
     private String version;
     private String netVersion;
     private String motd;
+    private String bannedWordsFile;
 }

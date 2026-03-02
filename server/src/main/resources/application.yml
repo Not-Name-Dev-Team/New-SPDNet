@@ -14,6 +14,7 @@ spd:
   version: 3.3.6
   netVersion: 0.0.1
   motd: 不欢迎  >:^(
+  bannedWordsFile: banned_words.txt
   mail:
     # 是否启用邮件功能
     enabled: true

@@ -5,6 +5,7 @@ import me.catand.spdnetserver.SpdProperties;
 import me.catand.spdnetserver.controller.dto.*;
 import me.catand.spdnetserver.entitys.*;
 import me.catand.spdnetserver.repositories.*;
+import me.catand.spdnetserver.service.BannedWordsService;
 import me.catand.spdnetserver.service.MailService;
 import me.catand.spdnetserver.service.PlayerPrefixService;
 import me.catand.spdnetserver.service.VerificationCodeService;
@@ -55,6 +56,9 @@ public class PlayerController {
 
     @Autowired
     private PlayerPrefixService playerPrefixService;
+
+    @Autowired
+    private BannedWordsService bannedWordsService;
 
     @Autowired
     private SpdProperties spdProperties;
@@ -127,6 +131,12 @@ public class PlayerController {
 		// SPDNet: 用户名只允许英文、数字和中文字符
 		if (!name.matches("^[a-zA-Z0-9\\u4e00-\\u9fa5]+$")) {
 			return ApiResponse.error("用户名只能包含英文、数字和中文字符");
+		}
+
+		// SPDNet: 检查用户名是否包含屏蔽词
+		if (bannedWordsService.containsBannedWord(name)) {
+			String bannedWord = bannedWordsService.getFirstBannedWord(name);
+			return ApiResponse.error("用户名包含敏感词: " + bannedWord);
 		}
 
         if (email == null || email.trim().isEmpty()) {
@@ -645,6 +655,12 @@ public class PlayerController {
 		// SPDNet: 用户名只允许英文、数字和中文字符
 		if (!newName.matches("^[a-zA-Z0-9\\u4e00-\\u9fa5]+$")) {
 			return ApiResponse.error("用户名只能包含英文、数字和中文字符");
+		}
+
+		// SPDNet: 检查新用户名是否包含屏蔽词
+		if (bannedWordsService.containsBannedWord(newName)) {
+			String bannedWord = bannedWordsService.getFirstBannedWord(newName);
+			return ApiResponse.error("用户名包含敏感词: " + bannedWord);
 		}
 
         Player player = playerRepository.findByName(currentName);

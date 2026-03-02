@@ -4,6 +4,7 @@ import me.catand.spdnetserver.ChatService;
 import me.catand.spdnetserver.SocketService;
 import me.catand.spdnetserver.controller.dto.ApiResponse;
 import me.catand.spdnetserver.data.events.SChatMessage;
+import me.catand.spdnetserver.service.BannedWordsService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -20,6 +21,9 @@ public class ChatController {
 
     @Autowired
     private SocketService socketService;
+
+    @Autowired
+    private BannedWordsService bannedWordsService;
 
     @GetMapping("/messages")
     public ApiResponse<List<SChatMessage>> getMessages(@RequestParam(defaultValue = "50") int count) {
@@ -41,6 +45,12 @@ public class ChatController {
 
         if (message.length() > 500) {
             return ApiResponse.error("消息内容不能超过500字符");
+        }
+
+        // SPDNet: 检查消息是否包含屏蔽词
+        if (bannedWordsService.containsBannedWord(message)) {
+            String bannedWord = bannedWordsService.getFirstBannedWord(message);
+            return ApiResponse.error("消息包含敏感词: " + bannedWord);
         }
 
         // SPDNet: 系统广播消息使用服务端时间
