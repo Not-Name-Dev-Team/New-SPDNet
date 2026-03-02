@@ -165,6 +165,29 @@
                 </div>
               </div>
 
+              <!-- 成就展开详情 -->
+              <div v-if="expandedDetail === 'achievement'" class="progress-detail">
+                <div class="detail-section">
+                  <div class="detail-header">
+                    <span class="detail-title">已获得成就</span>
+                    <span class="detail-count">{{ playerInfo?.achievementCount || 0 }}个</span>
+                  </div>
+                  <div class="detail-items achievement-items">
+                    <div
+                      v-for="achievement in (playerInfo?.achievements || [])"
+                      :key="achievement"
+                      class="detail-item achievement-item"
+                    >
+                      <el-icon class="achievement-icon"><StarFilled /></el-icon>
+                      <span class="achievement-name">{{ formatAchievementName(achievement) }}</span>
+                    </div>
+                    <div v-if="!playerInfo?.achievements?.length" class="empty-detail">
+                      暂无成就
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <!-- 图鉴主分类 -->
               <div class="progress-item" @click="toggleDetail('catalog')">
                 <div class="progress-icon" style="background: rgba(139, 92, 246, 0.12); color: #8b5cf6;">
@@ -192,16 +215,31 @@
                     <el-icon class="expand-icon" :class="{ expanded: expandedSubDetail === 'equipment' }"><ArrowRight /></el-icon>
                   </div>
                   <div v-if="expandedSubDetail === 'equipment'" class="detail-items">
-                    <div class="detail-item"><span>近战武器</span><span>{{ getEquipmentDetail('MELEE_WEAPONS') }}</span></div>
-                    <div class="detail-item"><span>护甲</span><span>{{ getEquipmentDetail('ARMOR') }}</span></div>
-                    <div class="detail-item"><span>附魔与诅咒</span><span>{{ getEquipmentDetail('ENCHANTMENTS') }}</span></div>
-                    <div class="detail-item"><span>刻印与诅咒</span><span>{{ getEquipmentDetail('GLYPHS') }}</span></div>
-                    <div class="detail-item"><span>投掷武器</span><span>{{ getEquipmentDetail('THROWN_WEAPONS') }}</span></div>
-                    <div class="detail-item"><span>法杖</span><span>{{ getEquipmentDetail('WANDS') }}</span></div>
-                    <div class="detail-item"><span>戒指</span><span>{{ getEquipmentDetail('RINGS') }}</span></div>
-                    <div class="detail-item"><span>神器</span><span>{{ getEquipmentDetail('ARTIFACTS') }}</span></div>
-                    <div class="detail-item"><span>饰品</span><span>{{ getEquipmentDetail('TRINKETS') }}</span></div>
-                    <div class="detail-item"><span>杂项装备</span><span>{{ getEquipmentDetail('MISC_EQUIPMENT') }}</span></div>
+                    <div
+                      v-for="eqType in ['MELEE_WEAPONS', 'ARMOR', 'ENCHANTMENTS', 'GLYPHS', 'THROWN_WEAPONS', 'WANDS', 'RINGS', 'ARTIFACTS', 'TRINKETS', 'MISC_EQUIPMENT']"
+                      :key="eqType"
+                      class="detail-item expandable"
+                      @click="toggleThirdDetail(eqType)"
+                    >
+                      <span class="item-label">{{ getEquipmentLabel(eqType) }}</span>
+                      <span class="item-count">{{ getEquipmentDetail(eqType) }}</span>
+                      <el-icon class="expand-icon-small" :class="{ expanded: expandedThirdDetail === eqType }"><ArrowRight /></el-icon>
+                    </div>
+                  </div>
+                  <!-- 装备第三级展开 -->
+                  <div v-if="expandedThirdDetail && expandedSubDetail === 'equipment'" class="detail-third-level">
+                    <div
+                      v-for="item in getCatalogByType(expandedThirdDetail)"
+                      :key="item.item"
+                      class="third-level-item"
+                    >
+                      <el-icon class="item-icon"><Box /></el-icon>
+                      <span class="item-name">{{ formatItemName(item) }}</span>
+                      <span class="item-meta">使用 {{ item.useCount || 0 }} 次</span>
+                    </div>
+                    <div v-if="getCatalogByType(expandedThirdDetail).length === 0" class="empty-detail">
+                      暂无发现
+                    </div>
                   </div>
                 </div>
                 <!-- 消耗品 -->
@@ -212,18 +250,31 @@
                     <el-icon class="expand-icon" :class="{ expanded: expandedSubDetail === 'consumables' }"><ArrowRight /></el-icon>
                   </div>
                   <div v-if="expandedSubDetail === 'consumables'" class="detail-items">
-                    <div class="detail-item"><span>药剂</span><span>{{ getConsumableDetail('POTIONS') }}</span></div>
-                    <div class="detail-item"><span>卷轴</span><span>{{ getConsumableDetail('SCROLLS') }}</span></div>
-                    <div class="detail-item"><span>种子</span><span>{{ getConsumableDetail('SEEDS') }}</span></div>
-                    <div class="detail-item"><span>符石</span><span>{{ getConsumableDetail('STONES') }}</span></div>
-                    <div class="detail-item"><span>食物</span><span>{{ getConsumableDetail('FOOD') }}</span></div>
-                    <div class="detail-item"><span>合剂</span><span>{{ getConsumableDetail('EXOTIC_POTIONS') }}</span></div>
-                    <div class="detail-item"><span>秘卷</span><span>{{ getConsumableDetail('EXOTIC_SCROLLS') }}</span></div>
-                    <div class="detail-item"><span>炸弹</span><span>{{ getConsumableDetail('BOMBS') }}</span></div>
-                    <div class="detail-item"><span>涂药飞镖</span><span>{{ getConsumableDetail('TIPPED_DARTS') }}</span></div>
-                    <div class="detail-item"><span>魔药与秘药</span><span>{{ getConsumableDetail('BREWS_ELIXIRS') }}</span></div>
-                    <div class="detail-item"><span>法术结晶</span><span>{{ getConsumableDetail('SPELLS') }}</span></div>
-                    <div class="detail-item"><span>杂项消耗品</span><span>{{ getConsumableDetail('MISC_CONSUMABLES') }}</span></div>
+                    <div
+                      v-for="cType in ['POTIONS', 'SCROLLS', 'SEEDS', 'STONES', 'FOOD', 'EXOTIC_POTIONS', 'EXOTIC_SCROLLS', 'BOMBS', 'TIPPED_DARTS', 'BREWS_ELIXIRS', 'SPELLS', 'MISC_CONSUMABLES']"
+                      :key="cType"
+                      class="detail-item expandable"
+                      @click="toggleThirdDetail(cType)"
+                    >
+                      <span class="item-label">{{ getConsumableLabel(cType) }}</span>
+                      <span class="item-count">{{ getConsumableDetail(cType) }}</span>
+                      <el-icon class="expand-icon-small" :class="{ expanded: expandedThirdDetail === cType }"><ArrowRight /></el-icon>
+                    </div>
+                  </div>
+                  <!-- 消耗品第三级展开 -->
+                  <div v-if="expandedThirdDetail && expandedSubDetail === 'consumables'" class="detail-third-level">
+                    <div
+                      v-for="item in getCatalogByType(expandedThirdDetail)"
+                      :key="item.item"
+                      class="third-level-item"
+                    >
+                      <el-icon class="item-icon"><Box /></el-icon>
+                      <span class="item-name">{{ formatItemName(item) }}</span>
+                      <span class="item-meta">使用 {{ item.useCount || 0 }} 次</span>
+                    </div>
+                    <div v-if="getCatalogByType(expandedThirdDetail).length === 0" class="empty-detail">
+                      暂无发现
+                    </div>
                   </div>
                 </div>
                 <!-- 单位图鉴 -->
@@ -234,15 +285,31 @@
                     <el-icon class="expand-icon" :class="{ expanded: expandedSubDetail === 'bestiary' }"><ArrowRight /></el-icon>
                   </div>
                   <div v-if="expandedSubDetail === 'bestiary'" class="detail-items">
-                    <div class="detail-item"><span>区域敌人</span><span>{{ getBestiaryDetail('REGIONAL') }}</span></div>
-                    <div class="detail-item"><span>区域Boss</span><span>{{ getBestiaryDetail('BOSSES') }}</span></div>
-                    <div class="detail-item"><span>全局敌人</span><span>{{ getBestiaryDetail('UNIVERSAL') }}</span></div>
-                    <div class="detail-item"><span>稀有敌人</span><span>{{ getBestiaryDetail('RARE') }}</span></div>
-                    <div class="detail-item"><span>任务敌人与Boss</span><span>{{ getBestiaryDetail('QUEST') }}</span></div>
-                    <div class="detail-item"><span>中立角色</span><span>{{ getBestiaryDetail('NEUTRAL') }}</span></div>
-                    <div class="detail-item"><span>盟友</span><span>{{ getBestiaryDetail('ALLY') }}</span></div>
-                    <div class="detail-item"><span>陷阱</span><span>{{ getBestiaryDetail('TRAP') }}</span></div>
-                    <div class="detail-item"><span>植物</span><span>{{ getBestiaryDetail('PLANT') }}</span></div>
+                    <div
+                      v-for="bType in ['REGIONAL', 'BOSSES', 'UNIVERSAL', 'RARE', 'QUEST', 'NEUTRAL', 'ALLY', 'TRAP', 'PLANT']"
+                      :key="bType"
+                      class="detail-item expandable"
+                      @click="toggleThirdDetail(bType)"
+                    >
+                      <span class="item-label">{{ getBestiaryLabel(bType) }}</span>
+                      <span class="item-count">{{ getBestiaryDetail(bType) }}</span>
+                      <el-icon class="expand-icon-small" :class="{ expanded: expandedThirdDetail === bType }"><ArrowRight /></el-icon>
+                    </div>
+                  </div>
+                  <!-- 单位图鉴第三级展开 -->
+                  <div v-if="expandedThirdDetail && expandedSubDetail === 'bestiary'" class="detail-third-level">
+                    <div
+                      v-for="item in getBestiaryByType(expandedThirdDetail)"
+                      :key="item.entity"
+                      class="third-level-item"
+                    >
+                      <el-icon class="item-icon"><User /></el-icon>
+                      <span class="item-name">{{ formatItemName(item) }}</span>
+                      <span class="item-meta">遭遇 {{ item.encountered || 0 }} 次</span>
+                    </div>
+                    <div v-if="getBestiaryByType(expandedThirdDetail).length === 0" class="empty-detail">
+                      暂无发现
+                    </div>
                   </div>
                 </div>
                 <!-- 背景故事 -->
@@ -280,6 +347,29 @@
                 </div>
               </div>
 
+              <!-- 地牢指南展开详情 -->
+              <div v-if="expandedDetail === 'guide'" class="progress-detail">
+                <div class="detail-section">
+                  <div class="detail-header">
+                    <span class="detail-title">已发现页面</span>
+                    <span class="detail-count">{{ playerInfo?.adventurersGuideFound || 0 }}页</span>
+                  </div>
+                  <div class="detail-items document-items">
+                    <div
+                      v-for="doc in getDocumentsByType('ADVENTURERS_GUIDE')"
+                      :key="doc.page"
+                      class="detail-item document-item"
+                    >
+                      <el-icon class="document-icon"><Document /></el-icon>
+                      <span class="document-name">{{ doc.page }}</span>
+                    </div>
+                    <div v-if="getDocumentsByType('ADVENTURERS_GUIDE').length === 0" class="empty-detail">
+                      暂无发现
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <!-- 炼金指南 -->
               <div class="progress-item" @click="toggleDetail('alchemy')">
                 <div class="progress-icon" style="background: rgba(6, 182, 212, 0.12); color: #06b6d4;">
@@ -294,6 +384,29 @@
                     <div class="progress-fill-mini" :style="{ width: ((playerInfo?.alchemyGuideFound || 0) / (playerInfo?.alchemyGuideTotal || 9) * 100) + '%' }"></div>
                   </div>
                   <el-icon class="expand-icon" :class="{ expanded: expandedDetail === 'alchemy' }"><ArrowRight /></el-icon>
+                </div>
+              </div>
+
+              <!-- 炼金指南展开详情 -->
+              <div v-if="expandedDetail === 'alchemy'" class="progress-detail">
+                <div class="detail-section">
+                  <div class="detail-header">
+                    <span class="detail-title">已发现页面</span>
+                    <span class="detail-count">{{ playerInfo?.alchemyGuideFound || 0 }}页</span>
+                  </div>
+                  <div class="detail-items document-items">
+                    <div
+                      v-for="doc in getDocumentsByType('ALCHEMY_GUIDE')"
+                      :key="doc.page"
+                      class="detail-item document-item"
+                    >
+                      <el-icon class="document-icon"><Document /></el-icon>
+                      <span class="document-name">{{ doc.page }}</span>
+                    </div>
+                    <div v-if="getDocumentsByType('ALCHEMY_GUIDE').length === 0" class="empty-detail">
+                      暂无发现
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -312,7 +425,7 @@ import { ElMessage } from 'element-plus'
 import {
   UserFilled, User, Trophy, Location, Medal, TrendCharts,
   Clock, StarFilled, CircleCheckFilled, Check, Close, Warning,
-  Collection, Goods, Document, Flag, View, Notebook, FirstAidKit, ArrowRight
+  Collection, Goods, Document, Flag, View, Notebook, FirstAidKit, ArrowRight, Box
 } from '@element-plus/icons-vue'
 import { playerApi, leaderboardApi } from '../api'
 
@@ -325,6 +438,7 @@ const recentGames = ref([])
 const loading = ref(false)
 const expandedDetail = ref(null)
 const expandedSubDetail = ref(null)
+const expandedThirdDetail = ref(null)
 
 // 图鉴总数量计算
 const totalCatalogCount = computed(() => {
@@ -344,10 +458,65 @@ const totalCatalogSeen = computed(() => {
 const toggleDetail = (detail) => {
   expandedDetail.value = expandedDetail.value === detail ? null : detail
   expandedSubDetail.value = null
+  expandedThirdDetail.value = null
 }
 
 const toggleSubDetail = (subDetail) => {
   expandedSubDetail.value = expandedSubDetail.value === subDetail ? null : subDetail
+  expandedThirdDetail.value = null
+}
+
+const toggleThirdDetail = (thirdDetail) => {
+  expandedThirdDetail.value = expandedThirdDetail.value === thirdDetail ? null : thirdDetail
+}
+
+const getEquipmentLabel = (type) => {
+  const labels = {
+    'MELEE_WEAPONS': '近战武器',
+    'ARMOR': '护甲',
+    'ENCHANTMENTS': '附魔与诅咒',
+    'GLYPHS': '刻印与诅咒',
+    'THROWN_WEAPONS': '投掷武器',
+    'WANDS': '法杖',
+    'RINGS': '戒指',
+    'ARTIFACTS': '神器',
+    'TRINKETS': '饰品',
+    'MISC_EQUIPMENT': '杂项装备'
+  }
+  return labels[type] || type
+}
+
+const getConsumableLabel = (type) => {
+  const labels = {
+    'POTIONS': '药剂',
+    'SCROLLS': '卷轴',
+    'SEEDS': '种子',
+    'STONES': '符石',
+    'FOOD': '食物',
+    'EXOTIC_POTIONS': '合剂',
+    'EXOTIC_SCROLLS': '秘卷',
+    'BOMBS': '炸弹',
+    'TIPPED_DARTS': '涂药飞镖',
+    'BREWS_ELIXIRS': '魔药与秘药',
+    'SPELLS': '法术结晶',
+    'MISC_CONSUMABLES': '杂项消耗品'
+  }
+  return labels[type] || type
+}
+
+const getBestiaryLabel = (type) => {
+  const labels = {
+    'REGIONAL': '区域敌人',
+    'BOSSES': '区域Boss',
+    'UNIVERSAL': '全局敌人',
+    'RARE': '稀有敌人',
+    'QUEST': '任务敌人与Boss',
+    'NEUTRAL': '中立角色',
+    'ALLY': '盟友',
+    'TRAP': '陷阱',
+    'PLANT': '植物'
+  }
+  return labels[type] || type
 }
 
 const getEquipmentDetail = (type) => {
@@ -372,6 +541,30 @@ const getLoreDetail = (type) => {
   const detail = playerInfo.value?.loreDetails?.[type]
   if (!detail) return '0/0'
   return `${detail.found}/${detail.total}`
+}
+
+const getDocumentsByType = (type) => {
+  const docs = playerInfo.value?.documentList || []
+  return docs.filter(d => d.type === type)
+}
+
+const getCatalogByType = (type) => {
+  const catalog = playerInfo.value?.catalogList || []
+  return catalog.filter(c => c.type === type)
+}
+
+const getBestiaryByType = (type) => {
+  const bestiary = playerInfo.value?.bestiaryList || []
+  return bestiary.filter(b => b.type === type)
+}
+
+const formatAchievementName = (achievement) => {
+  return achievement
+}
+
+const formatItemName = (item) => {
+  if (!item) return ''
+  return item.item || item.entity || '未知'
 }
 
 const statsList = computed(() => [
@@ -1182,6 +1375,136 @@ onMounted(() => {
 .detail-item span:last-child {
   color: var(--text-secondary);
   font-family: monospace;
+}
+
+.detail-item.expandable {
+  cursor: pointer;
+  transition: background var(--transition-fast);
+  border-radius: var(--radius-sm);
+}
+
+.detail-item.expandable:hover {
+  background: var(--surface-2);
+}
+
+.detail-item.expandable .item-label {
+  flex: 1;
+  color: var(--text-primary);
+}
+
+.detail-item.expandable .item-count {
+  color: var(--text-secondary);
+  font-family: monospace;
+  margin-right: var(--space-2);
+}
+
+.expand-icon-small {
+  transition: transform var(--transition-base);
+  color: var(--text-tertiary);
+  font-size: 12px;
+}
+
+.expand-icon-small.expanded {
+  transform: rotate(90deg);
+}
+
+.detail-third-level {
+  margin-left: var(--space-8);
+  margin-top: var(--space-2);
+  padding: var(--space-2);
+  background: var(--surface-2);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+}
+
+.third-level-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  font-size: 0.75rem;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.third-level-item:last-child {
+  border-bottom: none;
+}
+
+.third-level-item .item-icon {
+  color: var(--primary-400);
+  font-size: 14px;
+}
+
+.third-level-item .item-name {
+  flex: 1;
+  color: var(--text-primary);
+  font-family: monospace;
+}
+
+.third-level-item .item-meta {
+  color: var(--text-tertiary);
+  font-size: 0.6875rem;
+}
+
+.achievement-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-left: var(--space-4);
+}
+
+.achievement-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  background: rgba(245, 158, 11, 0.08);
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+}
+
+.achievement-icon {
+  color: #f59e0b;
+  font-size: 12px;
+}
+
+.achievement-name {
+  font-size: 0.75rem;
+  color: var(--text-primary);
+  font-family: monospace;
+}
+
+.document-items {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.document-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  background: var(--surface-2);
+  border-radius: var(--radius-sm);
+}
+
+.document-icon {
+  color: var(--primary-400);
+  font-size: 14px;
+}
+
+.document-name {
+  font-size: 0.8125rem;
+  color: var(--text-primary);
+  font-family: monospace;
+}
+
+.empty-detail {
+  padding: var(--space-3);
+  text-align: center;
+  color: var(--text-tertiary);
+  font-size: 0.8125rem;
 }
 
 /* Responsive */
