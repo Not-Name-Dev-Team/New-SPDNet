@@ -57,6 +57,7 @@ out/
 
 # Server specific
 SPDNetData.db
+server/src/main/resources/static/
 
 ### Node.js / 前端相关 ###
 # 依赖目录

