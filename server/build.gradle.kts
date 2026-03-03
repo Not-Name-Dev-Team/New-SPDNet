@@ -1,6 +1,6 @@
 plugins {
     java
-    id("org.springframework.boot") version "3.4.4"
+    id("org.springframework.boot") version "4.0.3"
     id("io.spring.dependency-management") version "1.1.7"
     id("io.freefair.lombok")
 }
@@ -26,16 +26,16 @@ dependencies {
     // Database
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     implementation("org.xerial:sqlite-jdbc:3.51.2.0")
-    implementation("org.hibernate.orm:hibernate-community-dialects:6.6.11.Final")
+    implementation("org.hibernate.orm:hibernate-community-dialects:7.3.0.CR2")
 
     // Fastjson2
     implementation("com.alibaba.fastjson2:fastjson2:2.0.48")
 
     // Socket.io
-    implementation("com.corundumstudio.socketio:netty-socketio:2.0.8")
+    implementation("com.corundumstudio.socketio:netty-socketio:2.0.14")
 
     // BCrypt for password encoding
-    implementation("org.springframework.security:spring-security-crypto:6.4.4")
+    implementation("org.springframework.security:spring-security-crypto:7.0.3")
 
     // Mail
     implementation("org.springframework.boot:spring-boot-starter-mail")
