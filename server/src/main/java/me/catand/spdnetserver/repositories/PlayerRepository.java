@@ -12,6 +12,7 @@ import java.util.List;
 
 public interface PlayerRepository extends JpaRepository<Player, Long> {
     Player findByName(String name);
+    Player findByEmail(String email);
     boolean existsByName(String name);
     boolean existsByEmail(String email);
     Page<Player> findByNameContainingIgnoreCase(String name, Pageable pageable);

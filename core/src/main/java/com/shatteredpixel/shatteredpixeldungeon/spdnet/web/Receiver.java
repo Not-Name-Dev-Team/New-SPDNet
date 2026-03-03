@@ -45,6 +45,13 @@ public class Receiver {
 			NetWindow.error("与服务器断开连接");
 		};
 		Emitter.Listener onConnectionError = args -> {
+			// SPDNet: 添加连接错误处理，向用户显示错误信息
+			String errorMessage = "连接服务器失败";
+			if (args != null && args.length > 0 && args[0] != null) {
+				errorMessage += ": " + args[0].toString();
+			}
+			NetWindow.error(errorMessage);
+			cancelAll();
 		};
 		Emitter.Listener onAchievement = args -> {
 			Handler.handleAchievement(JSON.parseObject(args[0].toString(), SAchievement.class));

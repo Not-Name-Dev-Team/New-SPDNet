@@ -53,6 +53,14 @@ export const playerApi = {
     return api.post('/change-password', data)
   },
 
+  sendForgotPasswordCode(data) {
+    return api.post('/forgot-password/send-code', data)
+  },
+
+  resetPassword(data) {
+    return api.post('/forgot-password/reset', data)
+  },
+
   getChatHistory(count = 50) {
     return api.get('/chat/messages', { params: { count } })
   },

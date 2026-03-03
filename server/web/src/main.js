@@ -10,6 +10,7 @@ import './style.css'
 import Home from './views/Home.vue'
 import Register from './views/Register.vue'
 import Login from './views/Login.vue'
+import ForgotPassword from './views/ForgotPassword.vue'
 import Leaderboard from './views/Leaderboard.vue'
 import DailyChallenge from './views/DailyChallenge.vue'
 import Player from './views/Player.vue'
@@ -22,6 +23,7 @@ const routes = [
   { path: '/', component: Home, meta: { title: '首页' } },
   { path: '/register', component: Register, meta: { title: '注册' } },
   { path: '/login', component: Login, meta: { title: '登录' } },
+  { path: '/forgot-password', component: ForgotPassword, meta: { title: '忘记密码' } },
   { path: '/leaderboard', component: Leaderboard, meta: { title: '排行榜' } },
   { path: '/daily-challenge', component: DailyChallenge, meta: { title: '每日挑战' } },
   { path: '/player/:name', component: Player, meta: { title: '玩家详情' } },

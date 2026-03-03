@@ -3,6 +3,8 @@ package me.catand.spdnetserver.controller;
 import me.catand.spdnetserver.SocketService;
 import me.catand.spdnetserver.SpdProperties;
 import me.catand.spdnetserver.controller.dto.*;
+import me.catand.spdnetserver.controller.dto.ForgotPasswordRequest;
+import me.catand.spdnetserver.controller.dto.SendForgotPasswordCodeRequest;
 import me.catand.spdnetserver.entitys.*;
 import me.catand.spdnetserver.repositories.*;
 import me.catand.spdnetserver.service.BannedWordsService;
@@ -721,5 +723,102 @@ public class PlayerController {
         playerRepository.save(player);
 
         return ApiResponse.success("密码修改成功");
+    }
+
+    // SPDNet: 忘记密码 - 发送验证码
+    @PostMapping("/forgot-password/send-code")
+    public ApiResponse<Map<String, Object>> sendForgotPasswordCode(@RequestBody SendForgotPasswordCodeRequest request) {
+        String email = request.getEmail();
+
+        if (email == null || email.trim().isEmpty()) {
+            return ApiResponse.error("邮箱不能为空");
+        }
+
+        if (!email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$")) {
+            return ApiResponse.error("邮箱格式不正确");
+        }
+
+        // 检查邮箱是否已注册
+        Player player = playerRepository.findByEmail(email);
+        if (player == null) {
+            return ApiResponse.error("该邮箱未注册");
+        }
+
+        if (!mailService.isEnabled()) {
+            return ApiResponse.error("邮件服务未启用，请联系管理员");
+        }
+
+        // 检查是否在冷却时间内（忘记密码使用更长的冷却时间：60秒）
+        int cooldownSeconds = 60;
+        if (!verificationCodeService.canSendCode(email, cooldownSeconds)) {
+            long remainingSeconds = verificationCodeService.getRemainingCooldown(email, cooldownSeconds);
+            return ApiResponse.error("请等待 " + remainingSeconds + " 秒后重试");
+        }
+
+        // 获取或生成验证码
+        String code = verificationCodeService.getOrGenerateCode(email);
+        boolean sent = mailService.sendVerificationCode(email, code);
+
+        if (!sent) {
+            return ApiResponse.error("验证码发送失败，请稍后重试");
+        }
+
+        // 存储验证码并更新发送时间
+        verificationCodeService.storeCode(email, code);
+        verificationCodeService.updateSendTime(email);
+
+        Map<String, Object> data = new HashMap<>();
+        data.put("expireMinutes", 5);
+        data.put("cooldownSeconds", cooldownSeconds);
+
+        return ApiResponse.success("验证码已发送", data);
+    }
+
+    // SPDNet: 忘记密码 - 重置密码
+    @PostMapping("/forgot-password/reset")
+    public ApiResponse<Void> resetPassword(@RequestBody ForgotPasswordRequest request) {
+        String email = request.getEmail();
+        String verificationCode = request.getVerificationCode();
+        String newPassword = request.getNewPassword();
+
+        if (email == null || email.trim().isEmpty()) {
+            return ApiResponse.error("邮箱不能为空");
+        }
+
+        if (!email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$")) {
+            return ApiResponse.error("邮箱格式不正确");
+        }
+
+        if (verificationCode == null || verificationCode.trim().isEmpty()) {
+            return ApiResponse.error("验证码不能为空");
+        }
+
+        if (newPassword == null || newPassword.trim().isEmpty()) {
+            return ApiResponse.error("新密码不能为空");
+        }
+
+        if (newPassword.length() < 6 || newPassword.length() > 32) {
+            return ApiResponse.error("新密码长度需在6-32个字符之间");
+        }
+
+        // 检查邮箱是否已注册
+        Player player = playerRepository.findByEmail(email);
+        if (player == null) {
+            return ApiResponse.error("该邮箱未注册");
+        }
+
+        // 验证验证码
+        if (!verificationCodeService.verifyCode(email, verificationCode)) {
+            return ApiResponse.error("验证码错误或已过期");
+        }
+
+        // 重置密码
+        player.setPassword(passwordEncoder.encode(newPassword));
+        playerRepository.save(player);
+
+        // 清除验证码
+        verificationCodeService.removeCode(email);
+
+        return ApiResponse.success("密码重置成功");
     }
 }

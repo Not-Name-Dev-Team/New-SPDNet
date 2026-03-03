@@ -38,6 +38,11 @@
           </router-link>
         </nav>
 
+        <!-- Mobile Menu Button -->
+        <button class="mobile-menu-btn" @click="mobileMenuOpen = true">
+          <el-icon :size="24"><Menu /></el-icon>
+        </button>
+
         <!-- User Section -->
         <div class="user-section">
           <template v-if="!authStore.isLoggedIn">
@@ -95,6 +100,73 @@
       </router-view>
     </main>
 
+    <!-- Mobile Navigation Drawer -->
+    <el-drawer
+      v-model="mobileMenuOpen"
+      direction="ltr"
+      size="280px"
+      :with-header="false"
+      class="mobile-nav-drawer"
+    >
+      <div class="mobile-nav-content">
+        <div class="mobile-nav-header">
+          <router-link to="/" class="mobile-brand" @click="mobileMenuOpen = false">
+            <div class="brand-icon-wrapper">
+              <div class="brand-icon-glow"></div>
+              <el-icon class="brand-icon" :size="20"><Connection /></el-icon>
+            </div>
+            <span class="brand-text">
+              <span class="gradient-text">SPD</span>Net
+            </span>
+          </router-link>
+        </div>
+
+        <nav class="mobile-nav">
+          <router-link
+            v-for="item in navItems"
+            :key="item.path"
+            :to="item.path"
+            :class="['mobile-nav-link', { active: $route.path === item.path }]"
+            @click="mobileMenuOpen = false"
+          >
+            <el-icon :size="20"><component :is="item.icon" /></el-icon>
+            <span>{{ item.label }}</span>
+          </router-link>
+        </nav>
+
+        <div class="mobile-nav-footer">
+          <template v-if="!authStore.isLoggedIn">
+            <router-link to="/login" class="mobile-nav-btn btn-login" @click="mobileMenuOpen = false">
+              <el-icon><User /></el-icon>
+              <span>登录</span>
+            </router-link>
+            <router-link to="/register" class="mobile-nav-btn btn-register" @click="mobileMenuOpen = false">
+              <el-icon><Plus /></el-icon>
+              <span>注册</span>
+            </router-link>
+          </template>
+          <template v-else>
+            <router-link to="/dashboard" class="mobile-nav-btn" @click="mobileMenuOpen = false">
+              <el-icon><User /></el-icon>
+              <span>个人中心</span>
+            </router-link>
+            <router-link v-if="authStore.user?.name" :to="`/player/${authStore.user.name}`" class="mobile-nav-btn" @click="mobileMenuOpen = false">
+              <el-icon><View /></el-icon>
+              <span>我的主页</span>
+            </router-link>
+            <router-link v-if="isAdmin" to="/admin" class="mobile-nav-btn" @click="mobileMenuOpen = false">
+              <el-icon><Setting /></el-icon>
+              <span>后台管理</span>
+            </router-link>
+            <button class="mobile-nav-btn btn-logout" @click="handleMobileLogout">
+              <el-icon><SwitchButton /></el-icon>
+              <span>退出登录</span>
+            </button>
+          </template>
+        </div>
+      </div>
+    </el-drawer>
+
     <!-- Footer -->
     <footer class="app-footer">
       <div class="footer-container">
@@ -128,12 +200,13 @@ import { authStore } from './store/auth'
 import ParticleBackground from './components/ParticleBackground.vue'
 import {
   House, Trophy, ChatDotRound, User, Plus, UserFilled,
-  ArrowDown, View, Setting, SwitchButton, Link, Connection, Calendar
+  ArrowDown, View, Setting, SwitchButton, Link, Connection, Calendar, Menu
 } from '@element-plus/icons-vue'
 
 const router = useRouter()
 const isAdmin = computed(() => authStore.user?.role === '管理员')
 const isScrolled = ref(false)
+const mobileMenuOpen = ref(false)
 
 const navItems = [
   { path: '/', label: '首页', icon: House },
@@ -182,6 +255,24 @@ const handleCommand = (command) => {
       }).catch(() => {})
       break
   }
+}
+
+const handleMobileLogout = () => {
+  mobileMenuOpen.value = false
+  ElMessageBox.confirm(
+    '确定要退出登录吗？',
+    '提示',
+    {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning',
+      customClass: 'custom-message-box'
+    }
+  ).then(() => {
+    authStore.logout()
+    ElMessage.success('已退出登录')
+    router.push('/')
+  }).catch(() => {})
 }
 </script>
 
@@ -595,10 +686,141 @@ const handleCommand = (command) => {
   }
 }
 
+/* Mobile Menu Button */
+.mobile-menu-btn {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md);
+  background: var(--surface-1);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.mobile-menu-btn:hover {
+  background: var(--surface-2);
+  border-color: var(--border-default);
+  color: var(--text-primary);
+}
+
+/* Mobile Navigation Drawer */
+.mobile-nav-drawer :deep(.el-drawer__body) {
+  padding: 0;
+  background: var(--surface-1);
+}
+
+.mobile-nav-content {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: var(--space-4);
+}
+
+.mobile-nav-header {
+  padding-bottom: var(--space-4);
+  border-bottom: 1px solid var(--border-subtle);
+  margin-bottom: var(--space-4);
+}
+
+.mobile-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  text-decoration: none;
+}
+
+.mobile-nav {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  flex: 1;
+}
+
+.mobile-nav-link {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-lg);
+  color: var(--text-secondary);
+  text-decoration: none;
+  font-weight: 500;
+  transition: all var(--transition-fast);
+}
+
+.mobile-nav-link:hover {
+  background: var(--surface-2);
+  color: var(--text-primary);
+}
+
+.mobile-nav-link.active {
+  background: var(--gradient-primary);
+  color: white;
+}
+
+.mobile-nav-footer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--border-subtle);
+}
+
+.mobile-nav-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-lg);
+  font-weight: 500;
+  text-decoration: none;
+  transition: all var(--transition-fast);
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 0.9375rem;
+  color: var(--text-secondary);
+}
+
+.mobile-nav-btn:hover {
+  background: var(--surface-2);
+  color: var(--text-primary);
+}
+
+.mobile-nav-btn.btn-login {
+  color: var(--text-secondary);
+}
+
+.mobile-nav-btn.btn-register {
+  background: var(--gradient-primary);
+  color: white;
+}
+
+.mobile-nav-btn.btn-register:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-glow-sm);
+}
+
+.mobile-nav-btn.btn-logout {
+  color: var(--accent-red);
+}
+
+.mobile-nav-btn.btn-logout:hover {
+  background: rgba(239, 68, 68, 0.1);
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .main-nav {
     display: none;
+  }
+
+  .mobile-menu-btn {
+    display: flex;
   }
 
   .brand-text {
