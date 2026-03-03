@@ -3,6 +3,7 @@ package com.shatteredpixel.shatteredpixeldungeon.spdnet.web.actors;
 import com.shatteredpixel.shatteredpixeldungeon.Assets;
 import com.shatteredpixel.shatteredpixeldungeon.Dungeon;
 import com.shatteredpixel.shatteredpixeldungeon.ShatteredPixelDungeon;
+import com.shatteredpixel.shatteredpixeldungeon.actors.hero.Belongings;
 import com.shatteredpixel.shatteredpixeldungeon.actors.hero.Hero;
 import com.shatteredpixel.shatteredpixeldungeon.effects.SpellSprite;
 import com.shatteredpixel.shatteredpixeldungeon.levels.features.Chasm;
@@ -63,7 +64,13 @@ public class NetHero extends Hero {
 	 * @param bundle
 	 */
 	public void restoreFromBundleOverride(Bundle bundle) {
+		// SPDNet: 修复快捷栏被覆盖bug
+		// 保存当前的 bundleRestoring 状态，防止查看其他玩家时影响当前玩家的快捷栏
+		boolean wasBundleRestoring = Belongings.bundleRestoring;
+		Belongings.bundleRestoring = false;
 		super.restoreFromBundle(bundle);
+		// 恢复原来的状态
+		Belongings.bundleRestoring = wasBundleRestoring;
 	}
 
 	@Override

@@ -2,6 +2,7 @@ package com.shatteredpixel.shatteredpixeldungeon.spdnet.web;
 
 import com.alibaba.fastjson.annotation.JSONField;
 import com.shatteredpixel.shatteredpixeldungeon.Rankings;
+import com.shatteredpixel.shatteredpixeldungeon.actors.hero.Belongings;
 import com.shatteredpixel.shatteredpixeldungeon.actors.hero.Hero;
 import com.shatteredpixel.shatteredpixeldungeon.messages.Messages;
 import com.watabou.utils.Bundle;
@@ -122,8 +123,14 @@ public class GameRecord {
 	}
 
 	public void setHero(String hero) {
+		// SPDNet: 修复快捷栏被覆盖bug
+		// 保存当前的 bundleRestoring 状态，防止反序列化其他玩家英雄数据时影响当前玩家的快捷栏
+		boolean wasBundleRestoring = Belongings.bundleRestoring;
+		Belongings.bundleRestoring = false;
 		Hero heroObject = new Hero();
 		heroObject.restoreFromBundle(Bundle.fromString(hero));
 		this.hero = heroObject;
+		// 恢复原来的状态
+		Belongings.bundleRestoring = wasBundleRestoring;
 	}
 }

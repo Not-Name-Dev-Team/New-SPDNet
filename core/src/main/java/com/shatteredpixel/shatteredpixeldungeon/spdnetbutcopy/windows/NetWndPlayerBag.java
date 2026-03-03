@@ -344,16 +344,13 @@ public class NetWndPlayerBag extends WndTabbed {
 
 			@Override
 			protected boolean onLongClick() {
-				if (selector == null && item.defaultAction() != null) {
-					hide();
-					QuickSlotButton.set( item );
-					return true;
-				} else if (selector != null) {
+				// SPDNet: 查看其他玩家背包时，禁用长按设置快捷栏功能
+				// 因为这些物品不属于当前玩家，设置到快捷栏会导致显示异常
+				if (selector != null) {
 					Game.scene().addToFront(new WndInfoItem(item));
 					return true;
-				} else {
-					return false;
 				}
+				return false;
 			}
 		};
 		slot.setRect( x, y, slotWidth, slotHeight );
