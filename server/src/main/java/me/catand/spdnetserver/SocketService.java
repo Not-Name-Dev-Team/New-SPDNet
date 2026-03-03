@@ -81,7 +81,7 @@ private SocketIOServer server;
 	public void init() {
 		Configuration config = new Configuration();
 		config.setHostname("0.0.0.0");
-		config.setPort(21687);
+		config.setPort(65535);
 
 		instance = this;
 		server = new SocketIOServer(config);
