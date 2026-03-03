@@ -10,6 +10,8 @@ import org.springframework.stereotype.Service;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.*;
 
 @Service
@@ -36,18 +38,41 @@ public class BannedWordsService {
         }
 
         List<String> words = new ArrayList<>();
-        try (BufferedReader reader = new BufferedReader(new FileReader(filePath))) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                line = line.trim();
-                if (!line.isEmpty()) {
-                    words.add(line.toLowerCase());
+        
+        java.io.File externalFile = new java.io.File(filePath);
+        if (externalFile.exists() && externalFile.isFile()) {
+            try (BufferedReader reader = new BufferedReader(new FileReader(externalFile))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    line = line.trim();
+                    if (!line.isEmpty()) {
+                        words.add(line.toLowerCase());
+                    }
                 }
+                log.info("从外部文件加载了 {} 个屏蔽词: {}", words.size(), filePath);
+            } catch (IOException e) {
+                log.error("加载外部屏蔽词文件失败: {}", filePath, e);
+                return;
             }
-            log.info("从文件加载了 {} 个屏蔽词: {}", words.size(), filePath);
-        } catch (IOException e) {
-            log.error("加载屏蔽词文件失败: {}", filePath, e);
-            return;
+        } else {
+            InputStream is = getClass().getClassLoader().getResourceAsStream(filePath);
+            if (is == null) {
+                log.error("找不到屏蔽词文件: {} (外部文件和classpath都不存在)", filePath);
+                return;
+            }
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(is))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    line = line.trim();
+                    if (!line.isEmpty()) {
+                        words.add(line.toLowerCase());
+                    }
+                }
+                log.info("从classpath加载了 {} 个屏蔽词: {}", words.size(), filePath);
+            } catch (IOException e) {
+                log.error("加载classpath屏蔽词文件失败: {}", filePath, e);
+                return;
+            }
         }
 
         buildDfaMap(words);
