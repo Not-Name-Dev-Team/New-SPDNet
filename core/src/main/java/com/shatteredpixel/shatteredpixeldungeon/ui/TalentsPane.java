@@ -83,9 +83,18 @@ public class TalentsPane extends ScrollPane {
 	}
 
 	public TalentsPane( TalentButton.Mode mode, ArrayList<LinkedHashMap<Talent, Integer>> talents ) {
+		this(mode, talents, null);
+	}
+
+	// SPDNet: 添加带 hero 参数的构造函数，修复查看其他玩家时 NPE 问题
+	// 当 hero 为 null 时使用 getHero() 获取默认 hero
+	public TalentsPane( TalentButton.Mode mode, ArrayList<LinkedHashMap<Talent, Integer>> talents, Hero hero ) {
 		super(new Component());
 
-		Ratmogrify.useRatroicEnergy = getHero() != null && getHero().armorAbility instanceof Ratmogrify;
+		// SPDNet: 优先使用传入的 hero 参数，避免子类构造函数中 getHero() 返回 null
+		Hero heroToUse = hero != null ? hero : getHero();
+
+		Ratmogrify.useRatroicEnergy = heroToUse != null && heroToUse.armorAbility instanceof Ratmogrify;
 
 		int tiersAvailable = 1;
 
@@ -101,14 +110,14 @@ public class TalentsPane extends ScrollPane {
 				tiersAvailable = Talent.MAX_TALENT_TIERS;
 			}
 		} else {
-			// SPDNet: 使用 getHero() 替代 Dungeon.hero
+			// SPDNet: 使用 heroToUse 替代 getHero()，避免 NPE
 			while (tiersAvailable < Talent.MAX_TALENT_TIERS
-					&& getHero().lvl+1 >= Talent.tierLevelThresholds[tiersAvailable+1]){
+					&& heroToUse.lvl+1 >= Talent.tierLevelThresholds[tiersAvailable+1]){
 				tiersAvailable++;
 			}
-			if (tiersAvailable > 2 && getHero().subClass == HeroSubClass.NONE){
+			if (tiersAvailable > 2 && heroToUse.subClass == HeroSubClass.NONE){
 				tiersAvailable = 2;
-			} else if (tiersAvailable > 3 && getHero().armorAbility == null){
+			} else if (tiersAvailable > 3 && heroToUse.armorAbility == null){
 				tiersAvailable = 3;
 			}
 		}
@@ -118,7 +127,8 @@ public class TalentsPane extends ScrollPane {
 		for (int i = 0; i < Math.min(tiersAvailable, talents.size()); i++){
 			if (talents.get(i).isEmpty()) continue;
 
-			TalentTierPane pane = new TalentTierPane(talents.get(i), i+1, mode, getHero());
+			// SPDNet: 使用 heroToUse 替代 getHero()，确保传入正确的 hero 对象
+			TalentTierPane pane = new TalentTierPane(talents.get(i), i+1, mode, heroToUse);
 			panes.add(pane);
 			content.add(pane);
 

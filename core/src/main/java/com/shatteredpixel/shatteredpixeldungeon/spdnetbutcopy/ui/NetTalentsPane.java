@@ -22,7 +22,8 @@ public class NetTalentsPane extends TalentsPane {
 	private Hero hero;
 
 	public NetTalentsPane(Hero hero, TalentButton.Mode mode) {
-		super(mode, hero.talents);
+		// SPDNet: 使用新的三参数构造函数，传入 hero 避免父类构造函数中 getHero() 返回 null
+		super(mode, hero.talents, hero);
 		this.hero = hero;
 	}
 
