@@ -25,6 +25,9 @@
 # needed for libGDX controllers
 -keep class com.badlogic.gdx.controllers.android.AndroidControllers { *; }
 
+# SPDNet: Lombok - 忽略生成的注解类警告
+-dontwarn lombok.Generated
+
 -keepclassmembers class com.badlogic.gdx.backends.android.AndroidInput* {
     <init>(com.badlogic.gdx.Application, android.content.Context, java.lang.Object, com.badlogic.gdx.backends.android.AndroidApplicationConfiguration);
 }

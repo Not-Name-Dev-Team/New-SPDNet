@@ -30,7 +30,8 @@ allprojects {
         appJavaCompatibility = JavaVersion.VERSION_11
 
         appAndroidCompileSDK = 35   //Android 15
-        appAndroidMinSDK = 21       //Android 5.0
+//        appAndroidMinSDK = 21       //Android 5.0
+        appAndroidMinSDK = 23       //Android 6.0 因为firebase最低SDK23
         appAndroidTargetSDK = 35    //Android 15
 
         gdxVersion = '1.14.0'
