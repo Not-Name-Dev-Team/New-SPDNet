@@ -39,16 +39,8 @@ android {
         debug {
             versionNameSuffix '-INDEV'
         }
-	    release {
-		    // 启用R8
-		    minifyEnabled true
-		    proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-
-		    // Firebase Crashlytics 自动上传mapping文件
-		    firebaseCrashlytics {
-			    mappingFileUploadEnabled true
-		    }
-	    }
+        release {
+        }
     }
 
     sourceSets {
