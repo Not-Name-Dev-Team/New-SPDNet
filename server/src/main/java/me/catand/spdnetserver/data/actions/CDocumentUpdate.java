@@ -13,5 +13,5 @@ import me.catand.spdnetserver.data.Data;
 public class CDocumentUpdate extends Data {
 	private String documentType;
 	private String pageName;
-	private boolean found;
+	private int state;
 }

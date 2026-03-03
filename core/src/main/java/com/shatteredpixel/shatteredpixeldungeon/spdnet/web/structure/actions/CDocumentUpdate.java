@@ -14,5 +14,5 @@ import lombok.Setter;
 public class CDocumentUpdate extends Data {
 	private String documentType;
 	private String pageName;
-	private boolean found;
+	private int state;
 }

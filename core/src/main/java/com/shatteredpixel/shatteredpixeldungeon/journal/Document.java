@@ -68,7 +68,7 @@ public enum Document {
 		if (pagesStates.containsKey(page) && pagesStates.get(page) == NOT_FOUND){
 			pagesStates.put(page, FOUND);
 			// SPDNet: 云端模式下发送更新到服务器
-			Journal.sendDocumentUpdate(name(), page, true);
+			Journal.sendDocumentUpdate(name(), page, FOUND);
 			Badges.validateCatalogBadges();
 			return true;
 		}
@@ -83,7 +83,7 @@ public enum Document {
 		if (pagesStates.containsKey(page) && pagesStates.get(page) != NOT_FOUND){
 			pagesStates.put(page, NOT_FOUND);
 			// SPDNet: 云端模式下发送更新到服务器
-			Journal.sendDocumentUpdate(name(), page, false);
+			Journal.sendDocumentUpdate(name(), page, NOT_FOUND);
 			return true;
 		}
 		return false;
@@ -135,6 +135,8 @@ public enum Document {
 	public boolean readPage( String page ) {
 		if (pagesStates.containsKey(page)){
 			pagesStates.put(page, READ);
+			// SPDNet: 云端模式下发送更新到服务器
+			Journal.sendDocumentUpdate(name(), page, READ);
 			Journal.saveNeeded = true;
 			Badges.validateCatalogBadges();
 			return true;

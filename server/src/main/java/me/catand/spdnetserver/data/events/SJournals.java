@@ -46,6 +46,6 @@ public class SJournals extends Data {
 	public static class DocumentData {
 		private String documentType;
 		private String pageName;
-		private boolean found;
+		private int state;
 	}
 }

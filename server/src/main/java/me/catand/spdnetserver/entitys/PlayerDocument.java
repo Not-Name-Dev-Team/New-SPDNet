@@ -27,6 +27,6 @@ public class PlayerDocument {
 	@Column(name = "page_name", nullable = false, length = 255)
 	private String pageName;
 
-	@Column(name = "found", nullable = false)
-	private boolean found;
+	@Column(name = "state", nullable = false)
+	private int state;
 }

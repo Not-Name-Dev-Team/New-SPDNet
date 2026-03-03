@@ -268,7 +268,10 @@ public class WndJournal extends WndTabbed {
 							ShatteredPixelDungeon.scene().addToFront( new WndStory( Document.ADVENTURERS_GUIDE.pageSprite(page),
 									Document.ADVENTURERS_GUIDE.pageTitle(page),
 									Document.ADVENTURERS_GUIDE.pageBody(page) ));
-							Document.ADVENTURERS_GUIDE.readPage(page);
+							// SPDNet: 只有在页面已发现的情况下才标记为已阅读
+							if (found) {
+								Document.ADVENTURERS_GUIDE.readPage(page);
+							}
 							return true;
 						} else {
 							return false;
@@ -418,7 +421,10 @@ public class WndJournal extends WndTabbed {
 			body.setPos(0, title.bottom());
 			content.add(body);
 
-			Document.ALCHEMY_GUIDE.readPage(currentPageIdx);
+			// SPDNet: 只有在页面已发现的情况下才标记为已阅读
+			if (Document.ALCHEMY_GUIDE.isPageFound(currentPageIdx)) {
+				Document.ALCHEMY_GUIDE.readPage(currentPageIdx);
+			}
 			
 			ArrayList<QuickRecipe> toAdd = QuickRecipe.getRecipes(currentPageIdx);
 			

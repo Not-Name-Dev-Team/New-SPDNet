@@ -433,10 +433,10 @@ public class Handler {
 		document.setPlayerId(dbPlayer.getId());
 		document.setDocumentType(cDocumentUpdate.getDocumentType());
 		document.setPageName(cDocumentUpdate.getPageName());
-		document.setFound(cDocumentUpdate.isFound());
+		document.setState(cDocumentUpdate.getState());
 
 		playerDocumentRepository.save(document);
-		log.info("玩家{}更新了 Document 数据：{} - {}", player.getName(), cDocumentUpdate.getDocumentType(), cDocumentUpdate.getPageName());
+		log.info("玩家{}更新了 Document 数据：{} - {} state={}", player.getName(), cDocumentUpdate.getDocumentType(), cDocumentUpdate.getPageName(), cDocumentUpdate.getState());
 	}
 
 	// SPDNet: 加载玩家的 Journal 数据并发送给客户端
@@ -463,7 +463,7 @@ public class Handler {
 
 		List<SJournals.DocumentData> documentDataList = new java.util.ArrayList<>();
 		for (me.catand.spdnetserver.entitys.PlayerDocument document : documents) {
-			documentDataList.add(new SJournals.DocumentData(document.getDocumentType(), document.getPageName(), document.isFound()));
+			documentDataList.add(new SJournals.DocumentData(document.getDocumentType(), document.getPageName(), document.getState()));
 		}
 
 		sender.sendJournals(client, new SJournals(catalogDataList, bestiaryDataList, documentDataList));

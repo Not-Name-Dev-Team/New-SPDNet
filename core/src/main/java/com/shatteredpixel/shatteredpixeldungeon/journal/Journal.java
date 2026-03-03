@@ -85,7 +85,7 @@ public class Journal {
 				try {
 					Document doc = Document.valueOf(data.getDocumentType());
 					if (doc.pagesStates.containsKey(data.getPageName())) {
-						doc.pagesStates.put(data.getPageName(), data.isFound() ? Document.FOUND : Document.NOT_FOUND);
+						doc.pagesStates.put(data.getPageName(), data.getState());
 					}
 				} catch (Exception e) {
 					ShatteredPixelDungeon.reportException(e);
@@ -117,9 +117,9 @@ public class Journal {
 	}
 
 	// SPDNet: 发送 Document 更新到服务器
-	public static void sendDocumentUpdate(String documentType, String pageName, boolean found) {
+	public static void sendDocumentUpdate(String documentType, String pageName, int state) {
 		try {
-			Sender.sendDocumentUpdate(new CDocumentUpdate(documentType, pageName, found));
+			Sender.sendDocumentUpdate(new CDocumentUpdate(documentType, pageName, state));
 		} catch (Exception e) {
 			ShatteredPixelDungeon.reportException(e);
 		}

@@ -404,14 +404,14 @@ public class PlayerController {
 
         // ========== 地牢指南统计 (冒险者指南 13页) ==========
         long adventurersGuideFound = documentList.stream()
-            .filter(d -> d.getDocumentType().equals("ADVENTURERS_GUIDE") && d.isFound())
+            .filter(d -> d.getDocumentType().equals("ADVENTURERS_GUIDE") && d.getState() > 0)
             .count();
         data.put("adventurersGuideTotal", 13);
         data.put("adventurersGuideFound", adventurersGuideFound);
 
         // ========== 炼金指南统计 (炼金指南 9页) ==========
         long alchemyGuideFound = documentList.stream()
-            .filter(d -> d.getDocumentType().equals("ALCHEMY_GUIDE") && d.isFound())
+            .filter(d -> d.getDocumentType().equals("ALCHEMY_GUIDE") && d.getState() > 0)
             .count();
         data.put("alchemyGuideTotal", 9);
         data.put("alchemyGuideFound", alchemyGuideFound);
@@ -530,11 +530,11 @@ public class PlayerController {
 
         // 计算背景故事已发现数量，INTROS的"Dungeon"页面默认已发现
         long loreFound = documentList.stream()
-            .filter(d -> loreDocTypes.contains(d.getDocumentType()) && d.isFound())
+            .filter(d -> loreDocTypes.contains(d.getDocumentType()) && d.getState() > 0)
             .count();
         // 如果数据库中没有INTROS的"Dungeon"记录，默认算作已发现
         boolean hasIntrosDungeon = documentList.stream()
-            .anyMatch(d -> "INTROS".equals(d.getDocumentType()) && "Dungeon".equals(d.getPageName()) && d.isFound());
+            .anyMatch(d -> "INTROS".equals(d.getDocumentType()) && "Dungeon".equals(d.getPageName()) && d.getState() > 0);
         if (!hasIntrosDungeon) {
             loreFound += 1;  // 默认解锁INTROS的第一页
         }
@@ -553,12 +553,12 @@ public class PlayerController {
         Map<String, Object> loreDetails = new HashMap<>();
         loreSubtotals.forEach((type, total) -> {
             long found = documentList.stream()
-                .filter(d -> d.getDocumentType().equals(type) && d.isFound())
+                .filter(d -> d.getDocumentType().equals(type) && d.getState() > 0)
                 .count();
             // INTROS的"Dungeon"页面默认已发现
             if ("INTROS".equals(type)) {
                 boolean hasDungeon = documentList.stream()
-                    .anyMatch(d -> "INTROS".equals(d.getDocumentType()) && "Dungeon".equals(d.getPageName()) && d.isFound());
+                    .anyMatch(d -> "INTROS".equals(d.getDocumentType()) && "Dungeon".equals(d.getPageName()) && d.getState() > 0);
                 if (!hasDungeon) {
                     found += 1;  // 默认解锁INTROS的第一页
                 }
@@ -590,7 +590,7 @@ public class PlayerController {
             .collect(Collectors.toList()));
 
         data.put("documentList", documentList.stream()
-            .filter(PlayerDocument::isFound)
+            .filter(d -> d.getState() > 0)
             .map(d -> Map.of(
                 "type", d.getDocumentType(),
                 "page", d.getPageName()
