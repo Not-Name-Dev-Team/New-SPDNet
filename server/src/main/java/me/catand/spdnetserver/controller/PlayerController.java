@@ -203,6 +203,11 @@ public class PlayerController {
             return ApiResponse.error("用户名不能为空");
         }
 
+        // SPDNet: 登录时用户名长度验证与注册保持一致
+        if (name.length() < 2 || name.length() > 16) {
+            return ApiResponse.error("用户名长度需在2-16个字符之间");
+        }
+
         if (password == null || password.trim().isEmpty()) {
             return ApiResponse.error("密码不能为空");
         }
