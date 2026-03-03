@@ -1,6 +1,5 @@
 package com.shatteredpixel.shatteredpixeldungeon.spdnet.windows;
 
-import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
@@ -13,11 +12,11 @@ import com.shatteredpixel.shatteredpixeldungeon.spdnet.utils.NLog;
 import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.Net;
 import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.Sender;
 import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.actions.CChatMessage;
+import com.shatteredpixel.shatteredpixeldungeon.spdnetbutcopy.ui.SPDNetTextInput;
 import com.shatteredpixel.shatteredpixeldungeon.sprites.CharSprite;
 import com.shatteredpixel.shatteredpixeldungeon.ui.RenderedTextBlock;
 import com.shatteredpixel.shatteredpixeldungeon.ui.ScrollPane;
 import com.watabou.noosa.Camera;
-import com.watabou.noosa.TextInput;
 import com.watabou.noosa.ui.Component;
 import com.watabou.utils.DeviceCompat;
 
@@ -35,7 +34,7 @@ public class NetWndChat extends NetWindow {
 
 	public static final float MSGPADDING = 2;
 
-	private TextInput textInput;
+	private SPDNetTextInput textInput;
 	private BlueButton sendBtn;
 
 	private ScrollPane list;
@@ -97,7 +96,7 @@ public class NetWndChat extends NetWindow {
 			super.createChildren();
 
 			int textSize = (int) PixelScene.uiCamera.zoom * 6;
-			textInput = new TextInput(Chrome.get(Chrome.Type.TOAST), false, textSize);
+			textInput = new SPDNetTextInput(Chrome.get(Chrome.Type.TOAST), false, textSize);
 			textInput.setMaxLength(200);
 			textInput.setTextAlignment(Align.left);
 			textInput.setTextColor(Color.WHITE);
@@ -133,7 +132,7 @@ public class NetWndChat extends NetWindow {
 						lastMessage = msg;
 						textInput.setText("");
 					}
-					Gdx.input.setOnscreenKeyboardVisible(true);
+					textInput.setActive(true);
 				}
 			};
 
