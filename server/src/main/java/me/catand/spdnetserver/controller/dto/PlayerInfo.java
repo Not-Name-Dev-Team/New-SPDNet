@@ -13,6 +13,8 @@ public class PlayerInfo {
     private boolean online;
     // SPDNet: 前缀系统 - 玩家前缀完整信息
     private PlayerPrefixDTO prefix;
+    // SPDNet: 玩家状态信息 - 挑战数、层数、游戏模式等（使用DTO转换后的数据）
+    private StatusDTO status;
 
     public PlayerInfo(String name, String role, boolean online) {
         this.name = name;

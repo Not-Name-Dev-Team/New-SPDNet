@@ -353,7 +353,7 @@ const loadData = async () => {
       params.winOnly = true
     }
 
-    const res = await leaderboardApi.getLeaderboard(params)
+    const res = await leaderboardApi.getLeaderboard(params.page, params.size, params)
     if (res.data.success) {
       const data = res.data.data || {}
       const records = data.records || []

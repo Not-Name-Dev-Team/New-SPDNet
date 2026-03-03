@@ -4,6 +4,7 @@ import me.catand.spdnetserver.SocketService;
 import me.catand.spdnetserver.SpdProperties;
 import me.catand.spdnetserver.controller.dto.*;
 import me.catand.spdnetserver.controller.dto.ForgotPasswordRequest;
+import me.catand.spdnetserver.controller.dto.StatusDTO;
 import me.catand.spdnetserver.controller.dto.SendForgotPasswordCodeRequest;
 import me.catand.spdnetserver.entitys.*;
 import me.catand.spdnetserver.repositories.*;
@@ -237,7 +238,8 @@ public class PlayerController {
         Map<?, Player> playerMap = socketService.getPlayerMap();
         List<PlayerInfo> onlinePlayers = playerMap.values().stream()
             .map(p -> new PlayerInfo(p.getName(), p.getRole().getDisplayName(), true,
-                playerPrefixService.getActivePrefixDTO(p.getName())))
+                playerPrefixService.getActivePrefixDTO(p.getName()),
+                StatusDTO.fromStatus(p.getStatus())))
             .collect(Collectors.toList());
         return ApiResponse.success("获取成功", onlinePlayers);
     }
@@ -248,12 +250,21 @@ public class PlayerController {
         Map<?, Player> onlineMap = socketService.getPlayerMap();
 
         List<PlayerInfo> playerInfos = players.stream()
-            .map(p -> new PlayerInfo(
-                p.getName(),
-                p.getRole().getDisplayName(),
-                onlineMap.values().stream().anyMatch(op -> op.getName().equals(p.getName())),
-                playerPrefixService.getActivePrefixDTO(p.getName())
-            ))
+            .map(p -> {
+                boolean isOnline = onlineMap.values().stream().anyMatch(op -> op.getName().equals(p.getName()));
+                // SPDNet: 如果玩家在线，获取其实时状态
+                Player onlinePlayer = onlineMap.values().stream()
+                    .filter(op -> op.getName().equals(p.getName()))
+                    .findFirst()
+                    .orElse(null);
+                return new PlayerInfo(
+                    p.getName(),
+                    p.getRole().getDisplayName(),
+                    isOnline,
+                    playerPrefixService.getActivePrefixDTO(p.getName()),
+                    StatusDTO.fromStatus(onlinePlayer != null ? onlinePlayer.getStatus() : null)
+                );
+            })
             .collect(Collectors.toList());
 
         return ApiResponse.success("获取成功", playerInfos);

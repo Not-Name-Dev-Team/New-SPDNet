@@ -129,9 +129,26 @@
               >{{ player.prefix.displayText }}</span>
               {{ player.name }}
             </span>
-            <el-tag :type="getRoleType(player.role)" size="small" effect="dark" round>
-              {{ player.role }}
-            </el-tag>
+            <div class="player-meta">
+              <el-tag :type="getRoleType(player.role)" size="small" effect="dark" round>
+                {{ player.role }}
+              </el-tag>
+              <span v-if="player.status" class="player-status">
+                <span class="status-separator">·</span>
+                <span class="status-item">
+                  <el-icon size="12"><Location /></el-icon>
+                  {{ player.status.depth }}层
+                </span>
+                <span class="status-item" v-if="player.status.challenges > 0">
+                  <el-icon size="12"><StarFilled /></el-icon>
+                  {{ player.status.challenges }}挑
+                </span>
+                <span class="status-item">
+                  <el-icon size="12"><CollectionTag /></el-icon>
+                  {{ getGameModeText(player.status.gameMode) }}
+                </span>
+              </span>
+            </div>
           </div>
           <el-icon class="arrow-icon"><ArrowRight /></el-icon>
         </router-link>
@@ -183,7 +200,7 @@ import { ElMessage } from 'element-plus'
 import {
   User, UserFilled, Trophy, Connection, Key,
   CircleCheck, Refresh, ChatDotRound, Rank, Medal, CollectionTag,
-  ArrowRight, StarFilled, View, TrendCharts, FirstAidKit
+  ArrowRight, StarFilled, View, TrendCharts, FirstAidKit, Location
 } from '@element-plus/icons-vue'
 import { playerApi } from '../api'
 import { authStore } from '../store/auth'
@@ -262,6 +279,17 @@ const getRoleType = (role) => {
     '玩家': 'primary'
   }
   return types[role] || 'primary'
+}
+
+// SPDNet: 获取游戏模式文本
+// 0=铁人模式, 1=娱乐模式, 2=每日挑战
+const getGameModeText = (gameMode) => {
+  const modes = {
+    0: '铁人',
+    1: '娱乐',
+    2: '每日'
+  }
+  return modes[gameMode] || '娱乐'
 }
 
 // SPDNet: 前缀系统 - 获取前缀样式
@@ -682,6 +710,31 @@ onMounted(() => {
   gap: 2px;
   position: relative;
   z-index: 1;
+}
+
+.player-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.player-status {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+}
+
+.status-separator {
+  color: var(--text-tertiary);
+}
+
+.status-item {
+  display: flex;
+  align-items: center;
+  gap: 2px;
 }
 
 .player-name {

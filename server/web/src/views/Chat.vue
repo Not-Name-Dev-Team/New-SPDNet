@@ -35,9 +35,15 @@
                 >{{ user.prefix.displayText }}</span>
                 {{ user.name }}
               </span>
-              <el-tag :type="getRoleType(user.role)" size="small" effect="dark" round>
-                {{ user.role }}
-              </el-tag>
+              <div class="user-meta">
+                <el-tag :type="getRoleType(user.role)" size="small" effect="dark" round>
+                  {{ user.role }}
+                </el-tag>
+                <span v-if="user.status" class="user-status-text">
+                  {{ user.status.depth }}层
+                  <span v-if="user.status.challenges > 0">· {{ user.status.challenges }}挑</span>
+                </span>
+              </div>
             </div>
           </router-link>
         </div>
@@ -405,6 +411,17 @@ onUnmounted(() => {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.user-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.user-status-text {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
 }
 
 .user-prefix {
