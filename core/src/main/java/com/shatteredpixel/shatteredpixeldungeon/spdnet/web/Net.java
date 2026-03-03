@@ -31,6 +31,8 @@ public class Net {
 	// <PlayerKey{玩家名, 玩家权限}, 玩家状态>, 如果当前玩家没在游戏内, Status的层数为-1
 	public static ConcurrentHashMap<String, Player> playerList = new ConcurrentHashMap<>();
 	public static Vector<String> chatMessages = new Vector<>();
+	@lombok.Setter
+	public static String webUrl = "http://jdsalingzx.top";
 
 	/**
 	 * 获取一个socketIO对象

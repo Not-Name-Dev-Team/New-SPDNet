@@ -37,6 +37,7 @@ public class NetConfig {
 				json[0] = httpResponse.getResultAsString();
 				config = JSONObject.parseObject(json[0]);
 				com.shatteredpixel.shatteredpixeldungeon.spdnet.web.Net.setServerUrl(NetConfig.config.getString("serverUrl"));
+				com.shatteredpixel.shatteredpixeldungeon.spdnet.web.Net.setWebUrl(NetConfig.config.getString("webUrl"));
 				com.shatteredpixel.shatteredpixeldungeon.spdnet.web.Net.destroySocket();
 				externalListener.handleHttpResponse(httpResponse);
 			}

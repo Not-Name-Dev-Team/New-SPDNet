@@ -9,6 +9,7 @@ import com.shatteredpixel.shatteredpixeldungeon.spdnetbutcopy.ui.SPDNetTextInput
 import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.Net;
 import com.shatteredpixel.shatteredpixeldungeon.ui.RenderedTextBlock;
 import com.watabou.input.PointerEvent;
+import com.watabou.noosa.Game;
 import com.watabou.noosa.PointerArea;
 
 /**
@@ -115,6 +116,8 @@ public class NetWndLogin extends NetWindow {
 
         pos += INPUT_HEIGHT + MARGIN * 2;
 
+        int btnWidth = (WIDTH - MARGIN * 4) / 3;
+
         BlueButton confirmBtn = new BlueButton(Messages.get(this, "confirm")) {
             @Override
             protected void onPointerDown() {
@@ -134,7 +137,7 @@ public class NetWndLogin extends NetWindow {
             }
         };
         add(confirmBtn);
-        confirmBtn.setRect(MARGIN, pos, (WIDTH - MARGIN * 3) / 2, BUTTON_HEIGHT);
+        confirmBtn.setRect(MARGIN, pos, btnWidth, BUTTON_HEIGHT);
 
         BlueButton cancelBtn = new BlueButton(Messages.get(this, "cancel")) {
             @Override
@@ -155,7 +158,28 @@ public class NetWndLogin extends NetWindow {
             }
         };
         add(cancelBtn);
-        cancelBtn.setRect(confirmBtn.right() + MARGIN, pos, (WIDTH - MARGIN * 3) / 2, BUTTON_HEIGHT);
+        cancelBtn.setRect(confirmBtn.right() + MARGIN, pos, btnWidth, BUTTON_HEIGHT);
+
+        BlueButton registerBtn = new BlueButton(Messages.get(this, "register")) {
+            @Override
+            protected void onPointerDown() {
+                super.onPointerDown();
+                PointerEvent.clearKeyboardThisPress = false;
+            }
+
+            @Override
+            protected void onPointerUp() {
+                super.onPointerUp();
+                PointerEvent.clearKeyboardThisPress = false;
+            }
+
+            @Override
+            protected void onClick() {
+                Game.platform.openURI(Net.webUrl);
+            }
+        };
+        add(registerBtn);
+        registerBtn.setRect(cancelBtn.right() + MARGIN, pos, btnWidth, BUTTON_HEIGHT);
 
         pos += BUTTON_HEIGHT + MARGIN;
 
