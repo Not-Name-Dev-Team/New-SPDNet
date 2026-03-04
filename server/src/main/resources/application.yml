@@ -12,7 +12,7 @@ spring:
       ddl-auto: update
 spd:
   version: 3.3.6
-  netVersion: 0.0.1
+  netVersion: 0.0.2
   motd: 不欢迎  >:^(
   bannedWordsFile: banned_words.txt
   mail:
