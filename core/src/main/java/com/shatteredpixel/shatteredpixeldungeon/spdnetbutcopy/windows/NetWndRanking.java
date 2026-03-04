@@ -11,6 +11,7 @@ import com.shatteredpixel.shatteredpixeldungeon.actors.Actor;
 import com.shatteredpixel.shatteredpixeldungeon.actors.hero.Belongings;
 import com.shatteredpixel.shatteredpixeldungeon.actors.hero.HeroClass;
 import com.shatteredpixel.shatteredpixeldungeon.actors.hero.HeroSubClass;
+import com.shatteredpixel.shatteredpixeldungeon.effects.BadgeBanner;
 import com.shatteredpixel.shatteredpixeldungeon.items.EquipableItem;
 import com.shatteredpixel.shatteredpixeldungeon.items.Generator;
 import com.shatteredpixel.shatteredpixeldungeon.items.Item;
@@ -24,20 +25,20 @@ import com.shatteredpixel.shatteredpixeldungeon.messages.Messages;
 import com.shatteredpixel.shatteredpixeldungeon.scenes.PixelScene;
 import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.GameRecord;
 import com.shatteredpixel.shatteredpixeldungeon.sprites.HeroSprite;
-import com.shatteredpixel.shatteredpixeldungeon.ui.BadgesGrid;
-import com.shatteredpixel.shatteredpixeldungeon.ui.BadgesList;
 import com.shatteredpixel.shatteredpixeldungeon.ui.Button;
 import com.shatteredpixel.shatteredpixeldungeon.ui.CheckBox;
 import com.shatteredpixel.shatteredpixeldungeon.ui.IconButton;
 import com.shatteredpixel.shatteredpixeldungeon.ui.Icons;
 import com.shatteredpixel.shatteredpixeldungeon.ui.ItemSlot;
 import com.shatteredpixel.shatteredpixeldungeon.ui.RenderedTextBlock;
+import com.shatteredpixel.shatteredpixeldungeon.ui.ScrollPane;
 import com.shatteredpixel.shatteredpixeldungeon.ui.TalentButton;
 import com.shatteredpixel.shatteredpixeldungeon.ui.TalentsPane;
 import com.shatteredpixel.shatteredpixeldungeon.ui.Toolbar;
 import com.shatteredpixel.shatteredpixeldungeon.ui.Window;
 import com.shatteredpixel.shatteredpixeldungeon.utils.DungeonSeed;
 import com.shatteredpixel.shatteredpixeldungeon.windows.IconTitle;
+import com.shatteredpixel.shatteredpixeldungeon.windows.WndBadge;
 import com.shatteredpixel.shatteredpixeldungeon.windows.WndInfoItem;
 import com.shatteredpixel.shatteredpixeldungeon.windows.WndMessage;
 import com.shatteredpixel.shatteredpixeldungeon.windows.WndRanking;
@@ -52,6 +53,9 @@ import com.watabou.noosa.ui.Component;
 import com.watabou.utils.Bundle;
 
 import java.text.NumberFormat;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Locale;
 
 /**
@@ -154,7 +158,10 @@ public class NetWndRanking extends WndTabbed {
 		Potion.restore(handler);
 		Ring.restore(handler);
 
-		Badges.loadLocal(Bundle.fromString(record.getBadges()));
+		// SPDNet: 不加载其他玩家的本地成就数据
+		// 原代码: Badges.loadLocal(Bundle.fromString(record.getBadges()));
+		// 原因: 加载其他玩家的成就会覆盖 local 变量，如果此时触发 validateXxx() 方法，
+		// 会调用 unlock() 将成就发送到服务器，导致错误解锁成就并存入数据库
 
 		Dungeon.hero = record.getHero();
 		Dungeon.hero.belongings.identify();
@@ -462,14 +469,160 @@ public class NetWndRanking extends WndTabbed {
 
 			camera = NetWndRanking.this.camera;
 
+			// SPDNet: 从 record 中解析成就数据，不修改 Badges.local
+			HashSet<Badges.Badge> recordBadges = Badges.restore(Bundle.fromString(record.getBadges()));
+			List<Badges.Badge> filteredBadges = filterLocalBadges(recordBadges);
+
 			Component badges;
-			if (Badges.filterReplacedBadges(false).size() <= 8){
-				badges = new BadgesList(false);
+			if (filteredBadges.size() <= 8){
+				badges = new NetBadgesList(filteredBadges);
 			} else {
-				badges = new BadgesGrid(false);
+				badges = new NetBadgesGrid(filteredBadges);
 			}
 			add(badges);
 			badges.setSize( WIDTH, HEIGHT );
+		}
+
+		// SPDNet: 过滤本地成就（排除 HIDDEN 类型）
+		private List<Badges.Badge> filterLocalBadges(HashSet<Badges.Badge> badges) {
+			List<Badges.Badge> result = new ArrayList<>();
+			for (Badges.Badge badge : badges) {
+				if (badge.type != Badges.BadgeType.HIDDEN) {
+					result.add(badge);
+				}
+			}
+			// 应用徽章替换规则（只显示最高级）
+			return Badges.filterReplacedBadges(result);
+		}
+	}
+
+	// SPDNet: 用于显示其他玩家成就的列表组件
+	private class NetBadgesList extends ScrollPane {
+
+		private ArrayList<ListItem> items = new ArrayList<>();
+
+		public NetBadgesList(List<Badges.Badge> badges) {
+			super(new Component());
+
+			for (Badges.Badge badge : badges) {
+				ListItem item = new ListItem(badge);
+				content.add(item);
+				items.add(item);
+			}
+		}
+
+		@Override
+		protected void layout() {
+			float pos = 0;
+			for (ListItem item : items) {
+				item.setRect(0, pos, width, ListItem.HEIGHT);
+				pos += ListItem.HEIGHT;
+			}
+			content.setSize(width, pos);
+			super.layout();
+		}
+
+		private class ListItem extends Component {
+			private static final float HEIGHT = 18;
+			private Badges.Badge badge;
+			private Image icon;
+			private RenderedTextBlock label;
+
+			public ListItem(Badges.Badge badge) {
+				super();
+				this.badge = badge;
+				icon.copy(BadgeBanner.image(badge.image));
+				label.text(badge.title());
+			}
+
+			@Override
+			protected void createChildren() {
+				icon = new Image();
+				add(icon);
+				label = PixelScene.renderTextBlock(6);
+				add(label);
+			}
+
+			@Override
+			protected void layout() {
+				icon.x = x;
+				icon.y = y + (height - icon.height) / 2;
+				PixelScene.align(icon);
+				label.setPos(icon.x + icon.width + 2, y + (height - label.height()) / 2);
+				PixelScene.align(label);
+			}
+		}
+	}
+
+	// SPDNet: 用于显示其他玩家成就的网格组件
+	private class NetBadgesGrid extends Component {
+		ArrayList<BadgeButton> badgeButtons;
+
+		public NetBadgesGrid(List<Badges.Badge> badges) {
+			super();
+			badgeButtons = new ArrayList<>();
+
+			for (Badges.Badge badge : badges) {
+				BadgeButton button = new BadgeButton(badge, true);
+				add(button);
+				badgeButtons.add(button);
+			}
+		}
+
+		@Override
+		protected void layout() {
+			super.layout();
+			int columns = (int) Math.max(1, Math.sqrt(badgeButtons.size()));
+			float buttonSize = Math.min(width / columns, 20);
+			float spacing = (width - buttonSize * columns) / (columns + 1);
+
+			int row = 0, col = 0;
+			for (BadgeButton button : badgeButtons) {
+				button.setRect(x + spacing + col * (buttonSize + spacing), y + spacing + row * (buttonSize + spacing), buttonSize, buttonSize);
+				col++;
+				if (col >= columns) {
+					col = 0;
+					row++;
+				}
+			}
+		}
+	}
+
+	// SPDNet: 成就按钮组件
+	private class BadgeButton extends Button {
+		private Badges.Badge badge;
+		private boolean unlocked;
+		private Image icon;
+
+		public BadgeButton(Badges.Badge badge, boolean unlocked) {
+			super();
+			this.badge = badge;
+			this.unlocked = unlocked;
+			icon.copy(BadgeBanner.image(badge.image));
+			if (!unlocked) {
+				icon.brightness(0.2f);
+			}
+		}
+
+		@Override
+		protected void createChildren() {
+			icon = new Image();
+			add(icon);
+			super.createChildren();
+		}
+
+		@Override
+		protected void layout() {
+			super.layout();
+			icon.x = x + (width - icon.width) / 2;
+			icon.y = y + (height - icon.height) / 2;
+			PixelScene.align(icon);
+		}
+
+		@Override
+		protected void onClick() {
+			Sample.INSTANCE.play(Assets.Sounds.CLICK, 0.7f, 0.7f, 1.2f);
+			Game.scene().addToFront(new WndBadge(badge, true));
 		}
 	}
 
