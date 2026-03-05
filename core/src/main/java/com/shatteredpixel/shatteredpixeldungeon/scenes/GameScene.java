@@ -166,6 +166,10 @@ public class GameScene extends PixelScene {
 
 	static GameScene scene;
 
+	// SPDNet: 记录上次发送进入地牢消息时的楼层和种子，防止窗口大小改变时重复发送
+	private static int lastEnterDepth = -1;
+	private static long lastEnterSeed = -1;
+
 	private SkinnedBlock water;
 	private DungeonTerrainTilemap tiles;
 	private GridTileMap visualGrid;
@@ -792,23 +796,30 @@ public class GameScene extends PixelScene {
 			}
 		}
 
-		// 发送进入地牢信息
-		Status status1 = new Status(Dungeon.challenges,
-				Dungeon.seed,
-				Dungeon.hero.heroClass.ordinal(),
-				NetInProgress.mode.ordinal(),
-				Dungeon.depth,
-				Dungeon.hero.tier(),
-				Dungeon.hero.pos);
-		CEnterDungeon enterDungeon = new CEnterDungeon(status1);
-		if (NetInProgress.isDailyChallenge()) {
-			enterDungeon.setDailyGroupIndex(NetInProgress.dailyGroupIndex);
-			enterDungeon.setDailySeed(NetInProgress.seed);
-			enterDungeon.setDailyRecordDate(NetInProgress.dailyRecordDate);
+		// SPDNet: 仅在进入新楼层时发送进入地牢消息，避免窗口大小改变时重复发送
+		// 通过比较当前楼层和种子与上次发送时的记录来判断是否为新楼层
+		if (Dungeon.depth != lastEnterDepth || Dungeon.seed != lastEnterSeed) {
+			// 发送进入地牢信息
+			Status status1 = new Status(Dungeon.challenges,
+					Dungeon.seed,
+					Dungeon.hero.heroClass.ordinal(),
+					NetInProgress.mode.ordinal(),
+					Dungeon.depth,
+					Dungeon.hero.tier(),
+					Dungeon.hero.pos);
+			CEnterDungeon enterDungeon = new CEnterDungeon(status1);
+			if (NetInProgress.isDailyChallenge()) {
+				enterDungeon.setDailyGroupIndex(NetInProgress.dailyGroupIndex);
+				enterDungeon.setDailySeed(NetInProgress.seed);
+				enterDungeon.setDailyRecordDate(NetInProgress.dailyRecordDate);
+			}
+			Sender.sendEnterDungeon(enterDungeon);
+			// 同步玩家列表
+			NetHero.syncWithCurrentLevel();
+			// 更新记录
+			lastEnterDepth = Dungeon.depth;
+			lastEnterSeed = Dungeon.seed;
 		}
-		Sender.sendEnterDungeon(enterDungeon);
-		// 同步玩家列表
-		NetHero.syncWithCurrentLevel();
 	}
 	
 	public void destroy() {
@@ -834,6 +845,12 @@ public class GameScene extends PixelScene {
 			Actor.keepActorThreadAlive = false;
 			actorThread.interrupt();
 		}
+	}
+
+	// SPDNet: 重置进入地牢记录，在离开地牢时调用
+	public static void resetEnterDungeonRecord() {
+		lastEnterDepth = -1;
+		lastEnterSeed = -1;
 	}
 
 	public boolean waitForActorThread(int msToWait, boolean interrupt){

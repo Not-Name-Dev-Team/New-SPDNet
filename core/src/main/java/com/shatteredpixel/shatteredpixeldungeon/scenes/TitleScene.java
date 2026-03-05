@@ -98,6 +98,8 @@ public class TitleScene extends PixelScene {
 
 		// 离开地牢
 		Sender.sendLeaveDungeon(new CLeaveDungeon());
+		// SPDNet: 重置进入地牢记录，使下次进入新游戏时能正确发送消息
+		GameScene.resetEnterDungeonRecord();
 
 		Music.INSTANCE.playTracks(
 				new String[]{Assets.Music.THEME_1, Assets.Music.THEME_2},

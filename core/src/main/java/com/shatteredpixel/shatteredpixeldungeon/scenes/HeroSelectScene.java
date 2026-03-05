@@ -119,6 +119,8 @@ public class HeroSelectScene extends PixelScene {
 
 		// 离开地牢
 		Sender.sendLeaveDungeon(new CLeaveDungeon());
+		// SPDNet: 重置进入地牢记录，使下次进入新游戏时能正确发送消息
+		GameScene.resetEnterDungeonRecord();
 
 		Dungeon.hero = null;
 
