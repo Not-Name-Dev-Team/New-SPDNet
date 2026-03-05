@@ -65,12 +65,12 @@ public class NetHero extends Hero {
 	 */
 	public void restoreFromBundleOverride(Bundle bundle) {
 		// SPDNet: 修复快捷栏被覆盖bug
-		// 保存当前的 bundleRestoring 状态，防止查看其他玩家时影响当前玩家的快捷栏
-		boolean wasBundleRestoring = Belongings.bundleRestoring;
-		Belongings.bundleRestoring = false;
+		// 设置 skipQuickslotUpdate 标志，防止恢复其他玩家英雄数据时修改当前玩家的快捷栏
+		boolean wasSkipQuickslotUpdate = Belongings.skipQuickslotUpdate;
+		Belongings.skipQuickslotUpdate = true;
 		super.restoreFromBundle(bundle);
 		// 恢复原来的状态
-		Belongings.bundleRestoring = wasBundleRestoring;
+		Belongings.skipQuickslotUpdate = wasSkipQuickslotUpdate;
 	}
 
 	@Override

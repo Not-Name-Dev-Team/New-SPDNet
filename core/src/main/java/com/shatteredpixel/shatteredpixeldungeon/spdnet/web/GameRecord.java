@@ -124,13 +124,15 @@ public class GameRecord {
 
 	public void setHero(String hero) {
 		// SPDNet: 修复快捷栏被覆盖bug
-		// 保存当前的 bundleRestoring 状态，防止反序列化其他玩家英雄数据时影响当前玩家的快捷栏
-		boolean wasBundleRestoring = Belongings.bundleRestoring;
-		Belongings.bundleRestoring = false;
+		// 设置 skipQuickslotUpdate 标志，防止恢复其他玩家英雄数据时修改当前玩家的快捷栏
+		boolean wasSkipQuickslotUpdate = Belongings.skipQuickslotUpdate;
+		Belongings.skipQuickslotUpdate = true;
+		
 		Hero heroObject = new Hero();
 		heroObject.restoreFromBundle(Bundle.fromString(hero));
 		this.hero = heroObject;
+		
 		// 恢复原来的状态
-		Belongings.bundleRestoring = wasBundleRestoring;
+		Belongings.skipQuickslotUpdate = wasSkipQuickslotUpdate;
 	}
 }

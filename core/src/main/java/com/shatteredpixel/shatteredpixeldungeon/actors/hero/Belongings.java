@@ -187,6 +187,10 @@ public class Belongings implements Iterable<Item> {
 
 	public static boolean bundleRestoring = false;
 	
+	// SPDNet: 用于禁止快捷栏更新的标志
+	// 当恢复其他玩家的英雄数据时，设置此标志为 true
+	public static boolean skipQuickslotUpdate = false;
+	
 	public void restoreFromBundle( Bundle bundle ) {
 		bundleRestoring = true;
 		backpack.clear();

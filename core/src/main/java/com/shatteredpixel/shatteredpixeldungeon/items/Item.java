@@ -614,7 +614,8 @@ public class Item implements Bundlable {
 		cursed	= bundle.getBoolean( CURSED );
 
 		//only want to populate slots when restoring belongings
-		if (Belongings.bundleRestoring) {
+		// SPDNet: 添加 skipQuickslotUpdate 检查，防止恢复其他玩家数据时修改快捷栏
+		if (Belongings.bundleRestoring && !Belongings.skipQuickslotUpdate) {
 			if (bundle.contains(QUICKSLOT)) {
 				Dungeon.quickslot.setSlot(bundle.getInt(QUICKSLOT), this);
 			}
