@@ -1034,7 +1034,7 @@ public class GameScene extends PixelScene {
 		}
 		// 添加netLog
 		if (SPDSettings.interfaceSize() == 0) {
-			scene.netLog.setRect(insets.left, scene.status.bottom(), uiCamera.width - tagWidth - insets.left, 0);
+			scene.netLog.setRect(insets.left, scene.status.bottom() + 8, uiCamera.width - tagWidth - insets.left, 0);
 		} else {
 			scene.netLog.setRect(insets.left, 0, 160 - insets.left, 0);
 		}
