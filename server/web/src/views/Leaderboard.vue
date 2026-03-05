@@ -72,6 +72,8 @@
 
           <div class="filter-actions">
             <el-checkbox v-model="filters.winOnly">只显示胜利</el-checkbox>
+            <!-- SPDNet: 玩家可以选择只查看被ban玩家的记录 -->
+            <el-checkbox v-model="filters.bannedOnly">只显示被封禁玩家</el-checkbox>
             <el-button type="primary" :icon="Search" @click="applyFilters">筛选</el-button>
           </div>
         </div>
@@ -252,7 +254,8 @@ const filters = ref({
   challengeCount: null,
   gameMode: null,
   sortBy: 'score',
-  winOnly: false
+  winOnly: false,
+  bannedOnly: false
 })
 
 const rankIcons = [Trophy, Medal, StarFilled]
@@ -286,7 +289,8 @@ const filtersActive = computed(() => {
     filters.value.playerName ||
     filters.value.challengeCount !== null ||
     filters.value.gameMode !== null ||
-    filters.value.winOnly
+    filters.value.winOnly ||
+    filters.value.bannedOnly
 })
 
 const filteredLeaderboard = computed(() => {
@@ -351,6 +355,10 @@ const loadData = async () => {
     }
     if (filters.value.winOnly) {
       params.winOnly = true
+    }
+    // SPDNet: 玩家可以选择只显示被ban玩家
+    if (filters.value.bannedOnly) {
+      params.bannedOnly = true
     }
 
     const res = await leaderboardApi.getLeaderboard(params.page, params.size, params)

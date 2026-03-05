@@ -278,7 +278,8 @@ public class PlayerController {
         @RequestParam(required = false) Integer challengeCount,
         @RequestParam(required = false) Boolean winOnly,
         @RequestParam(required = false) String gameMode,
-        @RequestParam(defaultValue = "score") String sortBy
+        @RequestParam(defaultValue = "score") String sortBy,
+        @RequestParam(required = false) Boolean bannedOnly
     ) {
         // 构建排序
         Sort sort;
@@ -296,21 +297,17 @@ public class PlayerController {
         }
         Pageable pageable = PageRequest.of(page, size, sort);
 
+        // SPDNet: 默认排除被ban玩家，如果bannedOnly=true则只显示被ban玩家
+        boolean isBannedOnly = bannedOnly != null && bannedOnly;
+
         // 根据条件查询 - 使用组合筛选
         Page<GameRecord> records;
-        if ((playerName != null && !playerName.trim().isEmpty()) ||
-            challengeCount != null ||
-            (winOnly != null && winOnly) ||
-            (gameMode != null && !gameMode.isEmpty())) {
-            // 使用组合筛选查询
-            String username = (playerName != null && !playerName.trim().isEmpty()) ? playerName.trim() : null;
-            Boolean win = (winOnly != null && winOnly) ? true : null;
-            String mode = (gameMode != null && !gameMode.isEmpty()) ? gameMode : null;
-            Integer challenge = challengeCount;
-            records = gameRecordRepository.findWithFilters(username, win, mode, challenge, pageable);
-        } else {
-            records = gameRecordRepository.findAll(pageable);
-        }
+        // SPDNet: 始终使用findWithFilters，因为它会处理bannedOnly参数
+        String username = (playerName != null && !playerName.trim().isEmpty()) ? playerName.trim() : null;
+        Boolean win = (winOnly != null && winOnly) ? true : null;
+        String mode = (gameMode != null && !gameMode.isEmpty()) ? gameMode : null;
+        Integer challenge = challengeCount;
+        records = gameRecordRepository.findWithFilters(username, win, mode, challenge, isBannedOnly, pageable);
 
         // SPDNet: 转换为DTO并添加前缀信息
         List<LeaderboardRecordDTO> dtoList = new ArrayList<>();

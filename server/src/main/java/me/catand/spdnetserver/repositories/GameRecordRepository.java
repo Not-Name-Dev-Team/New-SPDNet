@@ -15,11 +15,13 @@ public interface GameRecordRepository extends JpaRepository<GameRecord, Long> {
             "(g.player.name = :username OR :username IS NULL) AND " +
             "(g.win = :win OR :win IS NULL) AND " +
             "(g.gameMode = :gameMode OR :gameMode IS NULL) AND " +
-            "(g.challengeAmount = :challengeAmount OR :challengeAmount IS NULL)")
+            "(g.challengeAmount = :challengeAmount OR :challengeAmount IS NULL) AND " +
+            "(:bannedOnly = false AND g.player.role != 'BANNED' OR :bannedOnly = true AND g.player.role = 'BANNED')")
     Page<GameRecord> findWithFilters(@Param("username") String username,
                                      @Param("win") Boolean win,
                                      @Param("gameMode") String gameMode,
                                      @Param("challengeAmount") Integer challengeAmount,
+                                     @Param("bannedOnly") Boolean bannedOnly,
                                      Pageable pageable);
 
     Page<GameRecord> findByWinTrue(Pageable pageable);

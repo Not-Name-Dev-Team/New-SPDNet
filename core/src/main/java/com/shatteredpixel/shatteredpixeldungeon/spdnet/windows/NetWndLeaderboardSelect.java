@@ -29,6 +29,7 @@ public class NetWndLeaderboardSelect extends Window {
 	CheckBox chkWinOnly;
 	RedButton btnGameMode;
 	ColorBlock sep3;
+	CheckBox chkBannedOnly;
 	RedButton btnSortCriteria;
 
 	public NetWndLeaderboardSelect() {
@@ -142,6 +143,18 @@ public class NetWndLeaderboardSelect extends Window {
 		add(btnGameMode);
 		currentHeight += BTN_HEIGHT + GAP;
 
+		// SPDNet: 添加只显示被封禁玩家选项
+		chkBannedOnly = new CheckBox("只显示被封禁玩家") {
+			@Override
+			protected void onClick() {
+				super.onClick();
+				NetRankingsScene.bannedOnly = checked() ? true : null;
+			}
+		};
+		chkBannedOnly.checked(NetRankingsScene.bannedOnly != null && NetRankingsScene.bannedOnly);
+		add(chkBannedOnly);
+		currentHeight += BTN_HEIGHT + GAP;
+
 		sep3 = new ColorBlock(WIDTH, 1, 0xFF000000);
 		add(sep3);
 		currentHeight += 3;
@@ -248,6 +261,10 @@ public class NetWndLeaderboardSelect extends Window {
 		btnGameMode.setRect(0, y, width, BTN_HEIGHT);
 		y = btnGameMode.bottom() + GAP;
 
+		// SPDNet: 只显示被封禁玩家复选框位置
+		chkBannedOnly.setRect(0, y, width, BTN_HEIGHT);
+		y = chkBannedOnly.bottom() + GAP;
+
 		sep3.y = y;
 		y += 3;
 
@@ -263,6 +280,6 @@ public class NetWndLeaderboardSelect extends Window {
 				NetRankingsScene.winOnly,
 				NetRankingsScene.gameMode,
 				NetRankingsScene.sortCriteria,
-				1, 10));
+				1, 10, NetRankingsScene.bannedOnly));
 	}
 }

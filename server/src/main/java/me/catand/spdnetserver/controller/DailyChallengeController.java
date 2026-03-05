@@ -88,6 +88,11 @@ public class DailyChallengeController {
 
 		List<DailyGameRecord> allRecords = dailyGameRecordRepository.findByRecordDateAndGroupIndex(date, groupIndex);
 
+		// SPDNet: 排除被ban玩家的记录
+		allRecords = allRecords.stream()
+				.filter(r -> r.getPlayer() == null || r.getPlayer().getRole() != me.catand.spdnetserver.entitys.UserRole.BANNED)
+				.collect(Collectors.toList());
+
 		int totalParticipants = allRecords.size();
 		int completedCount = (int) allRecords.stream()
 				.filter(r -> r.getStatus() == DailyGameRecord.DailyRecordStatus.COMPLETED)
@@ -132,8 +137,10 @@ public class DailyChallengeController {
 			records = dailyGameRecordRepository.findByRecordDateOrderByGroupIndexAscScoreDesc(date);
 		}
 
+		// SPDNet: 排除被ban玩家的记录
 		List<DailyChallengeRecordDTO> dtoList = records.stream()
 				.filter(r -> r.getStatus() == DailyGameRecord.DailyRecordStatus.COMPLETED)
+				.filter(r -> r.getPlayer() == null || r.getPlayer().getRole() != me.catand.spdnetserver.entitys.UserRole.BANNED)
 				.map(this::convertToDTO)
 				.collect(Collectors.toList());
 

@@ -330,11 +330,15 @@ public class Handler {
 		}
 		Pageable pageable = PageRequest.of(cRequestLeaderboard.getPage() - 1, cRequestLeaderboard.getAmountPerPage(), sort);
 
+		// SPDNet: 默认排除被ban玩家，如果bannedOnly=true则只显示被ban玩家
+		Boolean bannedOnly = cRequestLeaderboard.getBannedOnly() != null ? cRequestLeaderboard.getBannedOnly() : false;
+
 		Page<GameRecord> page = gameRecordRepository.findWithFilters(
 				cRequestLeaderboard.getPlayerName(),
 				cRequestLeaderboard.getWinOnly(),
 				cRequestLeaderboard.getGameMode(),
 				cRequestLeaderboard.getChallengeCount(),
+				bannedOnly,
 				pageable
 		);
 		// 显示第1页 共有10页 共有100条记录

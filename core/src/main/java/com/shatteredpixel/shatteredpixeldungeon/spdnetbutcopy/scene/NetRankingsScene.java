@@ -59,6 +59,7 @@ public class NetRankingsScene extends PixelScene {
 	public static Boolean winOnly;
 	public static String gameMode;
 	public static String sortCriteria;
+	public static Boolean bannedOnly;
 	private int amountPerPage;
 	private int totalPages;
 	private int currentPage;
@@ -83,7 +84,7 @@ public class NetRankingsScene extends PixelScene {
 
 		uiCamera.visible = false;
 
-		Sender.sendRequestLeaderboard(new CRequestLeaderboard(playerName, challengeCount, winOnly, gameMode, sortCriteria, 1, 10));
+		Sender.sendRequestLeaderboard(new CRequestLeaderboard(playerName, challengeCount, winOnly, gameMode, sortCriteria, 1, 10, bannedOnly));
 
 		int w = Camera.main.width;
 		int h = Camera.main.height;
@@ -214,6 +215,10 @@ public class NetRankingsScene extends PixelScene {
 		if (!(gameMode == null)) {
 			Mode mode = Mode.valueOf(gameMode);
 			selects.add(mode.getName());
+		}
+		// SPDNet: 显示是否只显示被封禁玩家
+		if (bannedOnly != null && bannedOnly) {
+			selects.add("仅封禁");
 		}
 		String selectText = "";
 		if (selects.isEmpty()) {

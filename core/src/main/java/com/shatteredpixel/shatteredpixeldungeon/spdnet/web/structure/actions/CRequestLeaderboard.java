@@ -24,4 +24,6 @@ public class CRequestLeaderboard {
 	private int page;
 	// 排行榜的每页有多少名
 	private int amountPerPage;
+	// 是否只显示被ban玩家，默认false
+	private Boolean bannedOnly;
 }
