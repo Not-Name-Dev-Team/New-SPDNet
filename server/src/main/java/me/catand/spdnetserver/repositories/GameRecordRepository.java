@@ -11,10 +11,15 @@ import org.springframework.data.repository.query.Param;
 import java.util.List;
 
 public interface GameRecordRepository extends JpaRepository<GameRecord, Long> {
+    // SPDNet: 修改查询逻辑支持铁人模式筛选（customSeed为空表示铁人模式）
     @Query("SELECT g FROM GameRecord g WHERE " +
             "(g.player.name = :username OR :username IS NULL) AND " +
             "(g.win = :win OR :win IS NULL) AND " +
-            "(g.gameMode = :gameMode OR :gameMode IS NULL) AND " +
+            "(:gameMode IS NULL OR " +
+            "  (:gameMode = 'NORMAL' AND (g.customSeed IS NOT NULL AND g.customSeed != '')) OR " +
+            "  (:gameMode = 'IRONMAN' AND (g.customSeed IS NULL OR g.customSeed = '')) OR " +
+            "  (:gameMode = 'DAILY' AND g.daily = true)" +
+            ") AND " +
             "(g.challengeAmount = :challengeAmount OR :challengeAmount IS NULL) AND " +
             "(:bannedOnly = false AND g.player.role != 'BANNED' OR :bannedOnly = true AND g.player.role = 'BANNED')")
     Page<GameRecord> findWithFilters(@Param("username") String username,

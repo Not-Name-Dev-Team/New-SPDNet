@@ -57,6 +57,7 @@
             <el-select v-model="filters.gameMode" placeholder="不筛选" clearable>
               <el-option label="不筛选" :value="null" />
               <el-option label="标准模式" value="NORMAL" />
+              <el-option label="铁人模式" value="IRONMAN" />
               <el-option label="每日挑战" value="DAILY" />
             </el-select>
           </div>

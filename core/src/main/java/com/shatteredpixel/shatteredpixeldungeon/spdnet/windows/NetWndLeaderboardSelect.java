@@ -127,13 +127,21 @@ public class NetWndLeaderboardSelect extends Window {
 		btnGameMode = new RedButton(getGameModeText()) {
 			@Override
 			protected void onClick() {
-				ShatteredPixelDungeon.scene().addToFront(new WndOptions("游戏模式", "选择游戏模式筛选条件", "不筛选", "标准模式", "每日挑战") {
+				// SPDNet: 添加铁人模式筛选选项
+				ShatteredPixelDungeon.scene().addToFront(new WndOptions("游戏模式", "选择游戏模式筛选条件", "不筛选", "标准模式", "铁人模式", "每日挑战") {
 					@Override
 					protected void onSelect(int index) {
 						if (index == 0) {
 							NetRankingsScene.gameMode = null;
-						} else {
-							NetRankingsScene.gameMode = String.valueOf(Mode.values()[index - 1]);
+						} else if (index == 1) {
+							// 标准模式对应 FUN
+							NetRankingsScene.gameMode = "FUN";
+						} else if (index == 2) {
+							// 铁人模式对应 IRONMAN
+							NetRankingsScene.gameMode = "IRONMAN";
+						} else if (index == 3) {
+							// 每日挑战
+							NetRankingsScene.gameMode = "DAILY";
 						}
 						btnGameMode.text(getGameModeText());
 					}
@@ -218,6 +226,14 @@ public class NetWndLeaderboardSelect extends Window {
 	private String getGameModeText() {
 		if (NetRankingsScene.gameMode == null) {
 			return "游戏模式: 不筛选";
+		} else if (NetRankingsScene.gameMode.equals("FUN")) {
+			// SPDNet: 标准模式显示
+			return "游戏模式: 标准模式";
+		} else if (NetRankingsScene.gameMode.equals("IRONMAN")) {
+			// SPDNet: 铁人模式显示
+			return "游戏模式: 铁人模式";
+		} else if (NetRankingsScene.gameMode.equals("DAILY")) {
+			return "游戏模式: 每日挑战";
 		} else {
 			Mode mode = Mode.valueOf(NetRankingsScene.gameMode);
 			return "游戏模式: " + mode.getName();
