@@ -329,6 +329,26 @@ public class PlayerController {
         return ApiResponse.success("获取成功", data);
     }
 
+    // SPDNet: 获取铁人模式前三名（未被ban玩家）
+    @GetMapping("/leaderboard/top3-ironman")
+    public ApiResponse<List<LeaderboardRecordDTO>> getTop3IronmanPlayers() {
+        Pageable top3 = PageRequest.of(0, 3);
+        List<GameRecord> records = gameRecordRepository.findTop3IronmanPlayers(top3);
+
+        // 转换为DTO并添加前缀信息
+        List<LeaderboardRecordDTO> dtoList = new ArrayList<>();
+        for (GameRecord record : records) {
+            LeaderboardRecordDTO dto = LeaderboardRecordDTO.fromGameRecord(record);
+            // 获取玩家前缀信息
+            if (dto.getPlayerName() != null) {
+                dto.setPrefix(playerPrefixService.getActivePrefixDTO(dto.getPlayerName()));
+            }
+            dtoList.add(dto);
+        }
+
+        return ApiResponse.success("获取成功", dtoList);
+    }
+
     @GetMapping("/player/{name}/records")
     public ApiResponse<List<GameRecord>> getPlayerRecords(@PathVariable String name) {
         Player player = playerRepository.findByName(name);

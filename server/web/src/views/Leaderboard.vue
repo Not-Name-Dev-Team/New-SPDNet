@@ -80,14 +80,20 @@
       </div>
 
       <!-- Top 3 Podium -->
-      <div class="podium-section" v-if="topPlayers.length > 0 && currentPage === 1 && !filtersActive">
-        <div
-          v-for="(player, index) in topPlayers"
-          :key="player.name"
-          class="podium-card"
-          :class="`rank-${index + 1}`"
-          :style="{ animationDelay: `${index * 0.1}s` }"
-        >
+      <!-- SPDNet: 前三名展示台显示铁人模式未被ban玩家的成绩，不受筛选条件影响 -->
+      <div class="podium-section" v-if="topPlayers.length > 0">
+        <div class="podium-title">
+          <el-icon><Trophy /></el-icon>
+          <span>铁人模式排行榜 TOP3</span>
+        </div>
+        <div class="podium-cards">
+          <div
+            v-for="(player, index) in topPlayers"
+            :key="player.name"
+            class="podium-card"
+            :class="`rank-${index + 1}`"
+            :style="{ animationDelay: `${index * 0.1}s` }"
+          >
           <div class="podium-glow"></div>
           <div class="podium-rank">
             <el-icon :size="24"><component :is="getRankIcon(index)" /></el-icon>
@@ -116,6 +122,7 @@
             <el-icon><Location /></el-icon>
             <span>第 {{ player.bestFloor }} 层</span>
           </div>
+        </div>
         </div>
       </div>
 
@@ -241,7 +248,9 @@ import { authStore } from '../store/auth'
 const router = useRouter()
 
 const leaderboard = ref([])
+const top3IronmanPlayers = ref([])
 const loading = ref(false)
+const loadingTop3 = ref(false)
 const currentPage = ref(1)
 const pageSize = ref(20)
 const totalElements = ref(0)
@@ -302,8 +311,9 @@ const paginatedLeaderboard = computed(() => {
   return leaderboard.value
 })
 
+// SPDNet: 前三名改为使用铁人模式未被ban玩家的数据
 const topPlayers = computed(() => {
-  return leaderboard.value.slice(0, 3)
+  return top3IronmanPlayers.value
 })
 
 const getActualRank = (index) => {
@@ -332,6 +342,36 @@ const handlePlayerTypeChange = (val) => {
 const applyFilters = () => {
   currentPage.value = 1
   loadData()
+}
+
+// SPDNet: 加载铁人模式前三名（未被ban玩家）
+const loadTop3IronmanPlayers = async () => {
+  loadingTop3.value = true
+  try {
+    const res = await leaderboardApi.getTop3IronmanPlayers()
+    if (res.data.success) {
+      const records = res.data.data || []
+      top3IronmanPlayers.value = records.map(record => {
+        const playerName = record.player_name || record.playerName || (record.player?.name) || '未知'
+        return {
+          id: record.id,
+          name: playerName,
+          bestScore: record.score || 0,
+          bestFloor: record.maxDepth || 0,
+          challengeAmount: record.challengeAmount || 0,
+          daily: record.daily || false,
+          win: record.win || false,
+          gameMode: record.gameMode || 'NORMAL',
+          // SPDNet: 前缀系统 - 添加前缀信息
+          prefix: record.prefix || null
+        }
+      })
+    }
+  } catch (error) {
+    console.error('获取铁人模式前三名失败:', error)
+  } finally {
+    loadingTop3.value = false
+  }
 }
 
 const loadData = async () => {
@@ -397,8 +437,21 @@ watch([() => filters.value.sortBy], () => {
   loadData()
 })
 
+// SPDNet: 监听其他筛选条件变化，实时更新排行榜
+watch([
+  () => filters.value.playerType,
+  () => filters.value.challengeCount,
+  () => filters.value.gameMode,
+  () => filters.value.winOnly,
+  () => filters.value.bannedOnly
+], () => {
+  currentPage.value = 1
+  loadData()
+})
+
 onMounted(() => {
   loadData()
+  loadTop3IronmanPlayers()
 })
 </script>
 
@@ -506,10 +559,34 @@ onMounted(() => {
 
 /* Podium Section */
 .podium-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
+}
+
+.podium-title {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  padding: var(--space-3);
+  background: var(--surface-1);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xl);
+}
+
+.podium-title .el-icon {
+  color: #f59e0b;
+}
+
+.podium-cards {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: var(--space-4);
-  margin-bottom: var(--space-6);
 }
 
 .podium-card {
@@ -899,7 +976,7 @@ onMounted(() => {
 
 /* Responsive */
 @media (max-width: 1200px) {
-  .podium-section {
+  .podium-cards {
     grid-template-columns: 1fr;
   }
 

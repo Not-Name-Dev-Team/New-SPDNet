@@ -38,4 +38,12 @@ public interface GameRecordRepository extends JpaRepository<GameRecord, Long> {
     Page<GameRecord> findByChallengeAmount(int challengeAmount, Pageable pageable);
     Page<GameRecord> findByGameMode(String gameMode, Pageable pageable);
     Page<GameRecord> findByWinTrueAndGameMode(String gameMode, Pageable pageable);
+
+    // SPDNet: 获取铁人模式前三名（customSeed为空表示随机种子，即铁人模式）
+    @Query("SELECT g FROM GameRecord g WHERE " +
+            "g.player.role != 'BANNED' AND " +
+            "(g.customSeed IS NULL OR g.customSeed = '') AND " +
+            "g.daily = false " +
+            "ORDER BY g.score DESC")
+    List<GameRecord> findTop3IronmanPlayers(Pageable pageable);
 }

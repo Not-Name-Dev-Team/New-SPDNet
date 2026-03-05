@@ -75,6 +75,11 @@ export const leaderboardApi = {
     return api.get('/leaderboard', {
       params: { page, size, ...filters }
     })
+  },
+
+  // SPDNet: 获取铁人模式前三名（未被ban玩家）
+  getTop3IronmanPlayers() {
+    return api.get('/leaderboard/top3-ironman')
   }
 }
 
