@@ -6,6 +6,7 @@ import com.shatteredpixel.shatteredpixeldungeon.ShatteredPixelDungeon;
 import com.shatteredpixel.shatteredpixeldungeon.Statistics;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Buff;
 import com.shatteredpixel.shatteredpixeldungeon.actors.hero.Hero;
+import com.shatteredpixel.shatteredpixeldungeon.items.Amulet;
 import com.shatteredpixel.shatteredpixeldungeon.items.EquipableItem;
 import com.shatteredpixel.shatteredpixeldungeon.items.Heap;
 import com.shatteredpixel.shatteredpixeldungeon.items.Item;
@@ -63,6 +64,7 @@ import java.util.Locale;
  * - 添加"查看背包"按钮，可打开 NetWndPlayerBag
  * - 添加"赠送物品"按钮，支持多人物品交易
  * - 第96-117行: 匿名内部类覆盖 IconTab.select() 方法
+ * - 第270-272行: itemSelectable() 添加Yendor护符赠送限制
  * - 第375-401行: BuffsTab.setupList() 临时设置Dungeon.hero为NetHero，使buff.icon()能正确访问belongings
  * - 第440-463行: BuffSlot.onClick() 临时设置Dungeon.hero并添加场景判断，修复主菜单查看buff问题
  * 
@@ -267,7 +269,8 @@ public class NetWndPlayerInfo extends WndTabbed {
 
 							@Override
 							public boolean itemSelectable(Item item) {
-								return !(item instanceof Bag || item instanceof CorpseDust);
+								// SPDNet: 禁止赠送背包、尸体粉尘和Yendor护符
+								return !(item instanceof Bag || item instanceof CorpseDust || item instanceof Amulet);
 							}
 
 							@Override
