@@ -11,8 +11,8 @@ spring:
     hibernate:
       ddl-auto: update
 spd:
-  version: 3.3.6
-  netVersion: 0.0.3
+  version: 3.3.8
+  netVersion: 0.0.1
   motd: 不欢迎  >:^(
   bannedWordsFile: banned_words.txt
   mail:

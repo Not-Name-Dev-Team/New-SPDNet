@@ -15,6 +15,11 @@ android {
 
     sourceSets.main.assets.srcDirs = [new File(project(':core').projectDir, "/src/main/assets")]
 
+    androidResources {
+        localeFilters += ['en', 'zh-rCN', 'ko', 'ru', 'es', 'pt', 'fr', 'de', 'zh-rTW', 'ja', 'pl',
+                          'it', 'tr', 'vi', 'uk', 'id', 'cs', 'nl', 'sv', 'hu', 'fi', 'el', 'be', 'eo' ]
+    }
+
     defaultConfig {
         manifestPlaceholders = [appName:appName]
         applicationId appPackageName
@@ -28,8 +33,6 @@ android {
 
         minSdkVersion appAndroidMinSDK
         targetSdkVersion appAndroidTargetSDK
-        resourceConfigurations += ['en_US', 'cs', 'de', 'el', 'es', 'fr', 'hu', 'in', 'it', 'ja', 'ko', 'nl', 'pl', 'pt', 'ru', 'tr', 'uk', 'vi', 'zh_CN']
-
     }
 
     // 更改以不使用R8
@@ -83,9 +86,6 @@ dependencies {
 
     // 应用更新库
     implementation 'com.github.jenly1314.AppUpdater:app-updater:1.2.0'
-
-    // 启用多dex以突破64k数量限制
-    implementation "androidx.multidex:multidex:2.0.1"
 }
 
 // called every time gradle gets executed, takes the native dependencies of
