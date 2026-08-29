@@ -8,6 +8,7 @@ import me.catand.spdnetserver.controller.dto.StatusDTO;
 import me.catand.spdnetserver.controller.dto.SendForgotPasswordCodeRequest;
 import me.catand.spdnetserver.entitys.*;
 import me.catand.spdnetserver.repositories.*;
+import me.catand.spdnetserver.security.JwtUtil;
 import me.catand.spdnetserver.service.BannedWordsService;
 import me.catand.spdnetserver.service.MailService;
 import me.catand.spdnetserver.service.PlayerPrefixService;
@@ -62,6 +63,9 @@ public class PlayerController {
 
     @Autowired
     private BannedWordsService bannedWordsService;
+
+    @Autowired
+    private JwtUtil jwtUtil;
 
     @Autowired
     private SpdProperties spdProperties;
@@ -229,6 +233,9 @@ public class PlayerController {
         Map<String, Object> data = new HashMap<>();
         data.put("name", player.getName());
         data.put("role", player.getRole().getDisplayName());
+
+        // SPDNet: 登录成功签发 JWT，供管理员接口(AdminAuthInterceptor)鉴权使用
+        data.put("token", jwtUtil.generateToken(player.getName(), player.getRole().name()));
 
         return ApiResponse.success("登录成功", data);
     }

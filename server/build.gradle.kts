@@ -37,6 +37,11 @@ dependencies {
     // BCrypt for password encoding
     implementation("org.springframework.security:spring-security-crypto:7.0.3")
 
+    // JWT (jjwt): 用于管理员接口鉴权
+    implementation("io.jsonwebtoken:jjwt-api:0.12.6")
+    runtimeOnly("io.jsonwebtoken:jjwt-impl:0.12.6")
+    runtimeOnly("io.jsonwebtoken:jjwt-jackson:0.12.6")
+
     // Mail
     implementation("org.springframework.boot:spring-boot-starter-mail")
 }

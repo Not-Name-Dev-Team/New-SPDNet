@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { authStore } from './store/auth'
 
 const api = axios.create({
   baseURL: '/api',
@@ -7,6 +8,29 @@ const api = axios.create({
     'Content-Type': 'application/json'
   }
 })
+
+// SPDNet: 请求拦截器——为所有请求附加登录令牌，供后端管理员接口鉴权
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('auth_token')
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`
+  }
+  return config
+})
+
+// SPDNet: 响应拦截器——登录令牌失效(401)时清除本地登录态并跳转登录页
+api.interceptors.response.use(
+  (resp) => resp,
+  (error) => {
+    if (error.response?.status === 401) {
+      authStore.logout()
+      if (window.location.pathname !== '/login') {
+        window.location.href = '/login'
+      }
+    }
+    return Promise.reject(error)
+  }
+)
 
 export const playerApi = {
   register(data) {
