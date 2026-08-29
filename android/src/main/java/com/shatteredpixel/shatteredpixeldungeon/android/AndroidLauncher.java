@@ -25,9 +25,13 @@ import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.opengl.GLSurfaceView;
 import android.os.Build;
 import android.os.Bundle;
+import android.text.InputType;
 import android.view.ViewConfiguration;
+import android.view.inputmethod.EditorInfo;
+import android.view.inputmethod.InputConnection;
 import android.window.OnBackInvokedCallback;
 import android.window.OnBackInvokedDispatcher;
 
@@ -35,11 +39,18 @@ import com.badlogic.gdx.Files;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.backends.android.AndroidApplication;
+import com.badlogic.gdx.backends.android.AndroidApplicationBase;
 import com.badlogic.gdx.backends.android.AndroidApplicationConfiguration;
 import com.badlogic.gdx.backends.android.AndroidAudio;
+import com.badlogic.gdx.backends.android.AndroidGraphics;
 import com.badlogic.gdx.backends.android.AsynchronousAndroidAudio;
+import com.badlogic.gdx.backends.android.DefaultAndroidInput;
+import com.badlogic.gdx.backends.android.surfaceview.FillResolutionStrategy;
+import com.badlogic.gdx.backends.android.surfaceview.GLSurfaceView20;
+import com.badlogic.gdx.backends.android.surfaceview.ResolutionStrategy;
 import com.badlogic.gdx.graphics.g2d.freetype.FreeType;
 import com.badlogic.gdx.utils.GdxNativesLoader;
+import com.badlogic.gdx.utils.GdxRuntimeException;
 import com.shatteredpixel.shatteredpixeldungeon.SPDSettings;
 import com.shatteredpixel.shatteredpixeldungeon.ShatteredPixelDungeon;
 import com.shatteredpixel.shatteredpixeldungeon.services.news.News;
@@ -156,6 +167,50 @@ public class AndroidLauncher extends AndroidApplication {
 	@Override
 	public AndroidAudio createAudio(Context context, AndroidApplicationConfiguration config) {
 		return new AsynchronousAndroidAudio(context, config);
+	}
+
+	// SPDNet: 修复 libGDX 1.13+ 安全键盘问题导致的录屏/截屏被系统拦截（部分机型）
+	// 参考: https://github.com/libgdx/libgdx/issues/7754 （TheoTown 作者 LobbyDivinus 提供的临时方案）
+	// 原理: GLSurfaceView20#onCreateInputConnection 中通过 DefaultAndroidInput.getAndroidInputType(onscreenKeyboardType, true)
+	//       构造 inputType，其中包含 InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD 标志。
+	//       该标志会被部分厂商（如 VIVO）的安全机制识别为"密码输入窗口"，从而禁止在该窗口上录屏/截屏。
+	//       这里在默认软键盘类型下改用不含该标志的 inputType，规避系统拦截。
+	@Override
+	protected AndroidGraphics createGraphics(AndroidApplicationConfiguration config) {
+		return new AndroidGraphics(this, config,
+				config.resolutionStrategy == null ? new FillResolutionStrategy() : config.resolutionStrategy) {
+			@Override
+			protected GLSurfaceView20 createGLSurfaceView(AndroidApplicationBase application, ResolutionStrategy resolutionStrategy) {
+				if (!checkGL20()) throw new GdxRuntimeException("libGDX requires OpenGL ES 2.0");
+
+				GLSurfaceView.EGLConfigChooser configChooser = getEglConfigChooser();
+				GLSurfaceView20 view = new GLSurfaceView20(application.getContext(), resolutionStrategy, config.useGL30 ? 3 : 2) {
+					@Override
+					public InputConnection onCreateInputConnection(EditorInfo outAttrs) {
+						if (outAttrs != null) {
+							outAttrs.imeOptions = outAttrs.imeOptions | EditorInfo.IME_FLAG_NO_EXTRACT_UI;
+							if (onscreenKeyboardType == Input.OnscreenKeyboardType.Default) {
+								// SPDNet: 关键——此处省略 InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD 标志，
+								// 避免被系统判定为安全输入窗口而禁止录屏/截屏
+								outAttrs.inputType = InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS;
+							} else {
+								outAttrs.inputType = DefaultAndroidInput.getAndroidInputType(onscreenKeyboardType, true);
+							}
+						}
+						// 传入 null 以避免 outAttrs 被再次叠加修改、标志被写回
+						return super.onCreateInputConnection(null);
+					}
+				};
+
+				if (configChooser != null)
+					view.setEGLConfigChooser(configChooser);
+				else
+					view.setEGLConfigChooser(config.r, config.g, config.b, config.a, config.depth, config.stencil);
+
+				view.setRenderer(this);
+				return view;
+			}
+		};
 	}
 
 	@Override

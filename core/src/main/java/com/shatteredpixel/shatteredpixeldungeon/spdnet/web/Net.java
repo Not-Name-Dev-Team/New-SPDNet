@@ -23,7 +23,7 @@ public class Net {
 	static private Socket socket;
 	// 服务器地址
 	@Getter
-	private static String serverUrl = isDebug() ? "http://127.0.0.1:65535/spdnet" : "http://jdsalingzx.top:65535/spdnet";
+	private static String serverUrl = isDebug() ? "http://127.0.0.1:32814/spdnet" : "http://120.48.142.75:32814/spdnet";
 	// 服务器的种子列表
 	public static ConcurrentHashMap<String, Long> seeds = new ConcurrentHashMap<>();
 	// 玩家名
