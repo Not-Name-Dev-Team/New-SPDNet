@@ -12,6 +12,7 @@ import com.shatteredpixel.shatteredpixeldungeon.spdnet.utils.SPDUtils;
 import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.Net;
 import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.Player;
 import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.Status;
+import com.shatteredpixel.shatteredpixeldungeon.ui.ActionIndicator;
 import com.watabou.noosa.Game;
 import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Bundle;
@@ -53,11 +54,26 @@ public class NetHero extends Hero {
 			originalHero = Dungeon.hero;
 			Dungeon.hero = target;
 		}
+		// SPDNet: 查看其他玩家时，其物品/悬浮 buff 的还原与 icon() 可能注册全局快捷角标
+		// ActionIndicator.action(例: 牧师魔法书 TomeRecharge.attachTo 会 setAction)。
+		// 角标是查看者自己的全局状态，必须在作用域结束时恢复，避免"看完别人后多出/残留
+		// 别人的快捷魔法书图标"(且残留的 action 会指向 Viewing 用的临时英雄对象)。
+		ActionIndicator.Action originalAction;
+		synchronized (ActionIndicator.class) {
+			originalAction = ActionIndicator.action;
+		}
 		try {
 			body.run();
 		} finally {
 			synchronized (Dungeon.class) {
 				Dungeon.hero = originalHero;
+			}
+			synchronized (ActionIndicator.class) {
+				if (ActionIndicator.action != originalAction) {
+					ActionIndicator.action = originalAction;
+					// 仅在确实被改动时才重建角标显示，避免无污染时的无谓刷新
+					ActionIndicator.refresh();
+				}
 			}
 		}
 	}
