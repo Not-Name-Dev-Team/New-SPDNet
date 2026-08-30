@@ -12,6 +12,15 @@ java {
     sourceCompatibility = JavaVersion.VERSION_21
 }
 
+// SPDNet: 共享协议源目录（Actions/Events 单一事实来源，与客户端 core 共用）
+sourceSets {
+    main {
+        java {
+            srcDir(rootDir.resolve("spdnet-protocol/src"))
+        }
+    }
+}
+
 repositories {
     maven("https://maven.aliyun.com/repository/public")
     maven("https://maven.aliyun.com/repository/spring/")

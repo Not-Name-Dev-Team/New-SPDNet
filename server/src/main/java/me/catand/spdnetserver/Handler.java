@@ -23,6 +23,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Slf4j
 public class Handler {
@@ -38,6 +39,11 @@ public class Handler {
 	private Sender sender;
 	private Map<UUID, Player> playerMap;
 	private ChatService chatService;
+
+	// SPDNet: 玩家移动广播的最小间隔（毫秒），超过该频率的移动只更新缓存位置不广播，
+	// 下次到期的广播会自动带上最新位置，实现高频事件的降频合并
+	private static final long PLAYER_MOVE_MIN_INTERVAL_MS = 80L;
+	private final Map<String, Long> lastPlayerMoveBroadcastAt = new ConcurrentHashMap<>();
 
 	public Handler(PlayerRepository playerRepository, GameRecordRepository gameRecordRepository,
 	               PlayerCatalogRepository playerCatalogRepository, PlayerBestiaryRepository playerBestiaryRepository,
@@ -61,6 +67,11 @@ public class Handler {
 	// SPDNet: 获取玩家当前激活的前缀名称
 	private String getPlayerPrefixName(String playerName) {
 		return playerPrefixService.getActivePrefixName(playerName);
+	}
+
+	// SPDNet: 玩家断开连接时清理移动降频记录，避免 map 无界增长
+	public void removePlayerMoveThrottle(String playerName) {
+		lastPlayerMoveBroadcastAt.remove(playerName);
 	}
 
 	public void handleAchievement(Player player, CAchievement cAchievement) {
@@ -158,9 +169,9 @@ public class Handler {
 	public void handleError(Player player, CError cError) {
 	}
 
-	public void handleFloatingText(Player player, CFloatingText cFloatingText) {
+	public void handleFloatingText(SocketIOClient client, Player player, CFloatingText cFloatingText) {
 		String prefixName = getPlayerPrefixName(player.getName());
-		sender.sendBroadcastFloatingText(new SFloatingText(
+		sender.sendBroadcastFloatingText(client, player.getStatus(), playerMap, new SFloatingText(
 				player.getName(),
 				cFloatingText.getColor(),
 				cFloatingText.getText(),
@@ -286,35 +297,52 @@ public class Handler {
 
 	public void handleGiveItem(Player player, CGiveItem cGiveItem) {
 		String prefixName = getPlayerPrefixName(player.getName());
-		playerMap.forEach((uuid, player1) -> {
-			if (player1.getName().equals(cGiveItem.getTargetName())) {
-				sender.sendGiveItem(socketService.getServer().getNamespace("/spdnet").getClient(uuid), new SGiveItem(player.getName(), cGiveItem.getItem(), prefixName));
-			}
-		});
+		// SPDNet: 用 nameToSessionId 索引 O(1) 找到目标连接，替代遍历 playerMap
+		SocketIOClient targetClient = socketService.getClientByName(cGiveItem.getTargetName());
+		if (targetClient != null) {
+			sender.sendGiveItem(targetClient, new SGiveItem(player.getName(), cGiveItem.getItem(), prefixName));
+		}
 	}
 
 	public void handleHero(Player player, CHero cHero) {
 		String prefixName = getPlayerPrefixName(player.getName());
-		playerMap.forEach((uuid, player1) -> {
-			if (player1.getName().equals(cHero.getSourceName())) {
-				sender.sendHero(socketService.getServer().getNamespace("/spdnet").getClient(uuid), new SHero(player.getName(), cHero.getHero(), prefixName));
-			}
-		});
+		// SPDNet: 用 nameToSessionId 索引 O(1) 找到目标连接，替代遍历 playerMap
+		SocketIOClient targetClient = socketService.getClientByName(cHero.getSourceName());
+		if (targetClient != null) {
+			sender.sendHero(targetClient, new SHero(player.getName(), cHero.getHero(), prefixName));
+		}
 	}
 
 	public void handleLeaveDungeon(Player player, CLeaveDungeon cLeaveDungeon) {
+		// SPDNet: 清除服务端缓存状态，避免玩家离开地牢后仍被当作"在地牢内"参与同地牢广播
+		player.setStatus(null);
 		String prefixName = getPlayerPrefixName(player.getName());
 		sender.sendBroadcastLeaveDungeon(new SLeaveDungeon(player.getName(), prefixName));
 	}
 
 	public void handlePlayerChangeFloor(Player player, CPlayerChangeFloor cPlayerChangeFloor) {
+		// SPDNet: 同步服务端缓存的楼层，避免状态停留在旧楼层
+		if (player.getStatus() != null) {
+			player.getStatus().setDepth(cPlayerChangeFloor.getDepth());
+		}
 		String prefixName = getPlayerPrefixName(player.getName());
 		sender.sendBroadcastPlayerChangeFloor(new SPlayerChangeFloor(player.getName(), cPlayerChangeFloor.getDepth(), prefixName));
 	}
 
-	public void handlePlayerMove(Player player, CPlayerMove cPlayerMove) {
+	public void handlePlayerMove(SocketIOClient client, Player player, CPlayerMove cPlayerMove) {
+		// SPDNet: 同步缓存中的玩家位置，避免广播时使用陈旧状态
+		if (player.getStatus() != null) {
+			player.getStatus().setPos(cPlayerMove.getPos());
+		}
+		// SPDNet: 降频合并：同一玩家在最小间隔内的移动只更新缓存位置，不重复广播
+		long now = System.currentTimeMillis();
+		Long lastBroadcastAt = lastPlayerMoveBroadcastAt.get(player.getName());
+		if (lastBroadcastAt != null && now - lastBroadcastAt < PLAYER_MOVE_MIN_INTERVAL_MS) {
+			return;
+		}
+		lastPlayerMoveBroadcastAt.put(player.getName(), now);
 		String prefixName = getPlayerPrefixName(player.getName());
-		sender.sendBroadcastPlayerMove(new SPlayerMove(player.getName(), cPlayerMove.getPos(), prefixName));
+		sender.sendBroadcastPlayerMove(client, player.getStatus(), playerMap, new SPlayerMove(player.getName(), cPlayerMove.getPos(), prefixName));
 		log.info("玩家{}移动到了{}", player.getName(), cPlayerMove.getPos());
 	}
 
@@ -362,11 +390,11 @@ public class Handler {
 	public void handleViewHero(Player player, CViewHero cViewHero) {
 		log.info("玩家{}请求查看玩家{}", player.getName(), cViewHero.getTargetName());
 		String prefixName = getPlayerPrefixName(player.getName());
-		playerMap.forEach((uuid, player1) -> {
-			if (player1.getName().equals(cViewHero.getTargetName())) {
-				sender.sendViewHero(socketService.getServer().getNamespace("/spdnet").getClient(uuid), new SViewHero(player.getName(), prefixName));
-			}
-		});
+		// SPDNet: 用 nameToSessionId 索引 O(1) 找到目标连接，替代遍历 playerMap
+		SocketIOClient targetClient = socketService.getClientByName(cViewHero.getTargetName());
+		if (targetClient != null) {
+			sender.sendViewHero(targetClient, new SViewHero(player.getName(), prefixName));
+		}
 	}
 
 	// SPDNet: 处理 Catalog 更新

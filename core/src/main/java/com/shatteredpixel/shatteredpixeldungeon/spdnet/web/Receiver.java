@@ -10,7 +10,7 @@ import com.shatteredpixel.shatteredpixeldungeon.journal.Journal;
 import com.shatteredpixel.shatteredpixeldungeon.scenes.GameScene;
 import com.shatteredpixel.shatteredpixeldungeon.scenes.TitleScene;
 import com.shatteredpixel.shatteredpixeldungeon.spdnetbutcopy.scene.NetRankingsScene;
-import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.Events;
+import me.catand.spdnet.protocol.Events;
 import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.events.*;
 import com.shatteredpixel.shatteredpixeldungeon.spdnet.windows.NetWindow;
 import com.watabou.noosa.Game;
@@ -146,7 +146,7 @@ public class Receiver {
 		getSocket().on(Events.PLAYER_MOVE.getName(), onPlayerMove);
 		getSocket().on(Events.SERVER_MESSAGE.getName(), onServerMessage);
 		getSocket().on(Events.VIEW_HERO.getName(), onViewHero);
-		getSocket().on("journals", onJournals);
+		getSocket().on(Events.JOURNALS.getName(), onJournals);
 		getSocket().on(Events.ALLOW_DAILY_CHALLENGE.getName(), onAllowDailyChallenge);
 		getSocket().on(Events.REJECT_DAILY_CHALLENGE.getName(), onRejectDailyChallenge);
 	}

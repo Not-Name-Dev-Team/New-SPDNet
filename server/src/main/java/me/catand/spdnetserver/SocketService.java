@@ -7,6 +7,8 @@ import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import me.catand.spdnet.protocol.Actions;
+import me.catand.spdnet.protocol.Events;
 import me.catand.spdnetserver.data.actions.*;
 import me.catand.spdnetserver.data.events.*;
 import me.catand.spdnetserver.entitys.GameRecord;
@@ -60,6 +62,8 @@ private PlayerPrefixService playerPrefixService;
 private DailyChallengeService dailyChallengeService;
 private SocketIOServer server;
 	private Map<UUID, Player> playerMap = new ConcurrentHashMap<>();
+	// SPDNet: 玩家名 -> sessionId 索引，避免反复遍历 playerMap 找人（O(N) → O(1)）
+	private Map<String, UUID> nameToSessionId = new ConcurrentHashMap<>();
 	private Sender sender;
 	private Handler handler;
 	private SocketIONamespace spdNetNamespace;
@@ -82,6 +86,10 @@ private SocketIOServer server;
 		Configuration config = new Configuration();
 		config.setHostname("0.0.0.0");
 		config.setPort(32814);
+
+		// SPDNet: 缩短心跳与超时，加速回收网络抖动产生的僵尸连接，避免"幽灵玩家"占位导致无法重登
+		config.setPingInterval(15000);
+		config.setPingTimeout(45000);
 
 		instance = this;
 		server = new SocketIOServer(config);
@@ -161,19 +169,24 @@ private SocketIOServer server;
 				return;
 			}
 
-			final boolean[] isDuplicate = {false};
-			playerMap.forEach((uuid, player1) -> {
-				if (player1.getName().equals(player.getName())) {
+			// SPDNet: 用 nameToSessionId 索引判断重复登录，替代 O(N) 遍历 playerMap
+			UUID existingSessionId = nameToSessionId.get(player.getName());
+			if (existingSessionId != null) {
+				SocketIOClient existingClient = spdNetNamespace.getClient(existingSessionId);
+				// 仅当旧连接仍存活时判定为真正的重复登录
+				if (existingClient != null && existingClient.isChannelOpen()) {
 					client.sendEvent(Events.ERROR.getName(), new SError(player.getName() + "已登录, 重复登录"));
 					log.info("连接失败: " + player.getName() + "已登录, 重复登录, " + client.getSessionId());
 					client.disconnect();
-					isDuplicate[0] = true;
+					return;
 				}
-			});
-			if (isDuplicate[0]) {
-				return;
+				// 旧连接已失效（网络抖动产生的幽灵连接），清理占位后放行新连接
+				log.info("玩家{}存在失效的旧连接({})，清理后允许重新登录", player.getName(), existingSessionId);
+				playerMap.remove(existingSessionId);
+				nameToSessionId.remove(player.getName());
 			}
 			playerMap.put(client.getSessionId(), player);
+			nameToSessionId.put(player.getName(), client.getSessionId());
 			// SPDNet: 更新最后登录时间和IP
 			player.setLastLoginAt(LocalDateTime.now());
 			player.setLastLoginIp(getClientIp(client));
@@ -198,6 +211,9 @@ private SocketIOServer server;
 			Player player = playerMap.get(client.getSessionId());
 			if (player != null) {
 				playerMap.remove(client.getSessionId());
+				nameToSessionId.remove(player.getName());
+				// SPDNet: 清理移动降频记录，避免无界增长
+				handler.removePlayerMoveThrottle(player.getName());
 				// SPDNet: 获取玩家当前激活的前缀
 				String activePrefixName = playerPrefixService.getActivePrefixName(player.getName());
 				sender.sendBroadcastExit(new SExit(player.getName(), activePrefixName));
@@ -223,7 +239,7 @@ private SocketIOServer server;
 			handler.handleError(playerMap.get(client.getSessionId()), JSON.parseObject(data, CError.class));
 		});
 		spdNetNamespace.addEventListener(Actions.FLOATING_TEXT.getName(), String.class, (client, data, ackSender) -> {
-			handler.handleFloatingText(playerMap.get(client.getSessionId()), JSON.parseObject(data, CFloatingText.class));
+			handler.handleFloatingText(client, playerMap.get(client.getSessionId()), JSON.parseObject(data, CFloatingText.class));
 		});
 		spdNetNamespace.addEventListener(Actions.GAME_END.getName(), String.class, (client, data, ackSender) -> {
 			JSONObject cGameEndJson = JSON.parseObject(data, JSONObject.class);
@@ -249,7 +265,7 @@ private SocketIOServer server;
 			handler.handlePlayerChangeFloor(playerMap.get(client.getSessionId()), JSON.parseObject(data, CPlayerChangeFloor.class));
 		});
 		spdNetNamespace.addEventListener(Actions.PLAYER_MOVE.getName(), String.class, (client, data, ackSender) -> {
-			handler.handlePlayerMove(playerMap.get(client.getSessionId()), JSON.parseObject(data, CPlayerMove.class));
+			handler.handlePlayerMove(client, playerMap.get(client.getSessionId()), JSON.parseObject(data, CPlayerMove.class));
 		});
 		spdNetNamespace.addEventListener(Actions.REQUEST_LEADERBOARD.getName(), String.class, (client, data, ackSender) -> {
 			handler.handleRequestLeaderboard(client, JSON.parseObject(data, CRequestLeaderboard.class));
@@ -264,14 +280,14 @@ private SocketIOServer server;
 			handler.handleRequestDailyChallenge(client, playerMap.get(client.getSessionId()), JSON.parseObject(data, CRequestDailyChallenge.class));
 		});
 
-		// SPDNet: Journal 相关事件监听
-		spdNetNamespace.addEventListener("catalogUpdate", String.class, (client, data, ackSender) -> {
+		// SPDNet: Journal 相关事件监听（事件名来自共享协议枚举）
+		spdNetNamespace.addEventListener(Actions.CATALOG_UPDATE.getName(), String.class, (client, data, ackSender) -> {
 			handler.handleCatalogUpdate(playerMap.get(client.getSessionId()), JSON.parseObject(data, CCatalogUpdate.class));
 		});
-		spdNetNamespace.addEventListener("bestiaryUpdate", String.class, (client, data, ackSender) -> {
+		spdNetNamespace.addEventListener(Actions.BESTIARY_UPDATE.getName(), String.class, (client, data, ackSender) -> {
 			handler.handleBestiaryUpdate(playerMap.get(client.getSessionId()), JSON.parseObject(data, CBestiaryUpdate.class));
 		});
-		spdNetNamespace.addEventListener("documentUpdate", String.class, (client, data, ackSender) -> {
+		spdNetNamespace.addEventListener(Actions.DOCUMENT_UPDATE.getName(), String.class, (client, data, ackSender) -> {
 			handler.handleDocumentUpdate(playerMap.get(client.getSessionId()), JSON.parseObject(data, CDocumentUpdate.class));
 		});
 
@@ -294,15 +310,23 @@ private SocketIOServer server;
 	}
 
 	public void kickPlayer(String name) {
-		playerMap.forEach((uuid, player) -> {
-			if (player.getName().equals(name)) {
-				SocketIOClient client = spdNetNamespace.getClient(uuid);
-				if (client != null) {
-					client.sendEvent(Events.ERROR.getName(), new SError("你已被踢出服务器"));
-					client.disconnect();
-				}
-			}
-		});
+		SocketIOClient client = getClientByName(name);
+		if (client != null) {
+			client.sendEvent(Events.ERROR.getName(), new SError("你已被踢出服务器"));
+			client.disconnect();
+		}
+	}
+
+	/**
+	 * SPDNet: 通过玩家名获取在线连接，使用 nameToSessionId 索引，O(1) 查找。
+	 * 替代原先遍历整个 playerMap 再 getClient 的做法。
+	 */
+	public SocketIOClient getClientByName(String name) {
+		UUID uuid = nameToSessionId.get(name);
+		if (uuid == null) {
+			return null;
+		}
+		return spdNetNamespace.getClient(uuid);
 	}
 
 	public void broadcastMessage(String message) {

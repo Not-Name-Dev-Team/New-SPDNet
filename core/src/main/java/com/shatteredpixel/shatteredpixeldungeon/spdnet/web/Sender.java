@@ -5,7 +5,7 @@ import static com.shatteredpixel.shatteredpixeldungeon.spdnet.web.Net.getSocket;
 import com.alibaba.fastjson.JSON;
 import com.shatteredpixel.shatteredpixeldungeon.spdnet.Mode;
 import com.shatteredpixel.shatteredpixeldungeon.spdnet.NetInProgress;
-import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.Actions;
+import me.catand.spdnet.protocol.Actions;
 import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.actions.CAchievement;
 import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.actions.CAnkhUsed;
 import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.actions.CArmorUpdate;
@@ -113,16 +113,16 @@ public class Sender {
 
 	// SPDNet: 发送 Catalog 更新到服务器
 	public static void sendCatalogUpdate(CCatalogUpdate catalogUpdate) {
-		getSocket().emit("catalogUpdate", JSON.toJSONString(catalogUpdate));
+		getSocket().emit(Actions.CATALOG_UPDATE.getName(), JSON.toJSONString(catalogUpdate));
 	}
 
 	// SPDNet: 发送 Bestiary 更新到服务器
 	public static void sendBestiaryUpdate(CBestiaryUpdate bestiaryUpdate) {
-		getSocket().emit("bestiaryUpdate", JSON.toJSONString(bestiaryUpdate));
+		getSocket().emit(Actions.BESTIARY_UPDATE.getName(), JSON.toJSONString(bestiaryUpdate));
 	}
 
 	// SPDNet: 发送 Document 更新到服务器
 	public static void sendDocumentUpdate(CDocumentUpdate documentUpdate) {
-		getSocket().emit("documentUpdate", JSON.toJSONString(documentUpdate));
+		getSocket().emit(Actions.DOCUMENT_UPDATE.getName(), JSON.toJSONString(documentUpdate));
 	}
 }

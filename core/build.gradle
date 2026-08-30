@@ -6,6 +6,15 @@ plugins {
 [compileJava, compileTestJava]*.options*.encoding = 'UTF-8'
 java.sourceCompatibility = java.targetCompatibility = appJavaCompatibility
 
+// SPDNet: 共享协议源目录（Actions/Events 单一事实来源，与服务端 server 共用）
+sourceSets {
+    main {
+        java {
+            srcDir "$rootDir/spdnet-protocol/src"
+        }
+    }
+}
+
 dependencies {
     api project(':SPD-classes')
     implementation project(':services')
