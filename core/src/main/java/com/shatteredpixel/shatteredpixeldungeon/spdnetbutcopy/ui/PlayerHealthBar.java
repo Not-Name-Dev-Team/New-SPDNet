@@ -109,8 +109,9 @@ public class PlayerHealthBar extends CharHealthIndicator {
 			challengeText.y = y - 9;
 		}
 
-		Shld.size( width * (float)Math.ceil(shield * pixelWidth)/pixelWidth, 1 );
-		Hp.size( width * (float)Math.ceil(health * pixelWidth)/pixelWidth, 1 );
+		// SPDNet: 修复血条显示异常 - 让 HP/护盾条高度与背景(Bg)一致, 避免出现"粗红底+细绿线"的两条残影
+		Shld.size( width * (float)Math.ceil(shield * pixelWidth)/pixelWidth, height );
+		Hp.size( width * (float)Math.ceil(health * pixelWidth)/pixelWidth, height );
 	}
 
 	public void level( float value ) {
