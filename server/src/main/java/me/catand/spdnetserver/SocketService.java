@@ -212,8 +212,6 @@ private SocketIOServer server;
 			if (player != null) {
 				playerMap.remove(client.getSessionId());
 				nameToSessionId.remove(player.getName());
-				// SPDNet: 清理移动降频记录，避免无界增长
-				handler.removePlayerMoveThrottle(player.getName());
 				// SPDNet: 获取玩家当前激活的前缀
 				String activePrefixName = playerPrefixService.getActivePrefixName(player.getName());
 				sender.sendBroadcastExit(new SExit(player.getName(), activePrefixName));

@@ -23,7 +23,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 
 @Slf4j
 public class Handler {
@@ -39,11 +38,6 @@ public class Handler {
 	private Sender sender;
 	private Map<UUID, Player> playerMap;
 	private ChatService chatService;
-
-	// SPDNet: 玩家移动广播的最小间隔（毫秒），超过该频率的移动只更新缓存位置不广播，
-	// 下次到期的广播会自动带上最新位置，实现高频事件的降频合并
-	private static final long PLAYER_MOVE_MIN_INTERVAL_MS = 80L;
-	private final Map<String, Long> lastPlayerMoveBroadcastAt = new ConcurrentHashMap<>();
 
 	public Handler(PlayerRepository playerRepository, GameRecordRepository gameRecordRepository,
 	               PlayerCatalogRepository playerCatalogRepository, PlayerBestiaryRepository playerBestiaryRepository,
@@ -67,11 +61,6 @@ public class Handler {
 	// SPDNet: 获取玩家当前激活的前缀名称
 	private String getPlayerPrefixName(String playerName) {
 		return playerPrefixService.getActivePrefixName(playerName);
-	}
-
-	// SPDNet: 玩家断开连接时清理移动降频记录，避免 map 无界增长
-	public void removePlayerMoveThrottle(String playerName) {
-		lastPlayerMoveBroadcastAt.remove(playerName);
 	}
 
 	public void handleAchievement(Player player, CAchievement cAchievement) {
@@ -334,13 +323,6 @@ public class Handler {
 		if (player.getStatus() != null) {
 			player.getStatus().setPos(cPlayerMove.getPos());
 		}
-		// SPDNet: 降频合并：同一玩家在最小间隔内的移动只更新缓存位置，不重复广播
-		long now = System.currentTimeMillis();
-		Long lastBroadcastAt = lastPlayerMoveBroadcastAt.get(player.getName());
-		if (lastBroadcastAt != null && now - lastBroadcastAt < PLAYER_MOVE_MIN_INTERVAL_MS) {
-			return;
-		}
-		lastPlayerMoveBroadcastAt.put(player.getName(), now);
 		String prefixName = getPlayerPrefixName(player.getName());
 		sender.sendBroadcastPlayerMove(client, player.getStatus(), playerMap, new SPlayerMove(player.getName(), cPlayerMove.getPos(), prefixName));
 		log.info("玩家{}移动到了{}", player.getName(), cPlayerMove.getPos());
