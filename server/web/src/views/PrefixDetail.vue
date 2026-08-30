@@ -26,9 +26,7 @@
       <!-- Prefix Info Card -->
       <div class="prefix-info-card">
         <div class="prefix-header">
-          <div class="prefix-badge" :style="getPrefixStyle(prefixInfo)">
-            {{ prefixInfo.displayText }}
-          </div>
+          <PrefixBadge :prefix="prefixInfo" size="lg" :clickable="false" class="prefix-badge" />
           <div class="prefix-meta">
             <h2 class="prefix-name">{{ prefixInfo.name }}</h2>
             <p class="prefix-id">ID: {{ prefixInfo.id }}</p>
@@ -153,6 +151,7 @@ import {
   InfoFilled, Check, View, Warning
 } from '@element-plus/icons-vue'
 import { prefixApi } from '../api'
+import PrefixBadge from '../components/PrefixBadge.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -165,19 +164,6 @@ const currentPage = ref(1)
 const pageSize = ref(20)
 const totalElements = ref(0)
 const totalPages = ref(0)
-
-// 获取前缀样式
-const getPrefixStyle = (prefix) => {
-  return {
-    color: prefix.color || '#ffffff',
-    backgroundColor: prefix.backgroundColor || 'rgba(139, 92, 246, 0.8)',
-    padding: '8px 16px',
-    borderRadius: '8px',
-    fontSize: '1.25rem',
-    fontWeight: 'bold',
-    display: 'inline-block'
-  }
-}
 
 // 格式化日期时间
 const formatDateTime = (time) => {

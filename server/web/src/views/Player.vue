@@ -11,13 +11,7 @@
           </div>
           <div class="player-info">
             <h1 class="player-name">
-              <span
-                v-if="playerInfo?.prefix"
-                class="player-prefix clickable-prefix"
-                :style="getPrefixStyle(playerInfo.prefix)"
-                @click="goToPrefix(playerInfo.prefix)"
-                title="点击查看前缀详情"
-              >{{ playerInfo.prefix.displayText }}</span>
+              <PrefixBadge v-if="playerInfo?.prefix" :prefix="playerInfo.prefix" />
               {{ playerInfo?.name || '加载中...' }}
             </h1>
             <div class="player-badges">
@@ -420,7 +414,7 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import {
   UserFilled, User, Trophy, Location, Medal, TrendCharts,
@@ -428,9 +422,10 @@ import {
   Collection, Goods, Document, Flag, View, Notebook, FirstAidKit, ArrowRight, Box
 } from '@element-plus/icons-vue'
 import { playerApi, leaderboardApi } from '../api'
+import PrefixBadge from '../components/PrefixBadge.vue'
+import { getRoleType } from '../utils/format'
 
 const route = useRoute()
-const router = useRouter()
 const playerInfo = ref(null)
 const playerRank = ref(null)
 const rankDiff = ref(0)
@@ -604,35 +599,6 @@ const progressPercent = computed(() => {
   if (base <= 0) return 100
   return Math.min(100, Math.round((playerInfo.value.maxScore / (base + rankDiff.value)) * 100))
 })
-
-const getRoleType = (role) => {
-  const types = {
-    '管理员': 'danger',
-    '玩家': 'primary'
-  }
-  return types[role] || 'primary'
-}
-
-// SPDNet: 前缀系统 - 获取前缀样式
-const getPrefixStyle = (prefix) => {
-  return {
-    color: prefix.color || '#ffffff',
-    backgroundColor: prefix.backgroundColor || 'rgba(139, 92, 246, 0.8)',
-    padding: '4px 12px',
-    borderRadius: '6px',
-    fontSize: '14px',
-    fontWeight: 'bold',
-    marginRight: '8px',
-    display: 'inline-block'
-  }
-}
-
-// SPDNet: 跳转到前缀详情页
-const goToPrefix = (prefix) => {
-  if (prefix && prefix.id) {
-    router.push(`/prefix/${prefix.id}`)
-  }
-}
 
 const getResultClass = (result) => {
   const classes = {
@@ -816,20 +782,6 @@ onMounted(() => {
   font-weight: 700;
   margin: 0;
   color: var(--text-primary);
-}
-
-.player-prefix {
-  display: inline-block;
-}
-
-.clickable-prefix {
-  cursor: pointer;
-  transition: all var(--transition-fast);
-}
-
-.clickable-prefix:hover {
-  transform: scale(1.05);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .player-badges {

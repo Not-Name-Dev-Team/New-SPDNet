@@ -11,13 +11,7 @@
           </div>
           <div class="user-info">
             <h1 class="user-name">
-              <span
-                v-if="userInfo?.prefix"
-                class="user-prefix clickable-prefix"
-                :style="getPrefixStyle(userInfo.prefix)"
-                @click="goToPrefix(userInfo.prefix)"
-                title="点击查看前缀详情"
-              >{{ userInfo.prefix.displayText }}</span>
+              <PrefixBadge v-if="userInfo?.prefix" :prefix="userInfo.prefix" />
               {{ userInfo?.name || '加载中...' }}
             </h1>
             <div class="user-badges">
@@ -237,6 +231,8 @@ import {
 import { playerApi } from '../api'
 import { authStore } from '../store/auth'
 import MyPrefixSelector from '../components/MyPrefixSelector.vue'
+import PrefixBadge from '../components/PrefixBadge.vue'
+import { getRoleType } from '../utils/format'
 
 const router = useRouter()
 const userInfo = ref(null)
@@ -290,35 +286,6 @@ const nameRules = {
     { required: true, message: '请输入新昵称', trigger: 'blur' },
     { min: 2, max: 16, message: '长度在 2 到 16 个字符', trigger: 'blur' }
   ]
-}
-
-const getRoleType = (role) => {
-  const types = {
-    '管理员': 'danger',
-    '玩家': 'primary'
-  }
-  return types[role] || 'primary'
-}
-
-// SPDNet: 前缀系统 - 获取前缀样式
-const getPrefixStyle = (prefix) => {
-  return {
-    color: prefix.color || '#ffffff',
-    backgroundColor: prefix.backgroundColor || 'rgba(139, 92, 246, 0.8)',
-    padding: '4px 12px',
-    borderRadius: '6px',
-    fontSize: '14px',
-    fontWeight: 'bold',
-    marginRight: '8px',
-    display: 'inline-block'
-  }
-}
-
-// SPDNet: 跳转到前缀详情页
-const goToPrefix = (prefix) => {
-  if (prefix && prefix.id) {
-    router.push(`/prefix/${prefix.id}`)
-  }
 }
 
 const formatDate = (time) => {
@@ -535,20 +502,6 @@ onMounted(() => {
   font-weight: 700;
   margin: 0;
   color: var(--text-primary);
-}
-
-.user-prefix {
-  display: inline-block;
-}
-
-.clickable-prefix {
-  cursor: pointer;
-  transition: all var(--transition-fast);
-}
-
-.clickable-prefix:hover {
-  transform: scale(1.05);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .user-badges {

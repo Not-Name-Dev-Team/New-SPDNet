@@ -120,13 +120,7 @@
           </div>
           <div class="player-info">
             <span class="player-name">
-              <span
-                v-if="player.prefix"
-                class="player-prefix clickable-prefix"
-                :style="getPrefixStyle(player.prefix)"
-                @click.prevent.stop="goToPrefix(player.prefix)"
-                title="点击查看前缀详情"
-              >{{ player.prefix.displayText }}</span>
+              <PrefixBadge v-if="player.prefix" :prefix="player.prefix" />
               {{ player.name }}
             </span>
             <div class="player-meta">
@@ -195,7 +189,6 @@
 
 <script setup>
 import { ref, onMounted, computed } from 'vue'
-import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import {
   User, UserFilled, Trophy, Connection, Key,
@@ -204,8 +197,8 @@ import {
 } from '@element-plus/icons-vue'
 import { playerApi } from '../api'
 import { authStore } from '../store/auth'
-
-const router = useRouter()
+import PrefixBadge from '../components/PrefixBadge.vue'
+import { getRoleType, getGameModeText } from '../utils/format'
 
 const serverInfo = ref(null)
 const onlinePlayers = ref([])
@@ -272,46 +265,6 @@ const features = [
     glow: 'rgba(16, 185, 129, 0.15)'
   }
 ]
-
-const getRoleType = (role) => {
-  const types = {
-    '管理员': 'danger',
-    '玩家': 'primary'
-  }
-  return types[role] || 'primary'
-}
-
-// SPDNet: 获取游戏模式文本
-// 0=铁人模式, 1=娱乐模式, 2=每日挑战
-const getGameModeText = (gameMode) => {
-  const modes = {
-    0: '铁人',
-    1: '娱乐',
-    2: '每日'
-  }
-  return modes[gameMode] || '娱乐'
-}
-
-// SPDNet: 前缀系统 - 获取前缀样式
-const getPrefixStyle = (prefix) => {
-  return {
-    color: prefix.color || '#ffffff',
-    backgroundColor: prefix.backgroundColor || 'rgba(139, 92, 246, 0.8)',
-    padding: '2px 8px',
-    borderRadius: '4px',
-    fontSize: '12px',
-    fontWeight: 'bold',
-    marginRight: '4px',
-    display: 'inline-block'
-  }
-}
-
-// SPDNet: 跳转到前缀详情页
-const goToPrefix = (prefix) => {
-  if (prefix && prefix.id) {
-    router.push(`/prefix/${prefix.id}`)
-  }
-}
 
 const loadData = async () => {
   loading.value = true
@@ -741,20 +694,6 @@ onMounted(() => {
   font-weight: 600;
   font-size: 0.9375rem;
   color: var(--text-primary);
-}
-
-.player-prefix {
-  display: inline-block;
-}
-
-.clickable-prefix {
-  cursor: pointer;
-  transition: all var(--transition-fast);
-}
-
-.clickable-prefix:hover {
-  transform: scale(1.05);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .arrow-icon {

@@ -118,7 +118,7 @@
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import {
   User, Lock, Right, Plus, Connection
@@ -127,6 +127,7 @@ import { playerApi } from '../api'
 import { authStore } from '../store/auth'
 
 const router = useRouter()
+const route = useRoute()
 const formRef = ref()
 const loading = ref(false)
 const rememberMe = ref(false)
@@ -158,7 +159,7 @@ const handleLogin = async () => {
         if (res.data.success) {
           authStore.login(res.data.data)
           ElMessage.success('登录成功')
-          router.push('/')
+          router.push(route.query.redirect || '/')
         } else {
           ElMessage.error(res.data.message || '登录失败')
         }
@@ -174,7 +175,7 @@ const handleLogin = async () => {
 
 onMounted(() => {
   if (authStore.isLoggedIn) {
-    router.push('/')
+    router.push(route.query.redirect || '/')
   }
 })
 </script>

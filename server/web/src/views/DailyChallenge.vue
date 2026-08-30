@@ -179,13 +179,7 @@
               <div class="col-player">
                 <el-avatar :size="32" :icon="UserFilled" class="player-avatar" />
                 <router-link :to="`/player/${record.playerName}`" class="player-name">
-                  <span
-                    v-if="record.prefix"
-                    class="player-prefix clickable-prefix"
-                    :style="getPrefixStyle(record.prefix)"
-                    @click.prevent.stop="goToPrefix(record.prefix)"
-                    title="点击查看前缀详情"
-                  >{{ record.prefix.displayText }}</span>
+                  <PrefixBadge v-if="record.prefix" :prefix="record.prefix" />
                   {{ record.playerName }}
                 </router-link>
               </div>
@@ -230,15 +224,14 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
-import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import {
   Calendar, Refresh, InfoFilled, Trophy, StarFilled,
   UserFilled, Medal, Location, Timer
 } from '@element-plus/icons-vue'
 import { dailyChallengeApi } from '../api'
+import PrefixBadge from '../components/PrefixBadge.vue'
 
-const router = useRouter()
 const loading = ref(false)
 const recordsLoading = ref(false)
 const selectedDate = ref(new Date().toISOString().split('T')[0])
@@ -291,25 +284,6 @@ const getProgressColor = (rate) => {
 
 const rankIcons = [Trophy, Medal, StarFilled]
 const getRankIcon = (index) => rankIcons[index] || Medal
-
-const getPrefixStyle = (prefix) => {
-  return {
-    color: prefix.color || '#ffffff',
-    backgroundColor: prefix.backgroundColor || 'rgba(139, 92, 246, 0.8)',
-    padding: '2px 8px',
-    borderRadius: '4px',
-    fontSize: '12px',
-    fontWeight: 'bold',
-    marginRight: '6px',
-    display: 'inline-block'
-  }
-}
-
-const goToPrefix = (prefix) => {
-  if (prefix && prefix.id) {
-    router.push(`/prefix/${prefix.id}`)
-  }
-}
 
 const handleDateChange = () => {
   loadData()
@@ -738,21 +712,6 @@ onMounted(() => {
 
 .player-name:hover {
   color: var(--primary-400);
-}
-
-.player-prefix {
-  display: inline-block;
-  vertical-align: middle;
-}
-
-.clickable-prefix {
-  cursor: pointer;
-  transition: all var(--transition-fast);
-}
-
-.clickable-prefix:hover {
-  transform: scale(1.05);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .col-score {

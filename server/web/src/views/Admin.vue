@@ -117,13 +117,7 @@
                   </div>
                   <div class="player-info">
                     <span class="player-name">
-                      <span
-                        v-if="row.prefix"
-                        class="player-prefix clickable-prefix"
-                        :style="getPrefixStyle(row.prefix)"
-                        @click.stop="goToPrefix(row.prefix)"
-                        title="点击查看前缀详情"
-                      >{{ row.prefix.displayText }}</span>
+                      <PrefixBadge v-if="row.prefix" :prefix="row.prefix" />
                       {{ row.name }}
                     </span>
                     <span class="player-id">ID: {{ row.id }}</span>
@@ -302,6 +296,8 @@ import {
 import { playerApi, adminApi } from '../api'
 import { authStore } from '../store/auth'
 import PlayerPrefix from '../components/PlayerPrefix.vue'
+import PrefixBadge from '../components/PrefixBadge.vue'
+import { getRoleType } from '../utils/format'
 
 const router = useRouter()
 const loading = ref(false)
@@ -354,15 +350,6 @@ const headerStyle = () => ({
   borderBottom: '1px solid rgba(139, 92, 246, 0.2)'
 })
 
-const getRoleType = (role) => {
-  const types = {
-    'ADMIN': 'danger',
-    'PLAYER': 'primary',
-    'BANNED': 'info'
-  }
-  return types[role] || 'primary'
-}
-
 const getRoleDisplay = (role) => {
   const displays = {
     'ADMIN': '管理员',
@@ -370,27 +357,6 @@ const getRoleDisplay = (role) => {
     'BANNED': '已封禁'
   }
   return displays[role] || role
-}
-
-// SPDNet: 前缀系统 - 获取前缀样式
-const getPrefixStyle = (prefix) => {
-  return {
-    color: prefix.color || '#ffffff',
-    backgroundColor: prefix.backgroundColor || 'rgba(139, 92, 246, 0.8)',
-    padding: '2px 8px',
-    borderRadius: '4px',
-    fontSize: '12px',
-    fontWeight: 'bold',
-    marginRight: '6px',
-    display: 'inline-block'
-  }
-}
-
-// SPDNet: 跳转到前缀详情页
-const goToPrefix = (prefix) => {
-  if (prefix && prefix.id) {
-    router.push(`/prefix/${prefix.id}`)
-  }
 }
 
 const formatDate = (dateStr) => {
@@ -940,22 +906,6 @@ onMounted(() => {
 .player-name {
   font-weight: 600;
   color: var(--text-primary);
-}
-
-.player-prefix {
-  color: #fbbf24;
-  font-weight: bold;
-  margin-right: 4px;
-}
-
-.clickable-prefix {
-  cursor: pointer;
-  transition: all var(--transition-fast);
-}
-
-.clickable-prefix:hover {
-  transform: scale(1.05);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .player-id {
