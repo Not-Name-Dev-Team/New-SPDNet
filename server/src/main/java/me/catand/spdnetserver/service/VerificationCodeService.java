@@ -16,6 +16,9 @@ public class VerificationCodeService {
 	@Autowired
 	private MailProperties mailProperties;
 
+	// SPDNet: 单次验证码允许的最大错误猜测次数，超过后验证码作废，须重新发送（防暴力破解）
+	private static final int MAX_ATTEMPTS = 5;
+
 	private final Map<String, VerificationCode> codeStorage = new ConcurrentHashMap<>();
 
 	@Getter
@@ -24,12 +27,14 @@ public class VerificationCodeService {
 		private final LocalDateTime expireTime;
 		private LocalDateTime lastSendTime;
 		private boolean verified;
+		private int attempts;
 
 		public VerificationCode(String code, int expireMinutes) {
 			this.code = code;
 			this.expireTime = LocalDateTime.now().plusMinutes(expireMinutes);
 			this.lastSendTime = LocalDateTime.now();
 			this.verified = false;
+			this.attempts = 0;
 		}
 
 		public boolean isExpired() {
@@ -140,6 +145,11 @@ public class VerificationCodeService {
 			return false;
 		}
 		if (!stored.getCode().equals(code)) {
+			// SPDNet: 验证码错误次数+1，达到上限即作废并移除，须重新发送（防暴力破解）
+			stored.attempts++;
+			if (stored.attempts >= MAX_ATTEMPTS) {
+				codeStorage.remove(email);
+			}
 			return false;
 		}
 		stored.markVerified();

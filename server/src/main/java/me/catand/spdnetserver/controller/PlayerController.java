@@ -9,15 +9,19 @@ import me.catand.spdnetserver.controller.dto.SendForgotPasswordCodeRequest;
 import me.catand.spdnetserver.entitys.*;
 import me.catand.spdnetserver.repositories.*;
 import me.catand.spdnetserver.security.JwtUtil;
+import me.catand.spdnetserver.security.RequestAuth;
 import me.catand.spdnetserver.service.BannedWordsService;
 import me.catand.spdnetserver.service.MailService;
 import me.catand.spdnetserver.service.PlayerPrefixService;
 import me.catand.spdnetserver.service.VerificationCodeService;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
@@ -66,6 +70,9 @@ public class PlayerController {
 
     @Autowired
     private JwtUtil jwtUtil;
+
+    @Autowired
+    private RequestAuth requestAuth;
 
     @Autowired
     private SpdProperties spdProperties;
@@ -643,8 +650,21 @@ public class PlayerController {
     }
 
     @GetMapping("/player/{name}/private")
-    public ApiResponse<Map<String, Object>> getPlayerPrivateInfo(@PathVariable String name) {
-        // 这里可以添加权限检查，确保只能查看自己的私密信息
+    public ApiResponse<Map<String, Object>> getPlayerPrivateInfo(@PathVariable String name,
+                                                                 HttpServletRequest request,
+                                                                 HttpServletResponse response) {
+        // SPDNet: 隐私接口必须登录，且只能查看自己(private 数据含邮箱/最后登录IP)。
+        // 原本该接口无任何鉴权，未登录即可查询任意玩家的邮箱与IP，已修复为"仅本人可查"。
+        String currentUser = requestAuth.resolveCurrentUsername(request);
+        if (currentUser == null) {
+            response.setStatus(HttpStatus.UNAUTHORIZED.value());
+            return ApiResponse.error("未登录");
+        }
+        if (!currentUser.equals(name)) {
+            response.setStatus(HttpStatus.FORBIDDEN.value());
+            return ApiResponse.error("无权查看其他玩家的私密信息");
+        }
+
         Player player = playerRepository.findByName(name);
         if (player == null) {
             return ApiResponse.error("玩家不存在");

@@ -6,11 +6,15 @@ import me.catand.spdnetserver.entitys.PlayerPrefix;
 import me.catand.spdnetserver.entitys.PlayerPrefixAssignment;
 import me.catand.spdnetserver.repositories.PlayerPrefixAssignmentRepository;
 import me.catand.spdnetserver.repositories.PlayerPrefixRepository;
+import me.catand.spdnetserver.security.RequestAuth;
 import me.catand.spdnetserver.service.PlayerPrefixService;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
@@ -36,6 +40,23 @@ public class PlayerPrefixController {
 
 	@Autowired
 	private PlayerPrefixAssignmentRepository assignmentRepository;
+
+	@Autowired
+	private RequestAuth requestAuth;
+
+	// SPDNet: 校验玩家自选接口的登录态与归属——只有令牌对应用户本人才能查看/操作自己的前缀
+	private ApiResponse<Void> checkSelfOperation(HttpServletRequest request, HttpServletResponse response, String playerName) {
+		String currentUser = requestAuth.resolveCurrentUsername(request);
+		if (currentUser == null) {
+			response.setStatus(HttpStatus.UNAUTHORIZED.value());
+			return ApiResponse.error("未登录");
+		}
+		if (!currentUser.equals(playerName)) {
+			response.setStatus(HttpStatus.FORBIDDEN.value());
+			return ApiResponse.error("只能查看/操作自己的前缀");
+		}
+		return null;
+	}
 
 	// ==================== 前缀管理（管理员） ====================
 
@@ -174,7 +195,14 @@ public class PlayerPrefixController {
 	 * SPDNet: 使用@RequestParam接收playerName，因为项目使用localStorage存储用户信息
 	 */
 	@GetMapping("/my")
-	public ApiResponse<List<Map<String, Object>>> getMyPrefixes(@RequestParam String playerName) {
+	public ApiResponse<List<Map<String, Object>>> getMyPrefixes(@RequestParam String playerName,
+																HttpServletRequest request,
+																HttpServletResponse response) {
+		// SPDNet: 必须登录且只能查看自己的前缀（防 IDOR）
+		ApiResponse<Void> auth = checkSelfOperation(request, response, playerName);
+		if (auth != null) {
+			return ApiResponse.error(auth.getMessage());
+		}
 		try {
 			List<PlayerPrefixAssignment> assignments = prefixService.getPlayerPrefixes(playerName);
 			List<Map<String, Object>> result = assignments.stream()
@@ -193,7 +221,14 @@ public class PlayerPrefixController {
 	@PostMapping("/my/active")
 	public ApiResponse<Void> setMyActivePrefix(
 		@RequestParam String playerName,
-		@RequestBody Map<String, Long> request) {
+		@RequestBody Map<String, Long> request,
+		HttpServletRequest httpRequest,
+		HttpServletResponse response) {
+		// SPDNet: 必须登录且只能操作自己的前缀（防 IDOR）
+		ApiResponse<Void> auth = checkSelfOperation(httpRequest, response, playerName);
+		if (auth != null) {
+			return auth;
+		}
 		Long assignmentId = request.get("assignmentId"); // null表示不激活任何前缀
 
 		try {
@@ -209,7 +244,14 @@ public class PlayerPrefixController {
 	 * SPDNet: 使用@RequestParam接收playerName，因为项目使用localStorage存储用户信息
 	 */
 	@GetMapping("/my/active")
-	public ApiResponse<Map<String, Object>> getMyActivePrefix(@RequestParam String playerName) {
+	public ApiResponse<Map<String, Object>> getMyActivePrefix(@RequestParam String playerName,
+															  HttpServletRequest request,
+															  HttpServletResponse response) {
+		// SPDNet: 必须登录且只能查看自己的前缀（防 IDOR）
+		ApiResponse<Void> auth = checkSelfOperation(request, response, playerName);
+		if (auth != null) {
+			return ApiResponse.error(auth.getMessage());
+		}
 		var activePrefix = prefixService.getActivePrefix(playerName);
 		if (activePrefix.isPresent()) {
 			return ApiResponse.success("获取成功", convertAssignmentToMap(activePrefix.get()));
