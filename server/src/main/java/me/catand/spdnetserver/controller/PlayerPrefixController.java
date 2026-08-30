@@ -29,7 +29,6 @@ import java.util.stream.Collectors;
  */
 @RestController
 @RequestMapping("/api/admin/prefixes")
-@CrossOrigin(origins = "*")
 public class PlayerPrefixController {
 
 	@Autowired

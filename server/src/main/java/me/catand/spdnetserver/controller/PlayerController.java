@@ -8,6 +8,7 @@ import me.catand.spdnetserver.controller.dto.StatusDTO;
 import me.catand.spdnetserver.controller.dto.SendForgotPasswordCodeRequest;
 import me.catand.spdnetserver.entitys.*;
 import me.catand.spdnetserver.repositories.*;
+import me.catand.spdnetserver.security.LoginRateLimiter;
 import me.catand.spdnetserver.security.JwtUtil;
 import me.catand.spdnetserver.security.RequestAuth;
 import me.catand.spdnetserver.service.BannedWordsService;
@@ -35,7 +36,6 @@ import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api")
-@CrossOrigin(origins = "*")
 public class PlayerController {
 
     @Autowired
@@ -206,6 +206,10 @@ public class PlayerController {
         return ApiResponse.success("注册成功", data);
     }
 
+    // SPDNet: 登录失败频率限制器（宽松策略：连续5次失败后冷却30秒）
+    @Autowired
+    private LoginRateLimiter loginRateLimiter;
+
     @PostMapping("/login")
     public ApiResponse<Map<String, Object>> login(@RequestBody LoginRequest request) {
         String name = request.getName();
@@ -224,18 +228,29 @@ public class PlayerController {
             return ApiResponse.error("密码不能为空");
         }
 
+        // SPDNet: 宽松的频率限制——命中冷却则提示等待，防止暴力破解
+        long remainingLock = loginRateLimiter.getRemainingLock(name);
+        if (remainingLock > 0) {
+            return ApiResponse.error("尝试过于频繁，请 " + remainingLock + " 秒后重试");
+        }
+
         Player player = playerRepository.findByName(name);
         if (player == null) {
+            loginRateLimiter.recordFailure(name);
             return ApiResponse.error("用户名或密码错误");
         }
 
         if (!passwordEncoder.matches(password, player.getPassword())) {
+            loginRateLimiter.recordFailure(name);
             return ApiResponse.error("用户名或密码错误");
         }
 
         if (player.getRole() == UserRole.BANNED) {
             return ApiResponse.error("账号已被封禁");
         }
+
+        // SPDNet: 登录成功，清零失败次数
+        loginRateLimiter.reset(name);
 
         Map<String, Object> data = new HashMap<>();
         data.put("name", player.getName());

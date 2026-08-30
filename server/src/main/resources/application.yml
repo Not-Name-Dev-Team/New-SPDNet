@@ -23,6 +23,10 @@ spd:
     secret: ${SPD_JWT_SECRET:}
     # 令牌有效期（天）
     expireDays: 1
+  cors:
+    # SPDNet: 跨域来源白名单(逗号分隔)。生产环境前端由后端同源托管，通常无需跨域；
+    # 如需允许其他站点跨域，请在此补充其来源地址。
+    allowedOrigins: http://localhost:3000,http://127.0.0.1:3000
   mail:
     # 是否启用邮件功能
     enabled: true

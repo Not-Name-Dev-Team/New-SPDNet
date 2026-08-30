@@ -5,9 +5,9 @@ import me.catand.spdnetserver.config.MailProperties;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.Map;
-import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Service
@@ -71,12 +71,14 @@ public class VerificationCodeService {
 		}
 	}
 
+	// SPDNet: 使用加密安全的随机数生成验证码，避免 java.util.Random 可预测导致的验证码被猜到
+	private final SecureRandom secureRandom = new SecureRandom();
+
 	public String generateCode() {
 		int length = mailProperties.getCodeLength();
-		Random random = new Random();
 		StringBuilder code = new StringBuilder();
 		for (int i = 0; i < length; i++) {
-			code.append(random.nextInt(10));
+			code.append(secureRandom.nextInt(10));
 		}
 		return code.toString();
 	}
