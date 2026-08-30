@@ -5,7 +5,6 @@ import com.shatteredpixel.shatteredpixeldungeon.SPDAction;
 import com.shatteredpixel.shatteredpixeldungeon.ShatteredPixelDungeon;
 import com.shatteredpixel.shatteredpixeldungeon.Statistics;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Buff;
-import com.shatteredpixel.shatteredpixeldungeon.actors.hero.Hero;
 import com.shatteredpixel.shatteredpixeldungeon.items.Amulet;
 import com.shatteredpixel.shatteredpixeldungeon.items.EquipableItem;
 import com.shatteredpixel.shatteredpixeldungeon.items.Heap;
@@ -397,14 +396,9 @@ public class NetWndPlayerInfo extends WndTabbed {
 
 		private void setupList() {
 			Component content = buffList.content();
-			// SPDNet: 临时保存原hero，设置NetHero为当前hero，使buff.icon()能正确访问belongings
-			// 使用synchronized确保与Actor线程的线程安全
-			Hero originalHero;
-			synchronized (Dungeon.class) {
-				originalHero = Dungeon.hero;
-				Dungeon.hero = hero;
-			}
-			try {
+			// SPDNet: 统一复用 NetHero.withGlobalHero 作用域，临时替换全局 Dungeon.hero 为目标 NetHero，
+			// 使 buff.icon() 能正确访问该玩家自身的 belongings
+			NetHero.withGlobalHero(hero, () -> {
 				for (Buff buff : hero.buffs()) {
 					if (buff.icon() != BuffIndicator.NONE) {
 						BuffSlot slot = new BuffSlot(buff);
@@ -416,11 +410,7 @@ public class NetWndPlayerInfo extends WndTabbed {
 				}
 				content.setSize(buffList.width(), pos);
 				buffList.setSize(buffList.width(), buffList.height());
-			} finally {
-				synchronized (Dungeon.class) {
-					Dungeon.hero = originalHero;
-				}
-			}
+			});
 		}
 
 		private class BuffSlot extends Component {
@@ -462,24 +452,15 @@ public class NetWndPlayerInfo extends WndTabbed {
 
 			protected boolean onClick ( float x, float y ) {
 				if (inside( x, y )) {
-					// SPDNet: 临时设置Dungeon.hero，因为WndInfoBuff构造函数会调用buff.icon()
-					Hero originalHero;
-					synchronized (Dungeon.class) {
-						originalHero = Dungeon.hero;
-						Dungeon.hero = hero;
-					}
-					try {
+					// SPDNet: 统一复用 NetHero.withGlobalHero 作用域，因为 WndInfoBuff 构造函数会调用 buff.icon()
+					NetHero.withGlobalHero(hero, () -> {
 						//修复在其他界面调用GameScene.show导致的问题
 						if (ShatteredPixelDungeon.scene() instanceof GameScene){
 							GameScene.show(new WndInfoBuff(buff));
 						} else {
 							ShatteredPixelDungeon.scene().addToFront(new WndInfoBuff(buff));
 						}
-					} finally {
-						synchronized (Dungeon.class) {
-							Dungeon.hero = originalHero;
-						}
-					}
+					});
 					return true;
 				} else {
 					return false;

@@ -91,9 +91,25 @@ public class Handler {
 
 	public static void handleHero(SHero hero) {
 		Bundle bundle = Bundle.fromString(hero.getHero());
-		NetHero player = new NetHero(hero.getTargetName());
-		player.restoreFromBundleOverride(bundle);
-		Game.runOnRenderThread(() -> ShatteredPixelDungeon.scene().add(new NetWndPlayerInfo(hero.getTargetName(), player)));
+		// SPDNet: 源端 hero 数据无效/为空(如对方在主菜单且无英雄)时，跳过反序列化避免崩溃
+		if (bundle == null) {
+			NLog.w("查看 " + hero.getTargetName() + " 的英雄数据无效或被截断");
+			return;
+		}
+		// SPDNet: 将反序列化与窗口创建统一放到渲染线程执行。
+		// 还原过程会临时替换全局 Dungeon.hero(见 NetHero.withGlobalHero)，若在 socket 线程
+		// 进行会与游戏线程产生数据竞争；放到渲染线程即可安全地与游戏循环串行。
+		Game.runOnRenderThread(() -> {
+			try {
+				NetHero player = new NetHero(hero.getTargetName());
+				player.restoreFromBundleOverride(bundle);
+				ShatteredPixelDungeon.scene().add(new NetWndPlayerInfo(hero.getTargetName(), player));
+			} catch (Exception e) {
+				// SPDNet: 兜底，避免单个玩家的异常数据导致整个查看流程崩溃
+				NLog.w("查看 " + hero.getTargetName() + " 失败: " + e.getMessage());
+				e.printStackTrace();
+			}
+		});
 	}
 
 	public static void handleChatMessage(SChatMessage chatMessage) {

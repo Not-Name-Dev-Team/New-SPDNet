@@ -38,6 +38,30 @@ public class NetHero extends Hero {
 		this.name = name;
 	}
 
+	/**
+	 * SPDNet: 在"将全局 Dungeon.hero 临时替换为 target"的作用域内执行 body，结束后自动恢复。
+	 * 上游大量渲染/还原管线(如 buff.icon()、物品 activate()、Buff.attach())直接读取全局
+	 * Dungeon.hero，而不是把 hero 作为参数传入。为让这些管线在处理其他玩家的数据时读到正确的
+	 * 英雄(而非本机 hero/主菜单时的 null)，需要在使用前短暂替换全局 hero。
+	 * 这是统一的作用域入口，供 NetHero.restoreFromBundleOverride 与 NetWndPlayerInfo 等查看
+	 * 其他玩家的组件复用，避免各处手写 try/finally 造成遗漏或线程不一致。
+	 */
+	public static void withGlobalHero( Hero target, Runnable body ) {
+		Hero originalHero;
+		// 使用 synchronized 保持与游戏线程读取 Dungeon.hero 的互斥(参考 NetWndPlayerInfo 既有做法)
+		synchronized (Dungeon.class) {
+			originalHero = Dungeon.hero;
+			Dungeon.hero = target;
+		}
+		try {
+			body.run();
+		} finally {
+			synchronized (Dungeon.class) {
+				Dungeon.hero = originalHero;
+			}
+		}
+	}
+
 	public static NetHero findPlayerAtCell(int cell) {
 		for (NetHero player : Dungeon.level.players) {
 			if (player.pos == cell) {
@@ -68,9 +92,16 @@ public class NetHero extends Hero {
 		// 设置 skipQuickslotUpdate 标志，防止恢复其他玩家英雄数据时修改当前玩家的快捷栏
 		boolean wasSkipQuickslotUpdate = Belongings.skipQuickslotUpdate;
 		Belongings.skipQuickslotUpdate = true;
-		super.restoreFromBundle(bundle);
-		// 恢复原来的状态
-		Belongings.skipQuickslotUpdate = wasSkipQuickslotUpdate;
+		try {
+			// SPDNet: 还原期间也需把全局 Dungeon.hero 暂时指向本英雄，与显示阶段保持一致。
+			// 还原路径(物品 activate / buff attach 等)同样会读取全局 Dungeon.hero，
+			// 若不替换，"查看其他玩家"时(尤其在主菜单 Dungeon.hero 为 null)会读到本机 hero
+			// 或空值导致数据错乱/崩溃。
+			withGlobalHero(this, () -> super.restoreFromBundle(bundle));
+		} finally {
+			// SPDNet: 确保即使还原异常也能恢复标志，避免 static 标志泄漏到后续逻辑
+			Belongings.skipQuickslotUpdate = wasSkipQuickslotUpdate;
+		}
 	}
 
 	@Override
