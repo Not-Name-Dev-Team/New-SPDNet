@@ -297,6 +297,12 @@ public class Handler {
 		NetWindow.message(serverMessage.getMessage());
 	}
 
+	// SPDNet: 地牢留言(Ping)系统 - 留言创建成功后的聊天通报。与"xxx进入地牢"一致，
+	// 渲染进聊天窗口(NLog.h 高亮通报)，而非服务端弹窗。
+	public static void handleNoteNotify(SServerMessage noteNotify) {
+		NLog.h(noteNotify.getMessage());
+	}
+
 	public static void handleJournals(SJournals journals) {
 		// SPDNet: 从服务器加载 Journal 数据
 		Journal.loadFromCloud(journals.getCatalogs(), journals.getBestiaries(), journals.getDocuments());
@@ -325,10 +331,50 @@ public class Handler {
 		if (Dungeon.hero != null) {
 			Bundle heroBundle = new Bundle();
 			Dungeon.hero.storeInBundle(heroBundle);
-			Sender.sendHero(new CHero(viewHero.getSourceName(), heroBundle.toString()));
+			// SPDNet: 地牢留言(Ping)系统 - forNote 模式下回 CHero 时带 forNote=true，服务端拦截落库，
+			// 不回传触发查看窗；且本端不打"你被查看"提示（留言取快照是静默的）。
+			CHero ch = new CHero(viewHero.getSourceName(), heroBundle.toString());
+			ch.setForNote(viewHero.isForNote());
+			Sender.sendHero(ch);
 		}
-		String displayName = PrefixUtils.formatNameWithPrefix(viewHero.getSourceName(), viewHero.getPrefix());
-		NLog.h("你被" + displayName + "查看了");
+		// SPDNet: forNote 模式静默，不提示"你被查看"
+		if (!viewHero.isForNote()) {
+			String displayName = PrefixUtils.formatNameWithPrefix(viewHero.getSourceName(), viewHero.getPrefix());
+			NLog.h("你被" + displayName + "查看了");
+		}
+	}
+
+	/**
+	 * SPDNet: 地牢留言(Ping)系统 - 处理进/换层单播 REPLACE 与同层 DELTA 增量。
+	 * 仅在 seed+depth 与当前层一致时才更新缓存与 Overlay；运行在 socket 线程，
+	 * 缓存更新与 setData 统一回渲染线程执行（与 hero 查看同款处理）。
+	 */
+	public static void handleNoteList(SNoteList noteList) {
+		// 铁人模式同种子的留言本就互不可见，无需额外过滤；直接按 seed+depth 过滤
+		if (noteList.getSeed() != Dungeon.seed || noteList.getDepth() != Dungeon.depth) {
+			return;
+		}
+		String mode = noteList.getMode();
+		List<String> notes = noteList.getNotes();
+		List<Integer> likedIds = noteList.getMyLikedIds();
+		Game.runOnRenderThread(() -> {
+			if ("REPLACE".equals(mode)) {
+				NetNoteStore.replace(notes, likedIds);
+			} else if ("DELTA_ADD".equals(mode)) {
+				if (notes != null && !notes.isEmpty()) {
+					NetNoteStore.upsert(notes.get(0));
+				}
+			} else if ("DELTA_REMOVE".equals(mode)) {
+				if (notes != null && !notes.isEmpty()) {
+					int id = JSON.parseObject(notes.get(0)).getIntValue("id");
+					NetNoteStore.remove(id);
+				}
+			}
+			// overlay 可能尚未创建（极端时序），做空指针容忍
+			if (GameScene.noteOverlay != null) {
+				GameScene.noteOverlay.setData();
+			}
+		});
 	}
 
 	/**

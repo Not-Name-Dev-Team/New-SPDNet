@@ -20,6 +20,8 @@ import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.actions.CGa
 import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.actions.CGiveItem;
 import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.actions.CHero;
 import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.actions.CLeaveDungeon;
+import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.actions.CNoteCreate;
+import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.actions.CNoteId;
 import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.actions.CPlayerChangeFloor;
 import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.actions.CPlayerMove;
 import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.actions.CRequestLeaderboard;
@@ -109,6 +111,30 @@ public class Sender {
 
 	public static void sendViewHero(CViewHero viewHero) {
 		getSocket().emit(Actions.VIEW_HERO.getName(), JSON.toJSONString(viewHero));
+	}
+
+	// SPDNet: 地牢留言(Ping)系统 - 创建留言；FUN/DAILY 玩家才可留言（IRONMAN 静默跳过）
+	public static void sendNote(CNoteCreate note) {
+		if (NetInProgress.mode == null || NetInProgress.mode == Mode.IRONMAN) {
+			return;
+		}
+		getSocket().emit(Actions.NOTE_CREATE.getName(), JSON.toJSONString(note));
+	}
+
+	// SPDNet: 地牢留言(Ping)系统 - 点赞/取消点赞（toggle）；IRONMAN 静默跳过
+	public static void sendNoteLike(CNoteId noteId) {
+		if (NetInProgress.mode == null || NetInProgress.mode == Mode.IRONMAN) {
+			return;
+		}
+		getSocket().emit(Actions.NOTE_LIKE.getName(), JSON.toJSONString(noteId));
+	}
+
+	// SPDNet: 地牢留言(Ping)系统 - 删除留言；IRONMAN 静默跳过
+	public static void sendNoteDelete(CNoteId noteId) {
+		if (NetInProgress.mode == null || NetInProgress.mode == Mode.IRONMAN) {
+			return;
+		}
+		getSocket().emit(Actions.NOTE_DELETE.getName(), JSON.toJSONString(noteId));
 	}
 
 	// SPDNet: 发送 Catalog 更新到服务器

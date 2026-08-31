@@ -22,6 +22,7 @@ import me.catand.spdnetserver.repositories.PlayerBestiaryRepository;
 import me.catand.spdnetserver.repositories.PlayerDocumentRepository;
 import me.catand.spdnetserver.service.PlayerPrefixService;
 import me.catand.spdnetserver.service.DailyChallengeService;
+import me.catand.spdnetserver.service.NoteService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -59,8 +60,10 @@ private ChatService chatService;
 @Autowired
 private PlayerPrefixService playerPrefixService;
 @Autowired
-private DailyChallengeService dailyChallengeService;
-private SocketIOServer server;
+	private DailyChallengeService dailyChallengeService;
+@Autowired
+	private NoteService noteService;
+	private SocketIOServer server;
 	private Map<UUID, Player> playerMap = new ConcurrentHashMap<>();
 	// SPDNet: 玩家名 -> sessionId 索引，避免反复遍历 playerMap 找人（O(N) → O(1)）
 	private Map<String, UUID> nameToSessionId = new ConcurrentHashMap<>();
@@ -100,11 +103,11 @@ private SocketIOServer server;
 		seeds.putAll(dailyChallengeService.getDailySeeds());
 		server.start();
 		startAll();
-		sender = new Sender(server);
+		sender = new Sender(server, spdNetNamespace);
 		handler = new Handler(playerRepository, gameRecordRepository,
 		                      playerCatalogRepository, playerBestiaryRepository, playerDocumentRepository,
 		                      dailyGameRecordRepository, playerPrefixService, dailyChallengeService,
-		                      this, sender, playerMap, chatService);
+		                      this, sender, playerMap, chatService, noteService);
 	}
 
 	@PreDestroy
@@ -212,6 +215,8 @@ private SocketIOServer server;
 			if (player != null) {
 				playerMap.remove(client.getSessionId());
 				nameToSessionId.remove(player.getName());
+				// SPDNet: 地牢留言(Ping)系统 - 断开时清理该玩家的待补快照草稿（含占位行）
+				handler.handleDisconnect(player);
 				// SPDNet: 获取玩家当前激活的前缀
 				String activePrefixName = playerPrefixService.getActivePrefixName(player.getName());
 				sender.sendBroadcastExit(new SExit(player.getName(), activePrefixName));
@@ -260,7 +265,7 @@ private SocketIOServer server;
 			handler.handleLeaveDungeon(playerMap.get(client.getSessionId()), JSON.parseObject(data, CLeaveDungeon.class));
 		});
 		spdNetNamespace.addEventListener(Actions.PLAYER_CHANGE_FLOOR.getName(), String.class, (client, data, ackSender) -> {
-			handler.handlePlayerChangeFloor(playerMap.get(client.getSessionId()), JSON.parseObject(data, CPlayerChangeFloor.class));
+			handler.handlePlayerChangeFloor(client, playerMap.get(client.getSessionId()), JSON.parseObject(data, CPlayerChangeFloor.class));
 		});
 		spdNetNamespace.addEventListener(Actions.PLAYER_MOVE.getName(), String.class, (client, data, ackSender) -> {
 			handler.handlePlayerMove(client, playerMap.get(client.getSessionId()), JSON.parseObject(data, CPlayerMove.class));
@@ -273,6 +278,16 @@ private SocketIOServer server;
 		});
 		spdNetNamespace.addEventListener(Actions.VIEW_HERO.getName(), String.class, (client, data, ackSender) -> {
 			handler.handleViewHero(playerMap.get(client.getSessionId()), JSON.parseObject(data, CViewHero.class));
+		});
+		// SPDNet: 地牢留言(Ping)系统 - 留言/点赞/删除路由
+		spdNetNamespace.addEventListener(Actions.NOTE_CREATE.getName(), String.class, (client, data, ackSender) -> {
+			handler.handleNoteCreate(client, playerMap.get(client.getSessionId()), JSON.parseObject(data, CNoteCreate.class));
+		});
+		spdNetNamespace.addEventListener(Actions.NOTE_LIKE.getName(), String.class, (client, data, ackSender) -> {
+			handler.handleNoteLike(client, playerMap.get(client.getSessionId()), JSON.parseObject(data, CNoteId.class));
+		});
+		spdNetNamespace.addEventListener(Actions.NOTE_DELETE.getName(), String.class, (client, data, ackSender) -> {
+			handler.handleNoteDelete(client, playerMap.get(client.getSessionId()), JSON.parseObject(data, CNoteId.class));
 		});
 		spdNetNamespace.addEventListener(Actions.REQUEST_DAILY_CHALLENGE.getName(), String.class, (client, data, ackSender) -> {
 			handler.handleRequestDailyChallenge(client, playerMap.get(client.getSessionId()), JSON.parseObject(data, CRequestDailyChallenge.class));

@@ -123,6 +123,13 @@ public class Receiver {
 		Emitter.Listener onRejectDailyChallenge = args -> {
 			Handler.handleRejectDailyChallenge(JSON.parseObject(args[0].toString(), SRejectDailyChallenge.class));
 		};
+		Emitter.Listener onNoteList = args -> {
+			Handler.handleNoteList(JSON.parseObject(args[0].toString(), SNoteList.class));
+		};
+		// SPDNet: 地牢留言(Ping)系统 - 留言创建成功后的聊天通报（渲染为聊天窗口通报而非弹窗）
+		Emitter.Listener onNoteNotify = args -> {
+			Handler.handleNoteNotify(JSON.parseObject(args[0].toString(), SServerMessage.class));
+		};
 		getSocket().on(Socket.EVENT_CONNECT, onConnected);
 		getSocket().on(Socket.EVENT_DISCONNECT, onDisconnected);
 		getSocket().on(Socket.EVENT_CONNECT_ERROR, onConnectionError);
@@ -149,6 +156,8 @@ public class Receiver {
 		getSocket().on(Events.JOURNALS.getName(), onJournals);
 		getSocket().on(Events.ALLOW_DAILY_CHALLENGE.getName(), onAllowDailyChallenge);
 		getSocket().on(Events.REJECT_DAILY_CHALLENGE.getName(), onRejectDailyChallenge);
+		getSocket().on(Events.NOTE_LIST.getName(), onNoteList);
+		getSocket().on(Events.NOTE_NOTIFY.getName(), onNoteNotify);
 	}
 
 	public static void cancelAll() {

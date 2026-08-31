@@ -78,11 +78,13 @@ import com.shatteredpixel.shatteredpixeldungeon.plants.Plant;
 import com.shatteredpixel.shatteredpixeldungeon.spdnet.NetInProgress;
 import com.shatteredpixel.shatteredpixeldungeon.spdnet.utils.NetLog;
 import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.Sender;
+import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.NetNoteStore;
 import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.actors.NetHero;
 import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.sprites.NetHeroSprite;
 import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.Status;
 import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.actions.CEnterDungeon;
 import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.actions.CViewHero;
+import com.shatteredpixel.shatteredpixeldungeon.spdnet.windows.NetWndNoteList;
 import com.shatteredpixel.shatteredpixeldungeon.sprites.CharSprite;
 import com.shatteredpixel.shatteredpixeldungeon.sprites.DiscardedItemSprite;
 import com.shatteredpixel.shatteredpixeldungeon.sprites.HeroSprite;
@@ -93,6 +95,7 @@ import com.shatteredpixel.shatteredpixeldungeon.tiles.DungeonTileSheet;
 import com.shatteredpixel.shatteredpixeldungeon.tiles.DungeonTilemap;
 import com.shatteredpixel.shatteredpixeldungeon.tiles.DungeonWallsTilemap;
 import com.shatteredpixel.shatteredpixeldungeon.tiles.FogOfWar;
+import com.shatteredpixel.shatteredpixeldungeon.spdnet.tiles.NetNoteOverlay;
 import com.shatteredpixel.shatteredpixeldungeon.tiles.GridTileMap;
 import com.shatteredpixel.shatteredpixeldungeon.tiles.RaisedTerrainTilemap;
 import com.shatteredpixel.shatteredpixeldungeon.tiles.TerrainFeaturesTilemap;
@@ -179,6 +182,10 @@ public class GameScene extends PixelScene {
 	private WallBlockingTilemap wallBlocking;
 	private FogOfWar fog;
 	private HeroSprite hero;
+
+	// SPDNet: 地牢留言(Ping)系统 - 留言标记渲染层。挂在 fog 之上、最高显示，
+	// 由 Handler.handleNoteList 在进/换层(NOTE_LIST REPLACE/DELTA)时经 setData 动态刷新。
+	public static NetNoteOverlay noteOverlay;
 
 	private MenuPane menu;
 	private StatusPane status;
@@ -382,7 +389,12 @@ public class GameScene extends PixelScene {
 		add( spells );
 
 		add(overFogEffects);
-		
+
+		// SPDNet: 地牢留言(Ping)系统 - 挂载留言标记渲染层。置于 fog 之上、最高显示；
+		// 换层重建场景时初始为空，由 Handler.handleNoteList 到达时经 setData 重灌。
+		noteOverlay = new NetNoteOverlay();
+		add(noteOverlay);
+
 		statuses = new Group();
 		add( statuses );
 		
@@ -1756,6 +1768,13 @@ public class GameScene extends PixelScene {
 
 		ArrayList<Object> objects = getObjectsAtCell(cell);
 
+		// SPDNet: 地牢留言(Ping)系统 - 该格有留言则并入"查看专用虚对象"。
+		// 只在 examine 的收集里追加，不加入 getObjectsAtCell / 物理 gameplay，
+		// 不影响移动、右键、投掷等任何交互判断。
+		if (NetNoteStore.hasNotes(cell)) {
+			objects.add(new NetNoteStore.CellNotes(cell));
+		}
+
 		if (objects.isEmpty()) {
 			GameScene.show(new WndInfoCell(cell));
 		} else if (objects.size() == 1){
@@ -1811,6 +1830,11 @@ public class GameScene extends PixelScene {
 			else if (obj instanceof Heap)   names.add(Messages.titleCase( ((Heap)obj).title() ));
 			else if (obj instanceof Plant)  names.add(Messages.titleCase( ((Plant) obj).name() ));
 			else if (obj instanceof Trap)   names.add(Messages.titleCase( ((Trap) obj).name() ));
+			// SPDNet: 地牢留言(Ping)系统 - 查看专用虚对象
+			else if (obj instanceof NetNoteStore.CellNotes) {
+				int cnt = NetNoteStore.notesAt(((NetNoteStore.CellNotes) obj).pos).size();
+				names.add("留言(" + cnt + "条)");
+			}
 		}
 		return names;
 	}
@@ -1837,6 +1861,10 @@ public class GameScene extends PixelScene {
 			GameScene.show( new WndInfoTrap((Trap) o));
 			//traps are often harmful to trigger, so let the player ID just by examine
 			Bestiary.setSeen(o.getClass());
+		}
+		// SPDNet: 地牢留言(Ping)系统 - 该格留言列表（独立于 Hero/NetHero 分支的查看专用虚对象）
+		else if (o instanceof NetNoteStore.CellNotes) {
+			GameScene.show(new NetWndNoteList(((NetNoteStore.CellNotes) o).pos));
 		} else {
 			GameScene.show( new WndMessage( Messages.get(GameScene.class, "dont_know") ) ) ;
 		}

@@ -83,12 +83,21 @@ public class NetWndPlayerInfo extends WndTabbed {
 	private String name;
 	private NetHero hero;
 
+	// SPDNet: 是否只读查看（禁止赠送物品）。地牢留言(Ping)的"详情"打开玩家信息时，
+	// 玩家对象只是一个脱离现场配置的快照，并非"在线可赠送"的活玩家，故置 true 隐藏赠送按钮。
+	private boolean noGift;
+
 	public NetWndPlayerInfo(String name, NetHero hero) {
+		this(name, hero, false);
+	}
+
+	public NetWndPlayerInfo(String name, NetHero hero, boolean noGift) {
 
 		super();
 
 		this.name = name;
 		this.hero = hero;
+		this.noGift = noGift;
 
 		resize( WIDTH, HEIGHT );
 
@@ -251,7 +260,8 @@ public class NetWndPlayerInfo extends WndTabbed {
 
 			pos += GAP + backpackButton.height();
 
-			if (ShatteredPixelDungeon.scene() instanceof GameScene) {
+			// SPDNet: 留言"详情"只读查看时(noGift)不显示赠送按钮——快照玩家非在线实体，禁止赠送
+			if (ShatteredPixelDungeon.scene() instanceof GameScene && !noGift) {
 				RedButton giveItemButton = new RedButton("给" + hero.name + "赠送物品") {
 					@Override
 					protected void onClick() {

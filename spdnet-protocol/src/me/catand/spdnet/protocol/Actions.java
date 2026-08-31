@@ -27,6 +27,10 @@ public enum Actions {
 	REQUEST_PLAYER_LIST("requestPlayerList"),
 	REQUEST_DAILY_CHALLENGE("requestDailyChallenge"),
 	VIEW_HERO("viewHero"),
+	// SPDNet: 地牢留言(Ping)系统 - 客户端 → 服务端
+	NOTE_CREATE("noteCreate"),
+	NOTE_LIKE("noteLike"),
+	NOTE_DELETE("noteDelete"),
 	// SPDNet: Journal 相关事件（原为裸字符串，现纳入枚举统一管理）
 	CATALOG_UPDATE("catalogUpdate"),
 	BESTIARY_UPDATE("bestiaryUpdate"),

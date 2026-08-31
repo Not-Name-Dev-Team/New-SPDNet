@@ -10,6 +10,7 @@ import com.shatteredpixel.shatteredpixeldungeon.scenes.PixelScene;
 import com.shatteredpixel.shatteredpixeldungeon.spdnet.ui.BlueButton;
 import com.shatteredpixel.shatteredpixeldungeon.spdnet.utils.NLog;
 import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.Net;
+import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.NetPing;
 import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.Sender;
 import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.actions.CChatMessage;
 import com.shatteredpixel.shatteredpixeldungeon.spdnetbutcopy.ui.SPDNetTextInput;
@@ -36,6 +37,8 @@ public class NetWndChat extends NetWindow {
 
 	private SPDNetTextInput textInput;
 	private BlueButton sendBtn;
+	// SPDNet: 地牢留言(Ping)系统 - 「ping 目标」按钮，发起留目标留言流程
+	private BlueButton pingBtn;
 
 	private ScrollPane list;
 	private Component content;
@@ -70,8 +73,6 @@ public class NetWndChat extends NetWindow {
 		height += chat.bottom();
 
 		resize(width, height);
-
-		textInput.setRect(0, sendBtn.top(), width - sendBtn.width(), sendBtn.height());
 	}
 
 	public class Chat extends Component {
@@ -95,7 +96,7 @@ public class NetWndChat extends NetWindow {
 		protected void createChildren() {
 			super.createChildren();
 
-			int textSize = (int) PixelScene.uiCamera.zoom * 6;
+			int textSize = (int) (PixelScene.uiCamera.zoom * 6);
 			textInput = new SPDNetTextInput(Chrome.get(Chrome.Type.TOAST), false, textSize);
 			textInput.setMaxLength(200);
 			textInput.setTextAlignment(Align.left);
@@ -137,6 +138,16 @@ public class NetWndChat extends NetWindow {
 			};
 
 			add(sendBtn);
+
+			// SPDNet: 地牢留言(Ping)系统 - 「ping 目标」按钮；点击即关闭聊天窗(不还原)，进入独立选格/留言流程
+			pingBtn = new BlueButton("ping 目标") {
+				@Override
+				protected void onClick() {
+					NetWndChat.this.hide();
+					NetPing.startPingTarget();
+				}
+			};
+			add(pingBtn);
 		}
 
 		@Override
@@ -150,8 +161,15 @@ public class NetWndChat extends NetWindow {
 
 			height = list.bottom() + (MARGIN * 3);
 
-			sendBtn.setPos(width - sendBtn.width() - 1, height);
+			// SPDNet: 底部操作行 —— 发送按钮右对齐，ping 按钮靠左，输入框填充两者之间
 			sendBtn.setSize(20, BUTTON_HEIGHT);
+			sendBtn.setPos(width - sendBtn.width() - 1, height);
+
+			pingBtn.setPos(0, height);
+			pingBtn.setSize(Math.max(18, pingBtn.reqWidth()), BUTTON_HEIGHT);
+
+			textInput.setRect(pingBtn.right() + MARGIN, height,
+					Math.max(10, sendBtn.left() - pingBtn.right() - MARGIN * 2), BUTTON_HEIGHT);
 
 			height = sendBtn.bottom();
 

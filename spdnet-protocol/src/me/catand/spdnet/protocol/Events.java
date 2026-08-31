@@ -32,6 +32,10 @@ public enum Events {
 	ALLOW_DAILY_CHALLENGE("allowDailyChallenge"),
 	REJECT_DAILY_CHALLENGE("rejectDailyChallenge"),
 	VIEW_HERO("viewHero"),
+	// SPDNet: 地牢留言(Ping)系统 - 服务端 → 客户端（进/换层单播与同层广播）
+	NOTE_LIST("noteList"),
+	// SPDNet: 地牢留言(Ping)系统 - 留言创建成功后的聊天通报（渲染为聊天窗口通报而非弹窗）
+	NOTE_NOTIFY("noteNotify"),
 	// SPDNet: Journal 相关事件（原为裸字符串，现纳入枚举统一管理）
 	JOURNALS("journals");
 
