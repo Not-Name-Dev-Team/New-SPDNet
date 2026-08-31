@@ -176,7 +176,7 @@ public class DesktopPlatformSupport extends PlatformSupport {
 	}
 
 	@Override
-	public void updateGame(String url, UpdateCallback listener) {
+	public void updateGame(String url, String apkMd5, UpdateCallback listener) {
 		// TODO
 	}
 

@@ -47,6 +47,8 @@ public class SPDNetUpdates extends UpdateService {
 						update.desc = NetConfig.config.getString("changeLog");
 						update.URL = NetConfig.config.getString("GithubUpdateUrl");
 						update.giteeURL = NetConfig.config.getString("GiteeUpdateUrl");
+						// SPDNet: 记录 APK 的 MD5，供 downloadGame 校验缓存
+						update.apkMd5 = NetConfig.config.getString("ApkMd5");
 						callback.onUpdateAvailable(update);
 					} else {
 						callback.onNoUpdateFound();

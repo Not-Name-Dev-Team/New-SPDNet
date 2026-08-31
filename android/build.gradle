@@ -8,6 +8,37 @@ plugins {
 }
 
 
+// ---- 正式签名（release）----
+// 本地: 仓库提供 android/keystore.properties（gitignore）才启用;
+// CI: 由 release workflow 注入 KEYSTORE_* 环境变量后自动解码 android 的 keystore 并启用。
+// 任一条件不满足则 release 不签名（保持原来的非签名行为，不影响本地 debug 打包）。
+def signingReady = false
+def kStoreFile = null
+def kStorePwd = ''
+def kKeyPwd = ''
+def kAlias = ''
+if (rootProject.file('keystore.properties').exists()) {
+    def props = new Properties()
+    rootProject.file('keystore.properties').withInputStream { props.load(it) }
+    kStoreFile = props['storeFile']
+    kStorePwd = props['storePassword']
+    kKeyPwd = props['keyPassword']
+    kAlias = props['keyAlias']
+    signingReady = true
+} else if (System.getenv('KEYSTORE_STORE_PASSWORD') && System.getenv('KEYSTORE_KEY_ALIAS')) {
+    def b64 = System.getenv('KEYSTORE_BASE64')
+    if (b64) {
+        def f = new File(projectDir.absolutePath + '/build/release.jks')
+        f.parentFile.mkdirs()
+        f.bytes = b64.decodeBase64()
+        kStoreFile = f.absolutePath
+        kStorePwd = System.getenv('KEYSTORE_STORE_PASSWORD')
+        kKeyPwd = System.getenv('KEYSTORE_KEY_PASSWORD')
+        kAlias = System.getenv('KEYSTORE_KEY_ALIAS')
+        signingReady = true
+    }
+}
+
 android {
     namespace 'com.shatteredpixel.shatteredpixeldungeon.android'
     compileSdk appAndroidCompileSDK
@@ -38,11 +69,25 @@ android {
     // 更改以不使用R8
     // R8优化很好, 但是需要保存mapping文件才能debug
     // 很烂 >:(
+    signingConfigs {
+        release {
+            if (signingReady) {
+                storeFile file(kStoreFile)
+                storePassword kStorePwd
+                keyPassword kKeyPwd
+                keyAlias kAlias
+            }
+        }
+    }
+
     buildTypes {
         debug {
             versionNameSuffix '-INDEV'
         }
         release {
+            if (signingReady) {
+                signingConfig signingConfigs.release
+            }
         }
     }
 
@@ -85,7 +130,7 @@ dependencies {
     implementation project(':services:news:shatteredNews')
 
     // 应用更新库
-    implementation 'com.github.jenly1314.AppUpdater:app-updater:1.2.0'
+    implementation 'com.github.jenly1314.AppUpdater:app-updater:2.2.0'
 }
 
 // called every time gradle gets executed, takes the native dependencies of

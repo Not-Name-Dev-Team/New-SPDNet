@@ -185,7 +185,8 @@ public abstract class PlatformSupport {
 		return fonts.get(generator).get(key);
 	}
 	// 更新游戏
-	public abstract void updateGame(String url, UpdateCallback listener);
+	// SPDNet: 增加 apkMd5 入参，用于下载完成后的 MD5 校验（命中缓存则不重复下载）
+	public abstract void updateGame(String url, String apkMd5, UpdateCallback listener);
 
 	public abstract void install(File file);
 	public interface UpdateCallback {

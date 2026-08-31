@@ -360,43 +360,42 @@ public class AndroidPlatformSupport extends PlatformSupport {
 	}
 
 	@Override
-	public void updateGame(String url, UpdateCallback listener) {
-		AppUpdater appUpdater = new AppUpdater.Builder(AndroidLauncher.instance.getContext())
+	public void updateGame(String url, String apkMd5, UpdateCallback listener) {
+		// SPDNet: 传入 apkMd5 让 AppUpdater 做 MD5 校验与缓存，命中相同 MD5 则不再重复下载
+		new AppUpdater.Builder(AndroidLauncher.instance.getContext())
 				.setInstallApk(false)
 				.setUrl(url)
-				.build();
-		appUpdater.setHttpManager(OkHttpManager.getInstance())
-				.setUpdateCallback(new com.king.app.updater.callback.UpdateCallback() {
-					@Override
-					public void onDownloading(boolean isDownloading) {
-						listener.onDownloading(isDownloading);
-					}
-
+				.setApkMd5(apkMd5)
+				.setHttpManager(OkHttpManager.getInstance())
+				.setDownloadListener(new com.king.app.updater.listener.DownloadListener() {
 					@Override
 					public void onStart(String url) {
+						listener.onDownloading(false);
 						listener.onStart(url);
 					}
 
 					@Override
-					public void onProgress(long progress, long total, boolean isChanged) {
-						listener.onProgress(progress, total, isChanged);
+					public void onProgress(long progress, long total) {
+						listener.onProgress(progress, total, true);
 					}
 
 					@Override
-					public void onFinish(File file) {
+					public void onSuccess(File file) {
 						listener.onFinish(file);
 					}
 
 					@Override
-					public void onError(Exception e) {
-						listener.onError(e);
+					public void onError(Throwable cause) {
+						listener.onError(cause instanceof Exception ? (Exception) cause : new Exception(cause));
 					}
 
 					@Override
 					public void onCancel() {
 						listener.onCancel();
 					}
-				}).start();
+				})
+				.build()
+				.start();
 	}
 
 	@Override

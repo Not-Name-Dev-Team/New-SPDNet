@@ -20,6 +20,8 @@ local.properties
 *.idea
 
 android/google-services.json
+# 本地正式签名密钥配置（不含在仓库内）
+keystore.properties
 /test/
 
 # Spring Boot (server module)

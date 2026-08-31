@@ -29,7 +29,9 @@ public class AvailableUpdateData {
 	public String desc;
 
 	public String URL;
-	// Gitee的下载镜像地址
+	// SPDNet: Gitee 侧镜像 APK 的下载地址
 	public String giteeURL;
+	// SPDNet: APK 的 MD5，用于下载后校验与缓存命中判断
+	public String apkMd5;
 
 }

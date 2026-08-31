@@ -259,7 +259,7 @@ public class IOSPlatformSupport extends PlatformSupport {
 	}
 
 	@Override
-	public void updateGame(String url, UpdateCallback listener) {
+	public void updateGame(String url, String apkMd5, UpdateCallback listener) {
 		// 不实现IOS下载 哈哈 :D
 		// 反正没法编译安装
 	}

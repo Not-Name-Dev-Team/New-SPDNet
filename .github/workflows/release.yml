@@ -1,0 +1,332 @@
+# SPDNet 一键发布链路（落实文档 test/release-pipeline.md）
+#
+# workflow_dispatch：填 changelog（可选 tag）。
+# spdVersion / netVersion 从根 build.gradle 的 appVersionName / appNetVersionName 读取，
+# 避免手填与 gradle 不一致。
+#
+# Job1 build      ：正式签名打包 APK → 重命名 + 计算 MD5 → 产出 artifact
+# Job2 gh_release ：GitHub release + 上传 APK 资产
+# Job3 gitee_release：Gitee release + 上传同名 APK 资产
+# Job4 update_config：改写并推送 Not-Name-Dev-Team/SPDNet-Data/config.json
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: '可选，release tag（默认 v{spdVersion}-{netVersion}）'
+        required: false
+      changelog:
+        description: '本次更新日志（多行）'
+        required: false
+        default: ''
+
+# Job2/Job3/Job4 需要写 release 与推送另一仓库，统一申请写权限
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build APK
+    runs-on: ubuntu-latest
+    outputs:
+      spd_version: ${{ steps.meta.outputs.spd_version }}
+      net_version: ${{ steps.meta.outputs.net_version }}
+      tag: ${{ steps.meta.outputs.tag }}
+      asset: ${{ steps.meta.outputs.asset }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      # gradle wrapper 可执行
+      - name: Make gradlew executable
+        run: chmod +x gradlew
+
+      # google-services.json 被 gitignore，不会随 checkout 出现，需从 secret 还原
+      - name: Restore google-services.json
+        run: |
+          if [ -n "${{ secrets.GOOGLE_SERVICES_JSON }}" ]; then
+            echo '${{ secrets.GOOGLE_SERVICES_JSON }}' | base64 --decode > android/google-services.json
+            echo "已还原 google-services.json"
+          else
+            echo "警告: GOOGLE_SERVICES_JSON 未配置"
+          fi
+
+      # 注入签名 keystore（build.gradle 会自行从 KEYSTORE_BASE64 解码到 android/build/release.jks）
+      - name: Build release APK
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_STORE_PASSWORD: ${{ secrets.KEYSTORE_STORE_PASSWORD }}
+          KEYSTORE_KEY_PASSWORD: ${{ secrets.KEYSTORE_KEY_PASSWORD }}
+          KEYSTORE_KEY_ALIAS: ${{ secrets.KEYSTORE_KEY_ALIAS }}
+        run: ./gradlew :android:assembleRelease --no-daemon
+
+      # 版本号从根 build.gradle 提取，避免手填不一致
+      - name: Compute release metadata
+        id: meta
+        run: |
+          SPD_VER=$(grep -oE "appVersionName[[:space:]]*=[[:space:]]*'[^']+'" build.gradle | head -1 | sed -E "s/.*'([^']+)'.*/\1/")
+          NET_VER=$(grep -oE "appNetVersionName[[:space:]]*=[[:space:]]*'[^']+'" build.gradle | head -1 | sed -E "s/.*'([^']+)'.*/\1/")
+          if [ -z "${SPD_VER}" ] || [ -z "${NET_VER}" ]; then echo "无法从 build.gradle 读取版本号"; exit 1; fi
+          if [ -n "${{ inputs.tag }}" ]; then TAG="${{ inputs.tag }}"; else TAG="v${SPD_VER}-${NET_VER}"; fi
+          ASSET="${SPD_VER}-${NET_VER}.apk"
+          echo "spd_version=${SPD_VER}" >> "$GITHUB_OUTPUT"
+          echo "net_version=${NET_VER}" >> "$GITHUB_OUTPUT"
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+          echo "asset=${ASSET}" >> "$GITHUB_OUTPUT"
+          echo "SPD_VER=${SPD_VER}" >> "$GITHUB_ENV"
+          echo "NET_VER=${NET_VER}" >> "$GITHUB_ENV"
+          echo "TAG=${TAG}" >> "$GITHUB_ENV"
+          echo "ASSET=${ASSET}" >> "$GITHUB_ENV"
+
+      # 重命名 apk 并计算 MD5，同时生成 release 元信息（供后续 Job 使用）
+      - name: Prepare artifacts
+        run: |
+          APK=$(ls android/build/outputs/apk/release/*.apk | head -1)
+          [ -n "$APK" ] || { echo "未找到 APK"; exit 1; }
+          test -f "dist" || mkdir -p dist
+          cp "$APK" "dist/${ASSET}"
+          apksigner verify --print-certs "dist/${ASSET}" 2>/dev/null | head -5 || true
+          MD5=$(md5sum "dist/${ASSET}" | awk '{print $1}')
+          echo "apk_md5=${MD5}" >> "$GITHUB_ENV"
+          jq -n \
+            --arg spd "$SPD_VER" \
+            --arg net "$NET_VER" \
+            --arg tag "$TAG" \
+            --arg asset "$ASSET" \
+            --arg md5 "$MD5" \
+            --arg gh "https://github.com/Not-Name-Dev-Team/New-SPDNet/releases/download/${TAG}/${ASSET}" \
+            --arg gi "https://gitee.com/catandA/New-SPDNet/releases/download/${TAG}/${ASSET}" \
+            '{spdVersion:$spd, netVersion:$net, tag:$tag, asset:$asset, apkMd5:$md5, github:$gh, gitee:$gi}' \
+            > dist/release-info.json
+          cat dist/release-info.json
+          echo "MD5=${MD5}"
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: apk
+          path: dist/*.apk
+
+      - name: Upload release-info artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-info
+          path: dist/release-info.json
+
+  # Desktop 构建（可运行 fat jar），只编译不发布到 release
+  desktop:
+    name: Build Desktop Jar
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Make gradlew executable
+        run: chmod +x gradlew
+
+      # desktop 的可运行 jar 任务是 :desktop:release（内含 Main-Class 与依赖）
+      - name: Build desktop jar
+        run: ./gradlew :desktop:release --no-daemon
+
+      - name: Download release-info
+        uses: actions/download-artifact@v4
+        with:
+          name: release-info
+          path: info
+
+      - name: Rename jar with version
+        run: |
+          VER=$(jq -r '.tag' info/release-info.json)
+          mkdir -p dist
+          JAR=$(ls desktop/build/libs/*.jar | head -1)
+          [ -n "$JAR" ] || { echo "未找到 desktop jar"; exit 1; }
+          cp "$JAR" "dist/SPDNet-desktop-${VER}.jar"
+
+      - name: Upload desktop jar artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-jar
+          path: dist/*.jar
+
+  # GitHub release + 上传 APK
+  gh_release:
+    name: GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download APK
+        uses: actions/download-artifact@v4
+        with:
+          name: apk
+          path: dist
+
+      - name: Download desktop jar
+        uses: actions/download-artifact@v4
+        with:
+          name: desktop-jar
+          path: dist
+
+      - name: Download release-info
+        uses: actions/download-artifact@v4
+        with:
+          name: release-info
+          path: info
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.build.outputs.tag }}
+          name: ${{ needs.build.outputs.tag }}
+          body: ${{ inputs.changelog }}
+          files: dist/*
+          generate_release_notes: false
+
+  # Gitee release + 上传同名 APK（GitHub 镜像不同步 release 资产，必须单独上传）
+  gitee_release:
+    name: Gitee Release
+    needs: build
+    runs-on: ubuntu-latest
+    env:
+      OWNER: catandA
+      REPO: New-SPDNet
+    steps:
+      - name: Download APK
+        uses: actions/download-artifact@v4
+        with:
+          name: apk
+          path: dist
+
+      - name: Download desktop jar
+        uses: actions/download-artifact@v4
+        with:
+          name: desktop-jar
+          path: dist
+
+      - name: Download release-info
+        uses: actions/download-artifact@v4
+        with:
+          name: release-info
+          path: info
+
+      - name: Parse release-info
+        id: info
+        run: |
+          echo "tag=$(jq -r '.tag' info/release-info.json)" >> "$GITHUB_OUTPUT"
+          echo "asset=$(jq -r '.asset' info/release-info.json)" >> "$GITHUB_OUTPUT"
+          echo "desktop_jar=$(basename dist/*.jar | head -1)" >> "$GITHUB_OUTPUT"
+
+      # 确保 tag 在 Gitee 侧存在（不依赖镜像同步）；已存在则忽略错误继续
+      - name: Ensure Gitee tag exists
+        run: |
+          git init -q gitee-tag
+          cd gitee-tag
+          git remote add origin "https://catandA:${GITEE_TOKEN}@gitee.com/${OWNER}/${REPO}.git"
+          git config user.name "catandA"
+          git config user.email "catandA@noreply.gitee.com"
+          git fetch -q origin
+          git tag "${{ steps.info.outputs.tag }}" origin/main 2>/dev/null || true
+          git push origin "${{ steps.info.outputs.tag }}" 2>/dev/null || true
+          echo "Gitee tag 状态: $?"
+        env:
+          GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
+
+      - name: Create Gitee release
+        id: create
+        env:
+          GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
+        run: |
+          BODY="${{ inputs.changelog }}"
+          RESP=$(curl -s -X POST "https://gitee.com/api/v5/repos/${OWNER}/${REPO}/releases" \
+            -d access_token="${GITEE_TOKEN}" \
+            -d tag_name="${{ steps.info.outputs.tag }}" \
+            -d name="${{ steps.info.outputs.tag }}" \
+            -d "${BODY:+body=${BODY}}" )
+          echo "$RESP"
+          ID=$(echo "$RESP" | jq -r '.id // empty')
+          if [ -z "$ID" ]; then echo "Gitee release 创建失败"; echo "$RESP"; exit 1; fi
+          echo "release_id=${ID}" >> "$GITHUB_OUTPUT"
+
+      - name: Upload APK to Gitee release
+        env:
+          GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
+        run: |
+          curl -s -X POST "https://gitee.com/api/v5/repos/${OWNER}/${REPO}/releases/${{ steps.create.outputs.release_id }}/attach_files" \
+            -d access_token="${GITEE_TOKEN}" \
+            -d name="${{ steps.info.outputs.asset }}" \
+            -F "file=@dist/${{ steps.info.outputs.asset }}"
+
+      - name: Upload desktop jar to Gitee release
+        env:
+          GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
+        run: |
+          curl -s -X POST "https://gitee.com/api/v5/repos/${OWNER}/${REPO}/releases/${{ steps.create.outputs.release_id }}/attach_files" \
+            -d access_token="${GITEE_TOKEN}" \
+            -d name="${{ steps.info.outputs.desktop_jar }}" \
+            -F "file=@dist/${{ steps.info.outputs.desktop_jar }}"
+
+  # 改写并推送 SPDNet-Data/config.json，触发其 Gitee 同步 action
+  update_config:
+    name: Update config.json
+    needs: build
+    runs-on: ubuntu-latest
+    env:
+      DATA_REPO: Not-Name-Dev-Team/SPDNet-Data
+      DATA_BRANCH: main
+    steps:
+      - name: Write changelog
+        run: |
+          printf '%s' '${{ inputs.changelog }}' > changelog.txt
+
+      - name: Download release-info
+        uses: actions/download-artifact@v4
+        with:
+          name: release-info
+          path: info
+
+      - name: Clone SPDNet-Data
+        env:
+          SPDNET_DATA_TOKEN: ${{ secrets.SPDNET_DATA_TOKEN }}
+        run: |
+          git clone "https://x-access-token:${SPDNET_DATA_TOKEN}@github.com/${DATA_REPO}.git" data
+          cd data
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      # 基于线上 config.json 全量改写（jq --rawfile 传多行 changeLog，避免换行转义问题）
+      - name: Patch config.json
+        run: |
+          cd data
+          jq -M --arg spd "$(jq -r '.spdVersion' ../info/release-info.json)" \
+             --arg net "$(jq -r '.netVersion' ../info/release-info.json)" \
+             --arg gh "$(jq -r '.github' ../info/release-info.json)" \
+             --arg gi "$(jq -r '.gitee' ../info/release-info.json)" \
+             --arg md5 "$(jq -r '.apkMd5' ../info/release-info.json)" \
+             --rawfile cl ../changelog.txt \
+             '.SPDVersion=$spd | .NetVersion=$net | .changeLog=$cl | .GithubUpdateUrl=$gh | .GiteeUpdateUrl=$gi | .ApkMd5=$md5' \
+             config.json > config.json.new
+          mv config.json.new config.json
+          cat config.json
+
+      - name: Push config.json
+        env:
+          SPDNET_DATA_TOKEN: ${{ secrets.SPDNET_DATA_TOKEN }}
+        run: |
+          cd data
+          git add config.json
+          if git diff --cached --quiet; then echo "无 config 变更"; exit 0; fi
+          git commit -m "Release ${{ needs.build.outputs.tag }}: 更新服务端版本信息"
+          git push origin "${DATA_BRANCH}"

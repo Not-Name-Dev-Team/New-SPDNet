@@ -147,7 +147,7 @@ public class SPDNetChangesButton extends StyledButton {
 				@Override
 				protected void onClick() {
 					if (!downloadSuccess) {
-						Game.platform.updateGame(update.URL, listener);
+						Game.platform.updateGame(update.URL, update.apkMd5, listener);
 					} else {
 						Game.platform.install(file);
 					}
@@ -167,7 +167,7 @@ public class SPDNetChangesButton extends StyledButton {
 				@Override
 				protected void onClick() {
 					if (!downloadSuccess) {
-						Game.platform.updateGame(update.giteeURL, listener);
+						Game.platform.updateGame(update.giteeURL, update.apkMd5, listener);
 					} else {
 						Game.platform.install(file);
 					}
