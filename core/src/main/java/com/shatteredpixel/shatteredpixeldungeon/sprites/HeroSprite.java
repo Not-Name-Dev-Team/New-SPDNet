@@ -49,6 +49,8 @@ public class HeroSprite extends CharSprite {
 	private static final int RUN_FRAMERATE	= 20;
 	
 	private static TextureFilm tiers;
+	// SPDNet: 记录上一次向外网广播的护甲等级，避免窗口拖动等触发场景重建(updateArmor 重跑)时重复推送
+	private static int lastNetArmorTier = -1;
 	
 	private Animation fly;
 	private Animation read;
@@ -103,8 +105,13 @@ public class HeroSprite extends CharSprite {
 			idle();
 		else
 			die();
-		// 发送护甲更新数据包
-		Sender.sendArmorUpdate(new CArmorUpdate(Dungeon.hero.tier()));
+		// SPDNet: 发送护甲更新数据包（仅在护甲等级真正变化时发送，
+		// 装备/卸下/换甲才会触发；窗口拖动等造成的场景重建不重复推送）
+		int tier = Dungeon.hero.tier();
+		if (tier != lastNetArmorTier) {
+			lastNetArmorTier = tier;
+			Sender.sendArmorUpdate(new CArmorUpdate(tier));
+		}
 	}
 	
 	@Override

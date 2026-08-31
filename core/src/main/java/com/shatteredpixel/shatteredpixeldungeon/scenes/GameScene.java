@@ -391,9 +391,11 @@ public class GameScene extends PixelScene {
 		add(overFogEffects);
 
 		// SPDNet: 地牢留言(Ping)系统 - 挂载留言标记渲染层。置于 fog 之上、最高显示；
-		// 换层重建场景时初始为空，由 Handler.handleNoteList 到达时经 setData 重灌。
+		// 换层重建场景时初始为空，由 Handler.handleNoteList 到达时经 setData 重灌；
+		// 窗口拖动等触发场景重建时 NetNoteStore 仍是静态缓存，这里立即重灌避免标记消失。
 		noteOverlay = new NetNoteOverlay();
 		add(noteOverlay);
+		noteOverlay.setData();
 
 		statuses = new Group();
 		add( statuses );
