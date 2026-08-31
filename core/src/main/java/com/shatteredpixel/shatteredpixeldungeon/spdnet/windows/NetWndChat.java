@@ -14,6 +14,7 @@ import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.Sender;
 import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.structure.actions.CChatMessage;
 import com.shatteredpixel.shatteredpixeldungeon.spdnetbutcopy.ui.SPDNetTextInput;
 import com.shatteredpixel.shatteredpixeldungeon.sprites.CharSprite;
+import com.shatteredpixel.shatteredpixeldungeon.ui.Icons;
 import com.shatteredpixel.shatteredpixeldungeon.ui.RenderedTextBlock;
 import com.shatteredpixel.shatteredpixeldungeon.ui.ScrollPane;
 import com.watabou.noosa.Camera;
@@ -151,6 +152,9 @@ public class NetWndChat extends NetWindow {
 					NetPing.startPingTarget();
 				}
 			};
+			// SPDNet: 与「选择检查目标」对话框同款 INFO 图标，置于按钮文字左侧
+			pingBtn.icon(Icons.get(Icons.INFO));
+			pingBtn.setSize(Math.max(18, pingBtn.reqWidth()), BUTTON_HEIGHT);
 			add(pingBtn);
 		}
 
