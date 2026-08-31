@@ -266,9 +266,9 @@ jobs:
         env:
           GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
         run: |
+          # 注意：不要在同一 curl 里混用 -d 与 -F（会以退出码 2 失败），token 作为 multipart 字段发送
           curl -s -X POST "https://gitee.com/api/v5/repos/${OWNER}/${REPO}/releases/${{ steps.create.outputs.release_id }}/attach_files" \
-            -d access_token="${GITEE_TOKEN}" \
-            -d name="${{ steps.info.outputs.asset }}" \
+            -F "access_token=${GITEE_TOKEN}" \
             -F "file=@dist/${{ steps.info.outputs.asset }}"
 
       - name: Upload desktop jar to Gitee release
@@ -276,8 +276,7 @@ jobs:
           GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
         run: |
           curl -s -X POST "https://gitee.com/api/v5/repos/${OWNER}/${REPO}/releases/${{ steps.create.outputs.release_id }}/attach_files" \
-            -d access_token="${GITEE_TOKEN}" \
-            -d name="${{ steps.info.outputs.desktop_jar }}" \
+            -F "access_token=${GITEE_TOKEN}" \
             -F "file=@dist/${{ steps.info.outputs.desktop_jar }}"
 
   # 改写并推送 SPDNet-Data/config.json，触发其 Gitee 同步 action
