@@ -238,7 +238,8 @@ jobs:
           git config user.name "catandA"
           git config user.email "catandA@noreply.gitee.com"
           git fetch -q origin
-          git tag "${{ steps.info.outputs.tag }}" origin/main 2>/dev/null || true
+          # 用 Gitee 默认分支 master 打 tag（此前误用 origin/main，导致 tag 实际没推送成功）
+          git tag "${{ steps.info.outputs.tag }}" origin/master 2>/dev/null || true
           git push origin "${{ steps.info.outputs.tag }}" 2>/dev/null || true
           echo "Gitee tag 状态: $?"
         env:
@@ -254,6 +255,7 @@ jobs:
             -d access_token="${GITEE_TOKEN}" \
             -d tag_name="${{ steps.info.outputs.tag }}" \
             -d name="${{ steps.info.outputs.tag }}" \
+            -d target_commitish="master" \
             -d "${BODY:+body=${BODY}}" )
           echo "$RESP"
           ID=$(echo "$RESP" | jq -r '.id // empty')
