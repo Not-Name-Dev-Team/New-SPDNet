@@ -194,6 +194,8 @@ jobs:
           body: ${{ inputs.changelog }}
           files: dist/*
           generate_release_notes: false
+          # 幂等：该 tag 已存在 release 时更新资产而非报错，便于重跑/续跑
+          allow_updates: true
 
   # Gitee release + 上传同名 APK（GitHub 镜像不同步 release 资产，必须单独上传）
   gitee_release:
