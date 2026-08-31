@@ -106,10 +106,10 @@ public class NetWndLeaveNote extends NetWindow {
 			// 下部：短输入框（字号需乘 uiCamera.zoom；注意先乘后取整，避免 zoom 小数被先行截断
 			// 导致字号与输入框(按真实 zoom 缩放)尺寸不匹配、文字不对齐）
 			int textSize = (int) (PixelScene.uiCamera.zoom * 6);
-			input = new SPDNetTextInput(Chrome.get(Chrome.Type.TOAST), false, textSize);
+			input = new SPDNetTextInput(Chrome.get(Chrome.Type.TOAST_WHITE), false, textSize);
 			input.setMaxLength(INPUT_MAX_LENGTH);
 			input.setTextAlignment(Align.left);
-			input.setTextColor(Color.WHITE);
+			// SPDNet: 输入框白底(TOAST_WHITE)，文字用默认黑色，与登录框一致
 			// 回车即发送
 			input.addlistener(new InputListener() {
 				@Override

@@ -1,7 +1,6 @@
 package com.shatteredpixel.shatteredpixeldungeon.spdnet.windows;
 
 import com.badlogic.gdx.Input;
-import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.InputListener;
 import com.badlogic.gdx.utils.Align;
@@ -31,7 +30,8 @@ public class NetWndChat extends NetWindow {
 	private static final int BUTTON_HEIGHT = 16;
 
 	public static final float WIDTH_P = 120;
-	public static final float WIDTH_L = 300;
+	// SPDNet: 横屏宽度对齐探险手册的最大档(216)，避免 300 超宽溢出屏幕
+	public static final float WIDTH_L = 216;
 
 	public static final float MSGPADDING = 2;
 
@@ -73,6 +73,12 @@ public class NetWndChat extends NetWindow {
 		height += chat.bottom();
 
 		resize(width, height);
+
+		// SPDNet(修复：文字飘出输入框同留言列表根因)：resize() 之后窗口 camera 才校准到位，
+		// 而 Chat.layout() 里 textInput.setRect 发生在其前面的 resize 之前，camera() 未就绪，
+		// SPDNetTextInput.layout() 据此算出的 scene2d 屏幕坐标是陈旧的，文字会漂到输入框外右下。
+		// 这里在 resize 后重触发一次输入框布局，按就绪的窗口相机重算坐标（与 NetWndLeaveNote 行69 同思路）。
+		textInput.setRect(textInput.left(), textInput.top(), textInput.width(), textInput.height());
 	}
 
 	public class Chat extends Component {
@@ -97,10 +103,9 @@ public class NetWndChat extends NetWindow {
 			super.createChildren();
 
 			int textSize = (int) (PixelScene.uiCamera.zoom * 6);
-			textInput = new SPDNetTextInput(Chrome.get(Chrome.Type.TOAST), false, textSize);
+			textInput = new SPDNetTextInput(Chrome.get(Chrome.Type.TOAST_WHITE), false, textSize);
 			textInput.setMaxLength(200);
 			textInput.setTextAlignment(Align.left);
-			textInput.setTextColor(Color.WHITE);
 			add(textInput);
 
 			textInput.addlistener(new InputListener() {
@@ -139,8 +144,7 @@ public class NetWndChat extends NetWindow {
 
 			add(sendBtn);
 
-			// SPDNet: 地牢留言(Ping)系统 - 「ping 目标」按钮；点击即关闭聊天窗(不还原)，进入独立选格/留言流程
-			pingBtn = new BlueButton("ping 目标") {
+			pingBtn = new BlueButton("留言") {
 				@Override
 				protected void onClick() {
 					NetWndChat.this.hide();

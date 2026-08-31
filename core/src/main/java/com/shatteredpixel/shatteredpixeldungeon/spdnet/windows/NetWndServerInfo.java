@@ -10,6 +10,7 @@ import com.shatteredpixel.shatteredpixeldungeon.spdnet.ui.NetIcons;
 import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.Net;
 import com.shatteredpixel.shatteredpixeldungeon.ui.RenderedTextBlock;
 import com.shatteredpixel.shatteredpixeldungeon.windows.IconTitle;
+import com.watabou.utils.DeviceCompat;
 
 public class NetWndServerInfo extends NetWindow {
 	private static final int WIDTH_P = 122;
@@ -25,8 +26,6 @@ public class NetWndServerInfo extends NetWindow {
 	BlueButton connectBtn;
 
 	NetWndServerInfo self = this;
-
-	int zoom = PixelScene.defaultZoom;
 
 	public NetWndServerInfo() {
 		super();
@@ -57,7 +56,16 @@ public class NetWndServerInfo extends NetWindow {
 
 		bottom = host.bottom() + GAP;
 
-		status = new RenderedTextBlock(Net.isConnected() ? Messages.get(this, "connected") : Messages.get(this, "disconnected"), 9 * zoom) {
+		// SPDNet: 复现 renderTextBlock(9) 的归一化(含 realPixelX 背缓冲修正 + 取整)，
+		// 替代原手写的 9*zoom/zoom(1/zoom)，保证状态文字与原版各档缩放完全一致、不再偏大。
+		// 因需要匿名 update() 重写 state，不能直接用 renderTextBlock(方法调用无法加匿名子类)，
+		// 故手动构造 RenderedTextBlock 并按同样规则缩放。
+		float realScale = DeviceCompat.getRealPixelScaleX();
+		// 纹理像素尺寸 = 9 * K，但缩放分母是 K(不是 9*K)：纹理按 K 放大后需用 1/K 缩放回逻辑 9，
+		// 与 renderTextBlock() 的归一化规则完全一致
+		int scaleMult = Math.round(PixelScene.defaultZoom * realScale);
+		int statusPx = 9 * scaleMult;
+		status = new RenderedTextBlock(Net.isConnected() ? Messages.get(this, "connected") : Messages.get(this, "disconnected"), statusPx) {
 			@Override
 			public synchronized void update() {
 				super.update();
@@ -66,7 +74,7 @@ public class NetWndServerInfo extends NetWindow {
 			}
 		};
 
-		status.zoom(1 / (float) zoom);
+		status.zoom(1 / (float) scaleMult);
 		status.setRect(0, bottom + GAP, maxWidth, 20);
 		add(status);
 

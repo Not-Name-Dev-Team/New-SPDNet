@@ -90,7 +90,7 @@ public class NetWndNoteList extends NetWindow {
 		rebuild();
 
 		int rows = Math.min(NetNoteStore.notesAt(cell).size(), MAX_ROWS);
-		resize(width, (int) y + rowArea(rows) + 6);
+		resize(width, (int) y + rowArea(rows) + 12);
 
 		// SPDNet(修复右下偏移)：ScrollPane.layout() 用 camera().cameraToScreen() 定位其内容相机，
 		// 依赖窗口相机校准。首初次布局发生在 resize() 之前(相机未就绪)，内容相机被设到错误的屏幕坐标
