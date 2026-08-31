@@ -45,10 +45,14 @@ public class NetWndNoteList extends NetWindow {
 	private static final int WIDTH_P = 120;
 	private static final int WIDTH_L = 150;
 	// SPDNet: 行内三行文字(名字/作者/时间) + 右侧上下两个按钮，行高需容纳
-	private static final int ROW_HEIGHT = 34;
+	private static final int ROW_HEIGHT = 22;
 	private static final int MAX_ROWS = 5;
 
 	private static final int VGAP = 2;
+
+	// SPDNet: 相邻两条留言之间的竖直间隔(1 像素)，只作用于列表行与行之间，
+	// 不影响标题区(VGAP)。窗口/视口高度计算需一并计入，避免小列表被裁出滚动条。
+	private static final int ROW_GAP = 1;
 
 	// SPDNet: 图标槽位。文字从 x+13 开始，图标从 x+1 开始，因此图标最大宽 13-1-1=11，
 	// 高度限制在行内两条文字的高度范围，保证不与文字/相邻行重叠。
@@ -59,6 +63,11 @@ public class NetWndNoteList extends NetWindow {
 
 	private ScrollPane list;
 	private Component content;
+
+	// SPDNet: n 条留言占据的高度 = 行高之和 + 相邻留言间隔之和（间隔只算 n-1 个）
+	private static int rowArea(int n) {
+		return n * ROW_HEIGHT + Math.max(0, (n - 1)) * ROW_GAP;
+	}
 
 	public NetWndNoteList(int cell) {
 		super(PixelScene.landscape() ? WIDTH_L : WIDTH_P, 0);
@@ -81,13 +90,13 @@ public class NetWndNoteList extends NetWindow {
 		rebuild();
 
 		int rows = Math.min(NetNoteStore.notesAt(cell).size(), MAX_ROWS);
-		resize(width, (int) y + rows * ROW_HEIGHT + 6);
+		resize(width, (int) y + rowArea(rows) + 6);
 
 		// SPDNet(修复右下偏移)：ScrollPane.layout() 用 camera().cameraToScreen() 定位其内容相机，
 		// 依赖窗口相机校准。首初次布局发生在 resize() 之前(相机未就绪)，内容相机被设到错误的屏幕坐标
 		// 并保持陈旧，导致所有留言行漂到窗口外右下。这里在 resize 后重触发列表布局，
 		// 让内容相机按就绪的窗口相机重算（与 NetWndLeaveNote 的 body.setRect 同理）。
-		list.setRect(0, list.top(), width, rows * ROW_HEIGHT);
+		list.setRect(0, list.top(), width, rowArea(rows));
 	}
 
 	// SPDNet: 依据 NetNoteStore 当前数据重建列表（删除后 / 点赞刷新时调用）
@@ -104,13 +113,13 @@ public class NetWndNoteList extends NetWindow {
 			entry.setRect(0, ypos, width, ROW_HEIGHT);
 			entry.setCallback(this::rebuild);
 			content.add(entry);
-			ypos = entry.bottom() + VGAP;
+			ypos = entry.bottom() + ROW_GAP;
 		}
 
-		// 内容总高度 = 全部行高；ScrollPane 视口高度 = 可见行数(最多 MAX_ROWS)，
+		// 内容总高度 = 全部行高 + 相邻间隔；ScrollPane 视口高度 = 可见行数(最多 MAX_ROWS)，
 		// 超出时才能显示滚动条并可滚动（否则多余留言会被窗口底部裁掉且滚不到）。
 		content.setRect(0, 0, width, ypos);
-		list.setRect(0, list.top(), width, Math.min(notes.size(), MAX_ROWS) * ROW_HEIGHT);
+		list.setRect(0, list.top(), width, rowArea(Math.min(notes.size(), MAX_ROWS)));
 		list.scrollTo(0, 0);
 	}
 
@@ -213,24 +222,26 @@ public class NetWndNoteList extends NetWindow {
 				icon.scale.set(1f);
 			}
 			icon.x = this.x + 1;
-			icon.y = this.y + 2;
+			icon.y = this.y + 4;
 			icon.visible = true;
 			PixelScene.align(icon);
 
+			// SPDNet(三行定位)：固定行内偏移，行高 24 内按槽位紧凑排开：
+			// 名字@+0(高~9) / 作者@+7(高~8) / 时间@+14(高~6)，互不越行。
 			titleText.maxWidth((int) (width - 26 - 30));
 			titleText.setPos(this.x + 13, this.y);
 			PixelScene.align(titleText);
 
-			authorText.setPos(this.x + 13, titleText.bottom() - 1);
+			authorText.setPos(this.x + 13, this.y + 7);
 			PixelScene.align(authorText);
 
 			timeText.maxWidth((int) (this.width - 40));
-			timeText.setPos(this.x + 13, authorText.bottom() - 1);
+			timeText.setPos(this.x + 13, this.y + 14);
 			PixelScene.align(timeText);
 
-			// SPDNet: 右侧两个按钮上下堆叠："详情"(上) + "删除/点赞"(下)
-			detail.setRect(this.x + width - 25, this.y + 1, 24, 13);
-			action.setRect(this.x + width - 25, this.y + 16, 24, 13);
+			// SPDNet: 右侧两个按钮上下堆叠："详情"(上) + "删除/点赞"(下)，压缩进行高 22 内
+			detail.setRect(this.x + width - 25, this.y, 24, 10);
+			action.setRect(this.x + width - 25, this.y + 10, 24, 10);
 		}
 
 		private String actionLabel() {
@@ -356,15 +367,40 @@ public class NetWndNoteList extends NetWindow {
 		}
 	}
 
-	// SPDNet: 留言时间展示(含年月日 + 时分秒)。服务端 createTime 为 LocalDateTime 的 ISO 串(无时区)，
-	// 兼容解析失败时回退原始串。用两位年份保持单行，避免与右侧按钮重叠。
+	// SPDNet: 留言时间展示(无毫秒，逐级省略)。相对当前时间裁剪前缀：
+	// 年相同→省"yy年"；年+月相同→再省"M月"；年月日全相同→仅显示"HH:mm:ss"。
+	// 服务端 createTime 是 LocalDateTime,最后经 fastjson 输出为空格分隔的
+	// "yyyy-MM-dd HH:mm:ss(.SSS)"。LocalDateTime.parse 只接受 "T" 分隔,空格串会解析失败
+	// 而回退原始串露出毫秒,这里先把空格归一为 'T' 再解析(允许小数秒),最后用无毫秒格式输出。
 	private static String dateLabel(NetNote note) {
 		if (note.createTime == null || note.createTime.isEmpty()) {
 			return "";
 		}
 		try {
-			java.time.LocalDateTime t = java.time.LocalDateTime.parse(note.createTime);
-			return t.format(java.time.format.DateTimeFormatter.ofPattern("yy年M月d日 HH:mm:ss"));
+			String s = note.createTime;
+			java.time.LocalDateTime t;
+			try {
+				t = java.time.LocalDateTime.parse(s.replace(' ', 'T'));
+			} catch (Throwable e1) {
+				// 兜底: 已是标准 ISO 或其它形式,再试原串
+				t = java.time.LocalDateTime.parse(s);
+			}
+
+			java.time.LocalDateTime now = java.time.LocalDateTime.now();
+
+			String pattern;
+			if (t.getYear() == now.getYear()
+					&& t.getMonth() == now.getMonth()
+					&& t.getDayOfMonth() == now.getDayOfMonth()) {
+				pattern = "HH:mm:ss";
+			} else if (t.getYear() == now.getYear() && t.getMonth() == now.getMonth()) {
+				pattern = "d日 HH:mm:ss";
+			} else if (t.getYear() == now.getYear()) {
+				pattern = "M月d日 HH:mm:ss";
+			} else {
+				pattern = "yy年M月d日 HH:mm:ss";
+			}
+			return t.format(java.time.format.DateTimeFormatter.ofPattern(pattern));
 		} catch (Throwable e) {
 			return note.createTime;
 		}
