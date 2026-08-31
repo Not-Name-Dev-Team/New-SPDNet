@@ -20,6 +20,11 @@ on:
         description: '本次更新日志（多行）'
         required: false
         default: ''
+      build_desktop:
+        description: '是否构建并发布 desktop jar（默认 false，仅发布 APK）'
+        required: false
+        default: 'false'
+        type: boolean
 
 # Job2/Job3/Job4 需要写 release 与推送另一仓库，统一申请写权限
 permissions:
@@ -120,9 +125,10 @@ jobs:
           name: release-info
           path: dist/release-info.json
 
-  # Desktop 构建（可运行 fat jar），只编译不发布到 release
+  # Desktop 构建（可运行 fat jar），可选（默认不构建/不上传 desktop）
   desktop:
     name: Build Desktop Jar
+    if: ${{ inputs.build_desktop }}
     runs-on: ubuntu-latest
     needs: build
     steps:
@@ -175,6 +181,7 @@ jobs:
           path: dist
 
       - name: Download desktop jar
+        if: ${{ inputs.build_desktop }}
         uses: actions/download-artifact@v4
         with:
           name: desktop-jar
@@ -213,6 +220,7 @@ jobs:
           path: dist
 
       - name: Download desktop jar
+        if: ${{ inputs.build_desktop }}
         uses: actions/download-artifact@v4
         with:
           name: desktop-jar
@@ -284,6 +292,7 @@ jobs:
             -F "file=@dist/${{ steps.info.outputs.asset }}"
 
       - name: Upload desktop jar to Gitee release
+        if: ${{ inputs.build_desktop }}
         env:
           GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
         run: |
