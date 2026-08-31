@@ -54,6 +54,9 @@ out/
 /nbdist/
 /.nb-gradle/
 
+### Gradle 自动生成 ###
+/gradle/gradle-daemon-jvm.properties
+
 ### VS Code ###
 .vscode/
 

@@ -5,7 +5,6 @@ import com.shatteredpixel.shatteredpixeldungeon.Dungeon;
 import com.shatteredpixel.shatteredpixeldungeon.actors.mobs.Mob;
 import com.shatteredpixel.shatteredpixeldungeon.items.Heap;
 import com.shatteredpixel.shatteredpixeldungeon.levels.traps.Trap;
-import com.shatteredpixel.shatteredpixeldungeon.messages.Messages;
 import com.shatteredpixel.shatteredpixeldungeon.plants.Plant;
 import com.shatteredpixel.shatteredpixeldungeon.scenes.GameScene;
 import com.shatteredpixel.shatteredpixeldungeon.scenes.PixelScene;
@@ -36,7 +35,7 @@ import java.util.List;
 /**
  * SPDNet: 地牢留言(Ping)系统 - 该格留言列表窗（§4 阶段D.5）。
  * 按创建序(§6 id 递增)列出该格所有留言，每条：
- *   对象图标(快照还原绘制) + 名字 + 文字 + 作者(authorMode 着色) + 点赞数；
+ *   对象图标(快照还原绘制) + 发送者：文字(可换行到预留空区) + 赞数/时间 + 操作按钮；
  *   自己的 → 删除(sendNoteDelete)；他人的 → 点赞/取消点赞(sendNoteLike toggle)。
  * 快照还原为只读副本、在渲染线程开窗(由 GameScene.examineObject 触发)，不注册进场景 group。
  */
@@ -44,7 +43,7 @@ public class NetWndNoteList extends NetWindow {
 
 	private static final int WIDTH_P = 120;
 	private static final int WIDTH_L = 150;
-	// SPDNet: 行内三行文字(名字/作者/时间) + 右侧上下两个按钮，行高需容纳
+	// SPDNet: 行内文字(发送者：内容 + 赞数/时间) + 右侧上下两个按钮，行高需容纳
 	private static final int ROW_HEIGHT = 22;
 	private static final int MAX_ROWS = 5;
 
@@ -123,7 +122,7 @@ public class NetWndNoteList extends NetWindow {
 		list.scrollTo(0, 0);
 	}
 
-	// SPDNet: 留言行：图标 + 名字/文字 + 作者 + 时间 + 操作按钮(详情/删除-点赞)
+	// SPDNet: 留言行：图标 + 发送者/文字(第一行) + 赞数/时间(最后一行) + 操作按钮(详情/删除-点赞)
 	public static class NoteEntry extends Component {
 
 		private final NetNote note;
@@ -131,8 +130,7 @@ public class NetWndNoteList extends NetWindow {
 
 		private Image icon;
 		private RenderedTextBlock titleText;
-		private RenderedTextBlock authorText;
-		private RenderedTextBlock timeText;
+		private RenderedTextBlock infoText;
 		private BlueButton detail;
 		private BlueButton action;
 
@@ -141,29 +139,24 @@ public class NetWndNoteList extends NetWindow {
 			// 不能依赖本构造体（super 之后）才赋值的字段。改为把 note 的子组件构建
 			// 全部放到构造体里（此时字段已就绪），createChildren 留空。
 			this.note = note;
+			boolean mine = NetNoteStore.isMine(note);
 
 			icon = noteIcon(note);
 			if (icon == null) {
 				icon = WndInfoCell.cellImage(note.pos);
 			}
 
-			String name = noteName(note);
 			String msg = note.message == null ? "" : note.message;
-			titleText = PixelScene.renderTextBlock(name + (msg.isEmpty() ? "" : "： " + msg), 7);
-			titleText.maxWidth((int) (width - 26 - 30));
+			// SPDNet: 第一行 = 发送者：留言内容（字号 6 小一号）。冒号前不再是对象名，
+			// 对象是什么在右侧"详情"按钮里查看；第二行留空给第一行换行备用。
+			String sender = mine ? "我" : note.author;
+			titleText = PixelScene.renderTextBlock(sender + (msg.isEmpty() ? "" : "： " + msg), 6);
+			titleText.maxWidth((int) (width - 45));
 
-			boolean mine = NetNoteStore.isMine(note);
-			// SPDNet: 列表不显示游戏模式(去掉 authorMode 标签)，只显示作者 + 点赞数
-			authorText = PixelScene.renderTextBlock(
-					(mine ? "我" : note.author) + "　♥ " + note.likes,
-					6);
-			authorText.hardlight(authorColor());
-
-			// SPDNet: 单独一行显示留言时间(含年月日 + 时分秒)；字号 5 并收紧最大宽度，
-			// 保证单行放下且不与右侧按钮重叠
-			timeText = PixelScene.renderTextBlock(dateLabel(note), 5);
-			timeText.maxWidth((int) (width - 40));
-			timeText.hardlight(Color.WHITE.toIntBits());
+			// SPDNet: 最后一行 = 赞数 + 时间合并显示，不再单独显示作者行
+			infoText = PixelScene.renderTextBlock("赞：" + note.likes + "　" + dateLabel(note), 5);
+			infoText.maxWidth((int) (width - 45));
+			infoText.hardlight(Color.WHITE.toIntBits());
 
 			// SPDNet: "详情"按钮 → 复现游戏内放大镜查看该对象的 info 窗口
 			detail = new BlueButton("详情", 6) {
@@ -193,8 +186,7 @@ public class NetWndNoteList extends NetWindow {
 
 			add(icon);
 			add(titleText);
-			add(authorText);
-			add(timeText);
+			add(infoText);
 			add(detail);
 			add(action);
 		}
@@ -222,26 +214,28 @@ public class NetWndNoteList extends NetWindow {
 				icon.scale.set(1f);
 			}
 			icon.x = this.x + 1;
-			icon.y = this.y + 4;
+			icon.y = this.y + 1;
 			icon.visible = true;
 			PixelScene.align(icon);
 
-			// SPDNet(三行定位)：固定行内偏移，行高 24 内按槽位紧凑排开：
-			// 名字@+0(高~9) / 作者@+7(高~8) / 时间@+14(高~6)，互不越行。
-			titleText.maxWidth((int) (width - 26 - 30));
-			titleText.setPos(this.x + 13, this.y);
+			// SPDNet: 文字最大宽度只到按钮左缘(x+width-25)附近，留 7px 边距(45)，
+			// 原 width-56 会留下 18px 空档，换行过早。
+			int textMaxW = (int) (this.width - 45);
+
+			// SPDNet: 第一行(发送者：内容)靠上，可换行占用第二行预留空区，不与最后一行重叠
+			titleText.maxWidth(textMaxW);
+			titleText.setPos(this.x + 13, this.y + 1);
 			PixelScene.align(titleText);
 
-			authorText.setPos(this.x + 13, this.y + 7);
-			PixelScene.align(authorText);
+			// SPDNet: 最后一行(赞：xxx + 时间)贴底
+			infoText.maxWidth(textMaxW);
+			infoText.setPos(this.x + 13, this.y + this.height - infoText.height() - 1);
+			PixelScene.align(infoText);
 
-			timeText.maxWidth((int) (this.width - 40));
-			timeText.setPos(this.x + 13, this.y + 14);
-			PixelScene.align(timeText);
-
-			// SPDNet: 右侧两个按钮上下堆叠："详情"(上) + "删除/点赞"(下)，压缩进行高 22 内
-			detail.setRect(this.x + width - 25, this.y, 24, 10);
-			action.setRect(this.x + width - 25, this.y + 10, 24, 10);
+			// SPDNet: 右侧两个按钮上下堆叠："详情"(上) + "删除/点赞"(下)，在行内垂直居中
+			float btnTop = this.y + (this.height - 20) / 2f;
+			detail.setRect(this.x + this.width - 25, btnTop, 24, 10);
+			action.setRect(this.x + this.width - 25, btnTop + 10, 24, 10);
 		}
 
 		private String actionLabel() {
@@ -249,15 +243,6 @@ public class NetWndNoteList extends NetWindow {
 				return "删";
 			}
 			return NetNoteStore.isMyLiked(note.id) ? "消赞" : "赞";
-		}
-
-		private int authorColor() {
-			if ("FUN".equals(note.authorMode)) {
-				return 0xFF66DD66;
-			} else if ("DAILY".equals(note.authorMode)) {
-				return 0xFF8899CC;
-			}
-			return Color.WHITE.toIntBits();
 		}
 	}
 
@@ -326,44 +311,6 @@ public class NetWndNoteList extends NetWindow {
 		} catch (Throwable t) {
 			// 快照还原失败只影响单个图标，不影响整窗（服务端对快照来源不做强校验）
 			return null;
-		}
-	}
-
-	private static String noteName(NetNote note) {
-		try {
-			switch (note.noteType) {
-				case "PLAYER": {
-					Bundle b = note.snapshot == null ? null : Bundle.fromString(note.snapshot);
-					if (b != null) {
-						NetHero hero = new NetHero(note.author);
-					hero.restoreFromBundleOverride(b);
-					// SPDNet: 显示打ping玩家的名字，而非其职业名。name 即玩家名。
-					return hero.name != null && !hero.name.isEmpty() ? hero.name : Messages.titleCase(hero.className());
-					}
-					return "玩家";
-				}
-				case "MOB": {
-					Bundlable o = restoreBundle(note.snapshot);
-					return o instanceof Mob ? Messages.titleCase(((Mob) o).name()) : "怪物";
-				}
-				case "ITEM": {
-					Bundlable o = restoreBundle(note.snapshot);
-					return o instanceof Heap ? Messages.titleCase(((Heap) o).title()) : "物品堆";
-				}
-				case "PLANT": {
-					Bundlable o = restoreBundle(note.snapshot);
-					return o instanceof Plant ? Messages.titleCase(((Plant) o).name()) : "植物";
-				}
-				case "TRAP": {
-					Bundlable o = restoreBundle(note.snapshot);
-					return o instanceof Trap ? Messages.titleCase(((Trap) o).name()) : "陷阱";
-				}
-				case "FLOOR":
-				default:
-					return "这块地板";
-			}
-		} catch (Throwable t) {
-			return "留言";
 		}
 	}
 
