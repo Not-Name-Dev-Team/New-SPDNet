@@ -253,23 +253,25 @@ jobs:
           GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
         run: |
           TAG="${{ steps.info.outputs.tag }}"
-          # 幂等：若该 tag 已存在 release 则复用其 id（历史 run 失败残留的 release 也能直接继续上传）
+          # 若该 tag 已存在 release，先删除（仅删 release，保留 tag）再新建，避免复用旧 release 造成资产残留/bug
           EXIST=$(curl -s "https://gitee.com/api/v5/repos/${OWNER}/${REPO}/releases/tags/${TAG}?access_token=${GITEE_TOKEN}")
           ID=$(echo "$EXIST" | jq -r '.id // empty')
           if [ -n "$ID" ]; then
-            echo "复用已存在的 Gitee release id=${ID}"
-          else
-            BODY="${{ inputs.changelog }}"
-            RESP=$(curl -s -X POST "https://gitee.com/api/v5/repos/${OWNER}/${REPO}/releases" \
-              -d access_token="${GITEE_TOKEN}" \
-              -d tag_name="${TAG}" \
-              -d name="${TAG}" \
-              -d target_commitish="master" \
-              -d "${BODY:+body=${BODY}}" )
-            echo "$RESP"
-            ID=$(echo "$RESP" | jq -r '.id // empty')
-            if [ -z "$ID" ]; then echo "Gitee release 创建失败"; echo "$RESP"; exit 1; fi
+            echo "删除已存在的 Gitee release id=${ID}（tag 保留）"
+            curl -s -X DELETE "https://gitee.com/api/v5/repos/${OWNER}/${REPO}/releases/${ID}?access_token=${GITEE_TOKEN}"
+            echo ""
+            sleep 1
           fi
+          BODY="${{ inputs.changelog }}"
+          RESP=$(curl -s -X POST "https://gitee.com/api/v5/repos/${OWNER}/${REPO}/releases" \
+            -d access_token="${GITEE_TOKEN}" \
+            -d tag_name="${TAG}" \
+            -d name="${TAG}" \
+            -d target_commitish="master" \
+            -d "${BODY:+body=${BODY}}" )
+          echo "$RESP"
+          ID=$(echo "$RESP" | jq -r '.id // empty')
+          if [ -z "$ID" ]; then echo "Gitee release 创建失败"; echo "$RESP"; exit 1; fi
           echo "release_id=${ID}" >> "$GITHUB_OUTPUT"
 
       - name: Upload APK to Gitee release
