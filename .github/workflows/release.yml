@@ -168,10 +168,11 @@ jobs:
           name: desktop-jar
           path: dist/*.jar
 
-  # GitHub release + 上传 APK
+  # GitHub release + 上传 APK（不再 needs desktop，desktop 由各上传步骤自身 if 守卫，
+  # 否则 desktop 被跳过时整个 release job 也会被连坐跳过）
   gh_release:
     name: GitHub Release
-    needs: [build, desktop]
+    needs: build
     runs-on: ubuntu-latest
     steps:
       - name: Download APK
@@ -205,9 +206,10 @@ jobs:
           allow_updates: true
 
   # Gitee release + 上传同名 APK（GitHub 镜像不同步 release 资产，必须单独上传）
+  # 与 gh_release 同理：不 needs desktop，避免 desktop 跳过时连坐跳过
   gitee_release:
     name: Gitee Release
-    needs: [build, desktop]
+    needs: build
     runs-on: ubuntu-latest
     env:
       OWNER: catandA
