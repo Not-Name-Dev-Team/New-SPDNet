@@ -165,7 +165,7 @@ jobs:
   # GitHub release + 上传 APK
   gh_release:
     name: GitHub Release
-    needs: build
+    needs: [build, desktop]
     runs-on: ubuntu-latest
     steps:
       - name: Download APK
@@ -198,7 +198,7 @@ jobs:
   # Gitee release + 上传同名 APK（GitHub 镜像不同步 release 资产，必须单独上传）
   gitee_release:
     name: Gitee Release
-    needs: build
+    needs: [build, desktop]
     runs-on: ubuntu-latest
     env:
       OWNER: catandA
