@@ -168,11 +168,12 @@ jobs:
           name: desktop-jar
           path: dist/*.jar
 
-  # GitHub release + 上传 APK（不再 needs desktop，desktop 由各上传步骤自身 if 守卫，
-  # 否则 desktop 被跳过时整个 release job 也会被连坐跳过）
+  # GitHub release + 上传 APK
+  # needs desktop 以等待 desktop 构建完成；加 if 显式放行 desktop 被跳过的情况（否则跳过会连坐跳过本 job）
   gh_release:
     name: GitHub Release
-    needs: build
+    needs: [build, desktop]
+    if: ${{ !cancelled() && needs.build.result == 'success' && needs.desktop.result != 'failure' }}
     runs-on: ubuntu-latest
     steps:
       - name: Download APK
@@ -181,8 +182,8 @@ jobs:
           name: apk
           path: dist
 
-      - name: Download desktop jar
-        if: ${{ inputs.build_desktop }}
+      - name: Download desktop jar（仅当 desktop 确实构建成功，确保产物已就绪）
+        if: ${{ needs.desktop.result == 'success' }}
         uses: actions/download-artifact@v4
         with:
           name: desktop-jar
@@ -206,10 +207,11 @@ jobs:
           allow_updates: true
 
   # Gitee release + 上传同名 APK（GitHub 镜像不同步 release 资产，必须单独上传）
-  # 与 gh_release 同理：不 needs desktop，避免 desktop 跳过时连坐跳过
+  # 同 gh_release：needs desktop 等待构建，if 放行 desktop 跳过
   gitee_release:
     name: Gitee Release
-    needs: build
+    needs: [build, desktop]
+    if: ${{ !cancelled() && needs.build.result == 'success' && needs.desktop.result != 'failure' }}
     runs-on: ubuntu-latest
     env:
       OWNER: catandA
@@ -221,8 +223,8 @@ jobs:
           name: apk
           path: dist
 
-      - name: Download desktop jar
-        if: ${{ inputs.build_desktop }}
+      - name: Download desktop jar（仅当 desktop 确实构建成功，确保产物已就绪）
+        if: ${{ needs.desktop.result == 'success' }}
         uses: actions/download-artifact@v4
         with:
           name: desktop-jar
@@ -294,7 +296,7 @@ jobs:
             -F "file=@dist/${{ steps.info.outputs.asset }}"
 
       - name: Upload desktop jar to Gitee release
-        if: ${{ inputs.build_desktop }}
+        if: ${{ needs.desktop.result == 'success' }}
         env:
           GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
         run: |
