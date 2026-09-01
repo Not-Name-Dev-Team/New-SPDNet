@@ -291,11 +291,17 @@ jobs:
           GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
         run: |
           # 注意：不要在同一 curl 里混用 -d 与 -F（会以退出码 2 失败），token 作为 multipart 字段发送
-          # 加各种超时/重试/速度检测：防止网络不稳定导致无限假死，30秒速度<1KB/s则失败重试
-          curl -fsS --connect-timeout 30 --max-time 600 --speed-time 30 --speed-limit 1000 --retry 3 --retry-delay 5 --retry-all-errors \
+          echo "==DEBUG== 诊断 CI->Gitee 连通性"
+          echo "-- DNS/连接 gitee.com --"
+          curl -v -I --connect-timeout 15 --max-time 30 "https://gitee.com/api/v5/repos/${OWNER}/${REPO}" 2>&1 | tail -40
+          echo "-- upload 接口预检（小请求, 看响应头）--"
+          curl -v -X HEAD --connect-timeout 15 --max-time 30 "https://gitee.com/api/v5/repos/${OWNER}/${REPO}/releases/${{ steps.create.outputs.release_id }}/attach_files" 2>&1 | tail -40
+          echo "==DEBUG== 开始实际 APK 上传（-v 详细）"
+          curl -v --connect-timeout 30 --max-time 180 --speed-time 20 --speed-limit 1000 --retry 0 \
             -X POST "https://gitee.com/api/v5/repos/${OWNER}/${REPO}/releases/${{ steps.create.outputs.release_id }}/attach_files" \
             -F "access_token=${GITEE_TOKEN}" \
-            -F "file=@dist/${{ steps.info.outputs.asset }}"
+            -F "file=@dist/${{ steps.info.outputs.asset }}" 2>&1 | tail -120
+          echo "==DEBUG== 上传命令退出码=${PIPESTATUS[0]}"
 
       - name: Upload desktop jar to Gitee release
         if: ${{ needs.desktop.result == 'success' }}
