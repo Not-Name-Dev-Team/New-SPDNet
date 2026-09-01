@@ -291,8 +291,8 @@ jobs:
           GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
         run: |
           # 注意：不要在同一 curl 里混用 -d 与 -F（会以退出码 2 失败），token 作为 multipart 字段发送
-          # 加 --connect-timeout/--max-time 防止接口长时间无响应导致假死；-f 让 HTTP 错误直接失败而非静默；--retry-all-errors 自动重试
-          curl -fsS --connect-timeout 30 --max-time 600 --retry 3 --retry-delay 5 --retry-all-errors \
+          # 加各种超时/重试/速度检测：防止网络不稳定导致无限假死，30秒速度<1KB/s则失败重试
+          curl -fsS --connect-timeout 30 --max-time 600 --speed-time 30 --speed-limit 1000 --retry 3 --retry-delay 5 --retry-all-errors \
             -X POST "https://gitee.com/api/v5/repos/${OWNER}/${REPO}/releases/${{ steps.create.outputs.release_id }}/attach_files" \
             -F "access_token=${GITEE_TOKEN}" \
             -F "file=@dist/${{ steps.info.outputs.asset }}"
@@ -302,7 +302,7 @@ jobs:
         env:
           GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
         run: |
-          curl -fsS --connect-timeout 30 --max-time 600 --retry 3 --retry-delay 5 --retry-all-errors \
+          curl -fsS --connect-timeout 30 --max-time 600 --speed-time 30 --speed-limit 1000 --retry 3 --retry-delay 5 --retry-all-errors \
             -X POST "https://gitee.com/api/v5/repos/${OWNER}/${REPO}/releases/${{ steps.create.outputs.release_id }}/attach_files" \
             -F "access_token=${GITEE_TOKEN}" \
             -F "file=@dist/${{ steps.info.outputs.desktop_jar }}"
