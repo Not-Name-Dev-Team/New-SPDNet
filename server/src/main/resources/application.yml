@@ -12,8 +12,8 @@ spring:
       ddl-auto: update
 spd:
   version: 3.3.8
-  netVersion: 0.1.1
-  motd: 不欢迎  >:^(
+  netVersion: 0.1.2
+  motd: 我去你发现我了
   bannedWordsFile: banned_words.txt
   # SPDNet: 管理员接口(JWT)访问令牌配置
   jwt:
