@@ -200,12 +200,22 @@ public class Handler {
 		// SPDNet: 从服务器加载云端成就
 		Badges.loadFromCloud(init.getAchievements());
 
-		// TODO 等GUI实现之后来这里更改种子逻辑 目前默认使用服务器给与的第一个种子
-		Enumeration<String> keysEnumeration = Net.seeds.keys();
-		ArrayList<String> keysList = Collections.list(keysEnumeration);
-		if (!keysList.isEmpty()) {
-			NetInProgress.seedName = keysList.get(0);
-			NetInProgress.seed = Net.seeds.get(NetInProgress.seedName);
+		// SPDNet: 默认使用娱乐模式的种子，而不是从服务器种子里随机取一个
+		// 处于每日挑战选择/游戏中时不覆盖，避免打断每日挑战
+		if (!NetInProgress.isDailyChallenge()) {
+			Long funSeed = Net.seeds.get("seedFUN");
+			if (funSeed != null) {
+				NetInProgress.seedName = "seedFUN";
+				NetInProgress.seed = funSeed;
+			} else {
+				// 兜底：服务器未下发 seedFUN 时，使用第一个种子
+				Enumeration<String> keysEnumeration = Net.seeds.keys();
+				ArrayList<String> keysList = Collections.list(keysEnumeration);
+				if (!keysList.isEmpty()) {
+					NetInProgress.seedName = keysList.get(0);
+					NetInProgress.seed = Net.seeds.get(NetInProgress.seedName);
+				}
+			}
 		}
 	}
 

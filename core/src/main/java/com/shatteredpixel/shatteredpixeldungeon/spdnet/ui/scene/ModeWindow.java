@@ -59,7 +59,8 @@ public class ModeWindow extends Window {
 				return;
 			}
 			window.destroy();
-			NetInProgress.mode = mode;
+			// 切换到娱乐/铁人模式时清理每日挑战残留状态并复位默认种子
+			NetInProgress.switchToMode(mode);
 		}
 
 		@Override

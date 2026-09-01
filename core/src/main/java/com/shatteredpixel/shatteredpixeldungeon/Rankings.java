@@ -176,6 +176,9 @@ public enum Rankings {
 		}
 		Sender.sendGameEnd(gameEnd);
 
+		// SPDNet: 一局结束（死亡/胜利）后清理联机状态，避免每日挑战种子/组别残留到下一局
+		NetInProgress.resetForNextGame();
+
 		save();
 	}
 

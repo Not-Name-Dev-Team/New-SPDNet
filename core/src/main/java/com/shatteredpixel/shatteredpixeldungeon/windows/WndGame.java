@@ -30,6 +30,7 @@ import com.shatteredpixel.shatteredpixeldungeon.scenes.GameScene;
 import com.shatteredpixel.shatteredpixeldungeon.scenes.HeroSelectScene;
 import com.shatteredpixel.shatteredpixeldungeon.scenes.InterlevelScene;
 import com.shatteredpixel.shatteredpixeldungeon.scenes.TitleScene;
+import com.shatteredpixel.shatteredpixeldungeon.spdnet.NetInProgress;
 import com.shatteredpixel.shatteredpixeldungeon.spdnetbutcopy.scene.NetRankingsScene;
 import com.shatteredpixel.shatteredpixeldungeon.ui.Icons;
 import com.shatteredpixel.shatteredpixeldungeon.ui.RedButton;
@@ -106,6 +107,8 @@ public class WndGame extends Window {
 				} catch (IOException e) {
 					ShatteredPixelDungeon.reportException(e);
 				}
+				// SPDNet: 放弃本局返回主菜单时清理联机状态，避免每日挑战残留到下一局
+				NetInProgress.resetForNextGame();
 				Game.switchScene(TitleScene.class);
 			}
 		});
