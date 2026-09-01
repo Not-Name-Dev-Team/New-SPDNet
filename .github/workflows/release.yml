@@ -41,10 +41,10 @@ jobs:
       asset: ${{ steps.meta.outputs.asset }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up JDK
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '17'
@@ -114,13 +114,13 @@ jobs:
           echo "MD5=${MD5}"
 
       - name: Upload APK artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: apk
           path: dist/*.apk
 
       - name: Upload release-info artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: release-info
           path: dist/release-info.json
@@ -133,10 +133,10 @@ jobs:
     needs: build
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up JDK
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '17'
@@ -149,7 +149,7 @@ jobs:
         run: ./gradlew :desktop:release --no-daemon
 
       - name: Download release-info
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: release-info
           path: info
@@ -163,7 +163,7 @@ jobs:
           cp "$JAR" "dist/SPDNet-desktop-${VER}.jar"
 
       - name: Upload desktop jar artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: desktop-jar
           path: dist/*.jar
@@ -177,20 +177,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Download APK
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: apk
           path: dist
 
       - name: Download desktop jar（仅当 desktop 确实构建成功，确保产物已就绪）
         if: ${{ needs.desktop.result == 'success' }}
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: desktop-jar
           path: dist
 
       - name: Download release-info
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: release-info
           path: info
@@ -203,8 +203,8 @@ jobs:
           body: ${{ inputs.changelog }}
           files: dist/*
           generate_release_notes: false
-          # 幂等：该 tag 已存在 release 时更新资产而非报错，便于重跑/续跑
-          allow_updates: true
+          # 重跑/续跑时覆盖同名资产而非因文件已存在而报错，便于幂等重试
+          overwrite_files: true
 
   # Gitee release + 上传同名 APK（GitHub 镜像不同步 release 资产，必须单独上传）
   # 同 gh_release：needs desktop 等待构建，if 放行 desktop 跳过
@@ -218,20 +218,20 @@ jobs:
       REPO: New-SPDNet
     steps:
       - name: Download APK
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: apk
           path: dist
 
       - name: Download desktop jar（仅当 desktop 确实构建成功，确保产物已就绪）
         if: ${{ needs.desktop.result == 'success' }}
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: desktop-jar
           path: dist
 
       - name: Download release-info
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: release-info
           path: info
@@ -318,7 +318,7 @@ jobs:
           printf '%s' '${{ inputs.changelog }}' > changelog.txt
 
       - name: Download release-info
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: release-info
           path: info
