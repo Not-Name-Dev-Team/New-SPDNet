@@ -106,7 +106,11 @@ public class SacrificialFire extends Blob {
 
 		//a bit brittle, assumes only one tile of sacrificial fire can exist per floor
 		int max = 6 + Dungeon.depth * 4;
-		curEmitter.pour( SacrificialParticle.FACTORY, 0.01f + ((volume / (float)max) * 0.09f) );
+		//headless playback never builds a BlobEmitter (no GameScene/BlobSprite), so curEmitter
+		//stays null here; the pour is purely visual, so skip it rather than NPE (see replay-progress).
+		if (curEmitter != null) {
+			curEmitter.pour( SacrificialParticle.FACTORY, 0.01f + ((volume / (float)max) * 0.09f) );
+		}
 	}
 
 	@Override
