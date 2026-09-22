@@ -122,9 +122,18 @@ public class GameRecord {
 		return null;
 	}
 
+	// SPDNet 症状21：反序列化阶段的原生 hero bundle 串。打榜查看需要按记录重填全局快捷栏，
+	// 但该串在 parse 阶段用于 setHero() 时已消费（restoreFromBundle），若不保留则无法再取回槽位。
+	// 仅在本地反序列化时由 setHero 写入，不回传给服务端。
+	@JSONField(serialize = false, deserialize = false)
+	private transient String heroRawBundle;
+
 	public void setHero(String hero) {
-		// SPDNet: 修复快捷栏被覆盖bug
-		// 设置 skipQuickslotUpdate 标志，防止恢复其他玩家英雄数据时修改当前玩家的快捷栏
+		// 保留原始 hero bundle，供浏览时重填快捷栏（restoreHeroWithQuickslot）
+		this.heroRawBundle = hero;
+
+		// SPDNet 症状21：parse 阶段仍用 skipQuickslotUpdate=true 防止批量榜单反序列化时
+		// 用各记录的槽位污染本机全局快捷栏（且先于本机真实游戏已存档场景）。
 		boolean wasSkipQuickslotUpdate = Belongings.skipQuickslotUpdate;
 		Belongings.skipQuickslotUpdate = true;
 		
@@ -134,5 +143,28 @@ public class GameRecord {
 		
 		// 恢复原来的状态
 		Belongings.skipQuickslotUpdate = wasSkipQuickslotUpdate;
+	}
+
+	/**
+	 * SPDNet 症状21：排行榜浏览视图（NetWndRanking.loadGameData）需要展示上榜英雄的快捷栏。
+	 * setHero() 在反序列化阶段为不影响本机快捷栏刻意跳过槽位写入（bundleRestoring 时的
+	 * Item.restoreFromBundle 短路），这里以 skipQuickslotUpdate=false 重新还原一次，
+	 * 让 Item.restoreFromBundle 把各槽位写回全局 Dungeon.quickslot —— 与本地
+	 * Rankings.Record.loadGameData 走 data.get(HERO) 的 bundleRestoring 路径语义一致。
+	 */
+	public Hero restoreHeroWithQuickslot() {
+		if (heroRawBundle == null) return hero;
+		Bundle bundle = Bundle.fromString(heroRawBundle);
+		if (bundle == null) return hero;
+		boolean wasSkipQuickslotUpdate = Belongings.skipQuickslotUpdate;
+		Belongings.skipQuickslotUpdate = false;
+		try {
+			Hero heroObject = new Hero();
+			heroObject.restoreFromBundle(bundle);
+			this.hero = heroObject;
+			return heroObject;
+		} finally {
+			Belongings.skipQuickslotUpdate = wasSkipQuickslotUpdate;
+		}
 	}
 }

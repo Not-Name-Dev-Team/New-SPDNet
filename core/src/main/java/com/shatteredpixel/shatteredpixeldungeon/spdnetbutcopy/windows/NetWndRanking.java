@@ -163,7 +163,11 @@ public class NetWndRanking extends WndTabbed {
 		// 原因: 加载其他玩家的成就会覆盖 local 变量，如果此时触发 validateXxx() 方法，
 		// 会调用 unlock() 将成就发送到服务器，导致错误解锁成就并存入数据库
 
-		Dungeon.hero = record.getHero();
+		// SPDNet 症状21：榜单查看必须重建上榜英雄的快捷栏。record.getHero() 是 parse 阶段
+		// 以 skipQuickslotUpdate=true 还原的对象（快捷槽被跳过），改用 restoreHeroWithQuickslot()
+		// 从保留的原始 bundle 以 skipQuickslotUpdate=false 重放还原，使 Item.restoreFromBundle
+		// 把各槽位写回全局 Dungeon.quickslot（与本地 Rankings.Record.loadGameData 语义一致）。
+		Dungeon.hero = record.restoreHeroWithQuickslot();
 		Dungeon.hero.belongings.identify();
 
 		Statistics.restoreFromGameRecord(record);
