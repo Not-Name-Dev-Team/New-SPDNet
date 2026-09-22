@@ -185,8 +185,15 @@ private PlayerPrefixService playerPrefixService;
 				}
 				// 旧连接已失效（网络抖动产生的幽灵连接），清理占位后放行新连接
 				log.info("玩家{}存在失效的旧连接({})，清理后允许重新登录", player.getName(), existingSessionId);
+				// SPDNet 症状22：必须先拿到旧 Player 对象再移除，随后按正常断线语义补发 EXIT，
+				// 否则其它客户端/本地玩家列表/地牢层会残留旧 status 与旧 NetHero 精灵。
+				Player ghost = playerMap.get(existingSessionId);
 				playerMap.remove(existingSessionId);
 				nameToSessionId.remove(player.getName());
+				// 与 addDisconnectListener 正常路径一致：清空该玩家的待补快照草稿并广播退出
+				handler.handleDisconnect(ghost);
+				String ghostPrefix = playerPrefixService.getActivePrefixName(player.getName());
+				sender.sendBroadcastExit(new SExit(player.getName(), ghostPrefix));
 			}
 			playerMap.put(client.getSessionId(), player);
 			nameToSessionId.put(player.getName(), client.getSessionId());
