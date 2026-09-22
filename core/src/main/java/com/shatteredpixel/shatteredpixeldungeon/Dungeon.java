@@ -247,6 +247,9 @@ public class Dungeon {
 		// SPDNet: 每日挑战模式下使用服务端指定的挑战
 		if (NetInProgress.isDailyChallenge()) {
 			challenges = NetInProgress.dailyChallenges;
+			// 症状20：把生效挑战同步回本地设置，使挑战按钮/UI(读 SPDSettings.challenges())
+			// 与广播(读 Dungeon.challenges) 显示一致，避免"按钮N挑/日志M挑"错位
+			SPDSettings.challenges(challenges);
 		}
 		mobsToChampion = 1;
 
