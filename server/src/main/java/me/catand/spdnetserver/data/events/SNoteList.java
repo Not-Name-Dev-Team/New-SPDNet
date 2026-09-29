@@ -10,7 +10,6 @@ import me.catand.spdnetserver.data.Data;
 
 /**
  * SPDNet: 地牢留言(Ping)系统 - 服务端下发该层留言列表（进/换层单播 REPLACE 与同层 DELTA 增量）。
- * 见 test/ping-design.md §7 NOTE_LIST。
  */
 @Getter
 @Setter

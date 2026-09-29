@@ -4,7 +4,6 @@ import com.watabou.noosa.Image;
 
 /**
  * SPDNet: 地牢留言(Ping)系统 - 一次"ping 目标"选择所产生的目标对象封装。
- * 见 test/ping-design.md 阶段C / §6：
  * - 携带留言所需最小数据（格坐标、类型、快照、目标玩家名）
  * - 提供预览图标(icon) + 展示名(name) 供 NetWndLeaveNote 顶部预览；
  *   icon 为分离图片，不注册进场景 group，避免污染当前层 / 线程竞争。

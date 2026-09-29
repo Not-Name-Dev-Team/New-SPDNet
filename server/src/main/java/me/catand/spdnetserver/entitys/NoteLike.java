@@ -7,7 +7,6 @@ import lombok.Setter;
 /**
  * SPDNet: 地牢留言(Ping)系统 - 点赞记录实体。
  * (noteId, playerName) 唯一约束，保证每人每条只能点一次赞（重复即 toggle 取消）。
- * 见 test/ping-design.md §6 点赞表。
  */
 @Entity
 @Getter

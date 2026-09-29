@@ -24,6 +24,9 @@ android/google-services.json
 keystore.properties
 /test/
 
+# SPDNet 自有文档（设计与计划，不随仓库分发）
+/SPDNetDocs/
+
 # Spring Boot (server module)
 HELP.md
 !gradle/wrapper/gradle-wrapper.jar

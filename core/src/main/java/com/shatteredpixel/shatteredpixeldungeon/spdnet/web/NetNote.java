@@ -5,7 +5,7 @@ import com.alibaba.fastjson.JSONObject;
 
 /**
  * SPDNet: 地牢留言(Ping)系统 - 客户端留言 DTO。
- * 见 test/ping-design.md §6/§7：服务端下发的单条留言 JSON
+ * 服务端下发的单条留言 JSON
  * {id, noteType, pos, snapshot?, message, author, authorMode, likes, createTime}
  * （snapshot 仅 PLAYER 之外的实体类型携带；PLAYER/FLOOR 可能无 snapshot）。
  */

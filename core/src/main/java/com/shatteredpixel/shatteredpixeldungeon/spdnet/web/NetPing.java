@@ -28,7 +28,6 @@ import java.util.Locale;
 
 /**
  * SPDNet: 地牢留言(Ping)系统 - "ping 目标"创建流程编排。
- * 见 test/ping-design.md §2 / 阶段C：
  * 聊天窗点「ping 目标」→ 关闭聊天窗 → GameScene.selectCell 瞄准式选格
  * → 收集该格候选(NetHero/Mob/Heap/Plant/Trap) + "自己" + "这块地板"
  * → WndOptions 选择对象 → 打开 NetWndLeaveNote 写下留言。

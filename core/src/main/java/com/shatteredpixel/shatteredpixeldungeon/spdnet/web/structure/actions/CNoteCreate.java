@@ -9,7 +9,6 @@ import lombok.Setter;
 
 /**
  * SPDNet: 地牢留言(Ping)系统 - 客户端发送创建留言请求。
- * 见 test/ping-design.md §7 NOTE_CREATE。
  */
 @Getter
 @Setter

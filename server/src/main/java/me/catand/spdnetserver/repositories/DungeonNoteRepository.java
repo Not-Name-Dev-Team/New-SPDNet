@@ -8,7 +8,6 @@ import java.util.List;
 
 /**
  * SPDNet: 地牢留言(Ping)系统 - 留言数据访问层。
- * 见 test/ping-design.md §8 阶段B.2。
  */
 @Repository
 public interface DungeonNoteRepository extends JpaRepository<DungeonNote, Integer> {

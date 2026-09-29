@@ -20,7 +20,6 @@ import com.watabou.noosa.ui.Component;
 
 /**
  * SPDNet: 地牢留言(Ping)系统 - 发送留言窗。
- * 见 test/ping-design.md §2 / 阶段C.3：
  * 上部对象图标 + 名字预览，下部输入框(短) + 发送/取消；发送走 Sender.sendNote，
  * 取消直接关闭回到游戏（不还原聊天窗）。
  */

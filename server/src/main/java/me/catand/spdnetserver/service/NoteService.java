@@ -17,7 +17,6 @@ import java.util.List;
 /**
  * SPDNet: 地牢留言(Ping)系统 - 留言业务（DB 层）。
  * 服务端权威存储：seed/depth 由 Handler 从请求者 Status 取，本服务只负责存取与一致性。
- * 见 test/ping-design.md §6 / §8 阶段B.1-B.3。
  */
 @Slf4j
 @Service

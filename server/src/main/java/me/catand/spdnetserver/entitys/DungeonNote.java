@@ -8,7 +8,6 @@ import java.time.LocalDateTime;
 
 /**
  * SPDNet: 地牢留言(Ping)系统 - 留言实体（仅绑定 seed+depth，同层共享）。
- * 见 test/ping-design.md §6 数据模型。
  */
 @Entity
 @Getter
