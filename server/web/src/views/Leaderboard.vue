@@ -318,7 +318,7 @@ const loadTop3IronmanPlayers = async () => {
     if (res.data.success) {
       const records = res.data.data || []
       top3IronmanPlayers.value = records.map(record => {
-        const playerName = record.player_name || record.playerName || (record.player?.name) || '未知'
+        const playerName = record.playerName || '未知'
         return {
           id: record.id,
           name: playerName,
@@ -372,7 +372,7 @@ const loadData = async () => {
       const data = res.data.data || {}
       const records = data.records || []
       leaderboard.value = records.map(record => {
-        const playerName = record.player_name || record.playerName || (record.player?.name) || '未知'
+        const playerName = record.playerName || '未知'
         return {
           id: record.id,
           name: playerName,

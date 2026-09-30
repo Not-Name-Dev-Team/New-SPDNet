@@ -679,7 +679,7 @@ const loadPlayerRank = async () => {
     if (res.data.success) {
       const records = res.data.data?.records || []
       const leaderboard = records.map(record => ({
-        name: record.player_name || record.playerName || (record.player?.name) || '未知',
+        name: record.playerName || '未知',
         bestScore: record.score || 0,
         bestFloor: record.maxDepth || 0
       }))

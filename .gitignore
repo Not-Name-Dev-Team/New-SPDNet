@@ -117,8 +117,5 @@ coverage/
 *.tmp
 *.temp
 
-### AI ###
-.trae
-
 /server/banned_words.txt
 /server/src/main/resources/banned_words.txt

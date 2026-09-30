@@ -88,7 +88,10 @@ private PlayerPrefixService playerPrefixService;
 	public void init() {
 		Configuration config = new Configuration();
 		config.setHostname("0.0.0.0");
-		config.setPort(32814);
+		// SPDNet: 端口可由 spd.socket-port 覆盖，默认 32814（与历史行为一致）。
+		// 必须可覆盖：否则同一台机器上跑第二个实例（端到端验证的隔离服务端）会因端口占用
+		// 直接启动失败，且报错是 BindException 而非"配置未生效"，很难定位。
+		config.setPort(spdProperties.getSocketPort());
 
 		// SPDNet: 缩短心跳与超时，加速回收网络抖动产生的僵尸连接，避免"幽灵玩家"占位导致无法重登
 		config.setPingInterval(15000);
@@ -233,6 +236,10 @@ private PlayerPrefixService playerPrefixService;
 		onPlayerEvent(Actions.FLOATING_TEXT, (client, player, data) ->
 				handler.handleFloatingText(client, player, JSON.parseObject(data, CFloatingText.class)));
 		onPlayerEvent(Actions.GAME_END, (client, player, data) -> {
+			// record 是客户端把整局战绩存进游戏 Bundle 后取出的**字符串**（见 Rankings.storeInNetBundle），
+			// 作为 JSON 字段下发。这里先解外层 JSON，再把该字段单独解析成实体。
+			// 不能用 JSON.parseObject(data, CGameEnd.class) 一步到位：外层是 JSON、
+			// 内层 record 是游戏 Bundle 文本，fastjson 无法自动穿透两层不同格式。
 			JSONObject cGameEndJson = JSON.parseObject(data, JSONObject.class);
 			CGameEnd gameEnd = new CGameEnd(JSONObject.parseObject(cGameEndJson.getString("record"), GameRecord.class));
 			if (cGameEndJson.containsKey("dailyGroupIndex") && cGameEndJson.getInteger("dailyGroupIndex") != null) {
