@@ -59,6 +59,48 @@ tasks.withType<Test> {
     useJUnitPlatform()
 }
 
+// SPDNet: 前端构建接入。
+// server/web 是独立的 Vite 工程，产物直接输出到 src/main/resources/static/。
+// 此前没有任何构建任务驱动它，static/ 只能靠手工 npm run build 更新，
+// 改了 .vue 却忘记构建就会静默发布旧页面。
+val webDir = layout.projectDirectory.dir("web")
+val webDistDir = layout.projectDirectory.dir("src/main/resources/static")
+
+val isWindows = System.getProperty("os.name").lowercase().contains("windows")
+
+// 依赖输入：仅在源码/配置变化时重跑 vite build
+val webSourceFiles = fileTree(webDir) {
+    include("src/**", "index.html", "vite.config.js", "package.json", "package-lock.json", "public/**")
+    exclude("node_modules/**", "dist/**")
+}
+
+// 使用 node_modules/.bin 下的本地可执行文件，避免依赖全局 PATH
+val npmExecutable = if (isWindows) "npm.cmd" else "npm"
+
+val installWebDeps by tasks.registering(Exec::class) {
+    group = "build"
+    description = "安装前端依赖（node_modules 不存在时）"
+    workingDir = webDir.asFile
+    commandLine(npmExecutable, "install")
+    // node_modules 已存在时跳过，避免每次构建都跑一遍 install
+    onlyIf { !webDir.dir("node_modules").asFile.exists() }
+}
+
+val buildWeb by tasks.registering(Exec::class) {
+    group = "build"
+    description = "构建前端并输出到 src/main/resources/static"
+    dependsOn(installWebDeps)
+    workingDir = webDir.asFile
+    commandLine(npmExecutable, "run", "build")
+    inputs.files(webSourceFiles).withPropertyName("webSources")
+    outputs.dir(webDistDir).withPropertyName("webDist")
+}
+
+// 打包前确保前端产物是最新的
+tasks.named("processResources") {
+    dependsOn(buildWeb)
+}
+
 tasks.bootJar {
     enabled = false
 }

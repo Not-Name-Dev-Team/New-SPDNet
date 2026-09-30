@@ -1,5 +1,10 @@
 server:
   port: 42910
+  # SPDNet: 前端主包约 320KB，gzip 后约 114KB，开启压缩显著降低首屏加载时间
+  compression:
+    enabled: true
+    mime-types: text/html,text/css,text/javascript,application/javascript,application/json,image/svg+xml
+    min-response-size: 1024
 logging:
   level:
     root: INFO

@@ -5,12 +5,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
+import org.springframework.http.CacheControl;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import org.springframework.web.servlet.resource.PathResourceResolver;
 
 import java.io.IOException;
+import java.util.concurrent.TimeUnit;
 
 @Configuration
 public class WebMvcConfig implements WebMvcConfigurer {
@@ -32,10 +34,18 @@ public class WebMvcConfig implements WebMvcConfigurer {
 			);
 	}
 
+	// SPDNet: 静态资源缓存策略。
+	// 带内容哈希的 /assets/** 用一年强缓存(immutable)；index.html 及无哈希资源不设强缓存，
+	// 依赖 Last-Modified 回源校验，避免客户端长期引用旧页面。
 	@Override
 	public void addResourceHandlers(ResourceHandlerRegistry registry) {
+		registry.addResourceHandler("/assets/**")
+			.addResourceLocations("classpath:/static/assets/")
+			.setCacheControl(CacheControl.maxAge(365, TimeUnit.DAYS).cachePublic().immutable());
+
 		registry.addResourceHandler("/**")
 			.addResourceLocations("classpath:/static/")
+			.setCacheControl(CacheControl.noCache())
 			.resourceChain(true)
 			.addResolver(new PathResourceResolver() {
 				@Override
@@ -44,6 +54,7 @@ public class WebMvcConfig implements WebMvcConfigurer {
 					if (requestedResource.exists() && requestedResource.isReadable()) {
 						return requestedResource;
 					}
+					// SPA 回退：未知路径一律交给前端路由处理
 					return new ClassPathResource("/static/index.html");
 				}
 			});
