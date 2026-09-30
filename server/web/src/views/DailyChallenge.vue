@@ -383,7 +383,7 @@ onMounted(() => {
   width: 56px;
   height: 56px;
   border-radius: var(--radius-lg);
-  background: linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%);
+  background: var(--gradient-secondary);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -395,7 +395,7 @@ onMounted(() => {
   font-size: 1.75rem;
   font-weight: 700;
   margin: 0;
-  background: linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%);
+  background: var(--gradient-secondary);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -515,11 +515,11 @@ onMounted(() => {
 }
 
 .badge-0 {
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  background: var(--gradient-emerald);
 }
 
 .badge-1 {
-  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  background: var(--gradient-amber-deep);
 }
 
 .badge-2 {
@@ -710,17 +710,17 @@ onMounted(() => {
 }
 
 .rank-badge.rank-1 {
-  background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%);
+  background: var(--gradient-amber);
   color: white;
 }
 
 .rank-badge.rank-2 {
-  background: linear-gradient(135deg, #a1a1aa 0%, #71717a 100%);
+  background: var(--gradient-silver);
   color: white;
 }
 
 .rank-badge.rank-3 {
-  background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+  background: var(--gradient-bronze);
   color: white;
 }
 

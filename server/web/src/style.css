@@ -79,6 +79,17 @@
   --gradient-success: linear-gradient(135deg, #10b981 0%, #06b6d4 100%);
   --gradient-warning: linear-gradient(135deg, #f59e0b 0%, #f97316 100%);
   --gradient-danger: linear-gradient(135deg, #f43f5e 0%, #e11d48 100%);
+
+  /* SPDNet: 名次/徽章专用渐变。此前这些值在 Leaderboard、DailyChallenge 等
+     视图中以十六进制字面量重复 20 余次（琥珀一组就写了 5 遍），
+     改品牌色时改 :root 无任何效果。统一收在这里，视图只引用 token。 */
+  --gradient-amber: var(--gradient-warning);
+  --gradient-silver: linear-gradient(135deg, #a1a1aa 0%, #71717a 100%);
+  --gradient-bronze: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+  --gradient-emerald: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  --gradient-amber-deep: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  --gradient-violet: linear-gradient(135deg, #8b5cf6 0%, #a855f7 100%);
+  --gradient-rose: linear-gradient(135deg, #ec4899 0%, #f43f5e 100%);
   --gradient-dark: linear-gradient(180deg, #1a1a24 0%, #0a0a0f 100%);
   --gradient-glow: radial-gradient(ellipse at center, rgba(147, 51, 234, 0.15) 0%, transparent 70%);
   --gradient-shine: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.08) 50%, transparent 100%);
@@ -121,9 +132,17 @@
   --transition-slow: 500ms cubic-bezier(0.4, 0, 0.2, 1);
   --transition-bounce: 500ms cubic-bezier(0.34, 1.56, 0.64, 1);
 
-  /* 字体 */
-  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-  --font-mono: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+  /* 字体
+     SPDNet: 原栈首选项是 'Inter'，但项目从未加载该字体（无 @font-face /
+     fontsource / 外部链接），实际渲染始终落到系统字体。字号阶梯、字重 800、
+     letter-spacing -0.02em 都是在这个"幻影字体"前提下调的，不同机器偏差不一。
+     此处按实际可用的系统字体如实声明，并补中文字体回退——
+     原栈没有中文字族，中文由浏览器逐个字符回退，字重与字距不可控。 */
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+    'Helvetica Neue', Arial, 'PingFang SC', 'Hiragino Sans GB',
+    'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', Consolas,
+    'Courier New', monospace;
 
   /* 布局 */
   --header-height: 70px;
@@ -171,6 +190,19 @@ body {
   outline: 2px solid var(--primary-400);
   outline-offset: 2px;
   border-radius: var(--radius-sm);
+}
+
+/* SPDNet: 大量卡片容器为 overflow: hidden（.player-card/.feature-card/
+   .podium-card/.stat-card 等），落在卡片内部的链接或徽章若用外扩 2px 的
+   outline，会被父容器直接裁掉，键盘用户完全看不到焦点。
+   这类场景改用内缩轮廓：仍清晰可辨，且不受裁剪影响。 */
+.player-card :focus-visible,
+.feature-card :focus-visible,
+.podium-card :focus-visible,
+.stat-card :focus-visible,
+.info-card :focus-visible,
+.table-row :focus-visible {
+  outline-offset: -2px;
 }
 
 /* 尊重系统的"减少动态效果"设置：关闭装饰性动画与过渡 */

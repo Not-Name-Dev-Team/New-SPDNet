@@ -37,7 +37,7 @@
           <!-- Account Info Card -->
           <div class="info-card">
             <div class="card-header">
-              <div class="header-icon-wrapper" style="background: linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%);">
+              <div class="header-icon-wrapper icon-accent-info">
                 <el-icon :size="20" color="white"><User /></el-icon>
               </div>
               <h3>账号信息</h3>
@@ -73,7 +73,7 @@
           <!-- Quick Actions -->
           <div class="info-card">
             <div class="card-header">
-              <div class="header-icon-wrapper" style="background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%);">
+              <div class="header-icon-wrapper icon-accent-warning">
                 <el-icon :size="20" color="white"><Tools /></el-icon>
               </div>
               <h3>快捷操作</h3>
@@ -101,7 +101,7 @@
           <!-- Account Settings -->
           <div class="info-card">
             <div class="card-header">
-              <div class="header-icon-wrapper" style="background: linear-gradient(135deg, #10b981 0%, #06b6d4 100%);">
+              <div class="header-icon-wrapper icon-accent-success">
                 <el-icon :size="20" color="white"><Setting /></el-icon>
               </div>
               <h3>账号设置</h3>
@@ -538,6 +538,19 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+/* SPDNet: 同 Player.vue —— 图标底色改语义类，取色走 token，不再用内联 style */
+.icon-accent-info {
+  background: var(--gradient-secondary);
+}
+
+.icon-accent-warning {
+  background: var(--gradient-warning);
+}
+
+.icon-accent-success {
+  background: var(--gradient-success);
 }
 
 .card-header h3 {

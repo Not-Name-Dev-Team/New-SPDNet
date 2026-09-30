@@ -817,11 +817,13 @@ const handleMobileLogout = () => {
 }
 
 .mobile-nav-btn.btn-logout {
-  color: var(--accent-red);
+  /* SPDNet: 原为 var(--accent-red)，该 token 从未在 :root 定义，
+     声明整体失效、颜色回退成继承的次要灰，危险语义完全丢失。 */
+  color: var(--danger);
 }
 
 .mobile-nav-btn.btn-logout:hover {
-  background: rgba(239, 68, 68, 0.1);
+  background: rgba(244, 63, 94, 0.1);
 }
 
 /* Responsive */

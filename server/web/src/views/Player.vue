@@ -64,7 +64,7 @@
           <!-- Player Info Card -->
           <div class="info-card">
             <div class="card-header">
-              <div class="header-icon-wrapper" style="background: linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%);">
+              <div class="header-icon-wrapper icon-accent-info">
                 <el-icon :size="20" color="white"><User /></el-icon>
               </div>
               <h3>玩家信息</h3>
@@ -100,7 +100,7 @@
           <!-- Recent Games -->
           <div class="info-card">
             <div class="card-header">
-              <div class="header-icon-wrapper" style="background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%);">
+              <div class="header-icon-wrapper icon-accent-warning">
                 <el-icon :size="20" color="white"><Clock /></el-icon>
               </div>
               <h3>最近游戏</h3>
@@ -136,7 +136,7 @@
           <!-- Game Progress -->
           <div class="info-card">
             <div class="card-header">
-              <div class="header-icon-wrapper" style="background: linear-gradient(135deg, #10b981 0%, #06b6d4 100%);">
+              <div class="header-icon-wrapper icon-accent-success">
                 <el-icon :size="20" color="white"><Collection /></el-icon>
               </div>
               <h3>游戏进度</h3>
@@ -611,28 +611,28 @@ const statsList = computed(() => [
     label: '最高分数',
     value: playerInfo.value?.maxScore || 0,
     icon: Trophy,
-    gradient: 'linear-gradient(135deg, #f59e0b 0%, #f97316 100%)',
+    gradient: 'var(--gradient-amber)',
     glow: 'rgba(245, 158, 11, 0.2)'
   },
   {
     label: '最高通关挑战',
     value: playerInfo.value?.maxChallengeAmount || 0,
     icon: Flag,
-    gradient: 'linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%)',
+    gradient: 'var(--gradient-secondary)',
     glow: 'rgba(6, 182, 212, 0.2)'
   },
   {
     label: '总分数',
     value: playerInfo.value?.totalScore || 0,
     icon: Medal,
-    gradient: 'linear-gradient(135deg, #8b5cf6 0%, #a855f7 100%)',
+    gradient: 'var(--gradient-violet)',
     glow: 'rgba(139, 92, 246, 0.2)'
   },
   {
     label: '胜利次数',
     value: playerInfo.value?.wins || 0,
     icon: StarFilled,
-    gradient: 'linear-gradient(135deg, #ec4899 0%, #f43f5e 100%)',
+    gradient: 'var(--gradient-rose)',
     glow: 'rgba(236, 72, 153, 0.2)'
   }
 ])
@@ -822,7 +822,7 @@ onMounted(() => {
 .rank-number {
   font-size: 1.5rem;
   font-weight: 700;
-  background: linear-gradient(135deg, #ec4899 0%, #f43f5e 100%);
+  background: var(--gradient-rose);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -942,6 +942,21 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+/* SPDNet: 三个卡片的图标底色原先写在内联 style 上。
+   内联样式无法被主题覆盖、也无法承载 hover/focus，改品牌色时搜不到。
+   此处收敛为语义类，取色统一走设计系统 token。 */
+.icon-accent-info {
+  background: var(--gradient-secondary);
+}
+
+.icon-accent-warning {
+  background: var(--gradient-warning);
+}
+
+.icon-accent-success {
+  background: var(--gradient-success);
 }
 
 .card-header h3 {
@@ -1168,7 +1183,7 @@ onMounted(() => {
 
 .progress-fill-mini {
   height: 100%;
-  background: linear-gradient(135deg, #10b981 0%, #06b6d4 100%);
+  background: var(--gradient-success);
   border-radius: var(--radius-full);
   transition: width 0.5s ease;
 }

@@ -14,7 +14,6 @@ import { ref, onMounted, onUnmounted } from 'vue'
 //  - 按 devicePixelRatio 缩放画布，避免高分屏发虚
 //  - resize 防抖，拖拽窗口时不再每帧重建粒子
 //  - 尊重 prefers-reduced-motion，只画静态一帧
-//  - 连线用空间网格分桶，把两两配对的 O(n²) 降到近似 O(n)
 
 const canvasRef = ref(null)
 
@@ -254,19 +253,22 @@ onUnmounted(() => {
   position: absolute;
   inset: 0;
   background: 
-    radial-gradient(ellipse at 20% 20%, rgba(139, 92, 246, 0.08) 0%, transparent 50%),
-    radial-gradient(ellipse at 80% 80%, rgba(6, 182, 212, 0.05) 0%, transparent 50%),
-    radial-gradient(ellipse at 50% 50%, rgba(168, 85, 247, 0.03) 0%, transparent 70%);
+    radial-gradient(ellipse at 20% 20%, rgba(139, 92, 246, 0.06) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 80%, rgba(6, 182, 212, 0.04) 0%, transparent 50%);
 }
 
+/* SPDNet: 网格原先与粒子连线同屏可见——两者都是细线网络，视觉上互相打架，
+   且叠加后进一步压低卡片内文字的对比度（style.css 的对比度实测是基于不透明
+   底色计算的，不包含这层）。网格本身不承载任何信息，调暗到接近不可见，
+   只作为极浅的质感存在。 */
 .grid-overlay {
   position: absolute;
   inset: 0;
   background-image: 
-    linear-gradient(rgba(139, 92, 246, 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(139, 92, 246, 0.03) 1px, transparent 1px);
+    linear-gradient(rgba(139, 92, 246, 0.015) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(139, 92, 246, 0.015) 1px, transparent 1px);
   background-size: 80px 80px;
-  mask-image: radial-gradient(ellipse at center, black 0%, transparent 70%);
-  -webkit-mask-image: radial-gradient(ellipse at center, black 0%, transparent 70%);
+  mask-image: radial-gradient(ellipse at center, black 0%, transparent 65%);
+  -webkit-mask-image: radial-gradient(ellipse at center, black 0%, transparent 65%);
 }
 </style>

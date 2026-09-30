@@ -556,7 +556,7 @@ onMounted(() => {
   width: 56px;
   height: 56px;
   border-radius: var(--radius-lg);
-  background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%);
+  background: var(--gradient-amber);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -568,7 +568,7 @@ onMounted(() => {
   font-size: 1.75rem;
   font-weight: 700;
   margin: 0;
-  background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%);
+  background: var(--gradient-amber);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -751,19 +751,19 @@ onMounted(() => {
 }
 
 .podium-card.rank-1 .podium-rank {
-  background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%);
+  background: var(--gradient-amber);
   color: white;
   box-shadow: 0 4px 16px rgba(245, 158, 11, 0.4);
 }
 
 .podium-card.rank-2 .podium-rank {
-  background: linear-gradient(135deg, #a1a1aa 0%, #71717a 100%);
+  background: var(--gradient-silver);
   color: white;
   box-shadow: 0 4px 16px rgba(161, 161, 170, 0.4);
 }
 
 .podium-card.rank-3 .podium-rank {
-  background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+  background: var(--gradient-bronze);
   color: white;
   box-shadow: 0 4px 16px rgba(249, 115, 22, 0.4);
 }
@@ -922,17 +922,17 @@ onMounted(() => {
 }
 
 .rank-badge.rank-1 {
-  background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%);
+  background: var(--gradient-amber);
   color: white;
 }
 
 .rank-badge.rank-2 {
-  background: linear-gradient(135deg, #a1a1aa 0%, #71717a 100%);
+  background: var(--gradient-silver);
   color: white;
 }
 
 .rank-badge.rank-3 {
-  background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+  background: var(--gradient-bronze);
   color: white;
 }
 
@@ -1127,8 +1127,16 @@ onMounted(() => {
     padding: var(--space-2) var(--space-3);
   }
 
-  .col-result {
-    display: none;
+  /* SPDNet: 此处原先隐藏 .col-result，导致 640px 以下的用户完全看不到
+     "胜利/失败"——而这是排行榜最核心的语义之一，不该按屏宽丢弃。
+     改为保留该列，由 .table-section 已有的 overflow-x: auto 承接横向滚动
+     （该容器当初正是为此从不透明的 overflow: hidden 改过来的）。 */
+  .col-rank,
+  .col-player,
+  .col-score,
+  .col-result,
+  .col-action {
+    min-width: 0;
   }
 
   .player-name {

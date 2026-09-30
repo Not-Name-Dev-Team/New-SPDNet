@@ -217,28 +217,28 @@ const statsList = computed(() => [
     label: '当前在线',
     value: serverInfo.value?.onlineCount || 0,
     icon: UserFilled,
-    gradient: 'linear-gradient(135deg, #9333ea 0%, #a855f7 100%)',
+    gradient: 'var(--gradient-primary)',
     glow: 'rgba(147, 51, 234, 0.25)'
   },
   {
     label: '注册玩家',
     value: serverInfo.value?.totalPlayers || 0,
     icon: User,
-    gradient: 'linear-gradient(135deg, #ec4899 0%, #f43f5e 100%)',
+    gradient: 'var(--gradient-rose)',
     glow: 'rgba(236, 72, 153, 0.25)'
   },
   {
     label: '游戏版本',
     value: serverInfo.value?.version || '-',
     icon: CollectionTag,
-    gradient: 'linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%)',
+    gradient: 'var(--gradient-secondary)',
     glow: 'rgba(6, 182, 212, 0.25)'
   },
   {
     label: '联机版本',
     value: serverInfo.value?.netVersion || '-',
     icon: CircleCheck,
-    gradient: 'linear-gradient(135deg, #10b981 0%, #06b6d4 100%)',
+    gradient: 'var(--gradient-success)',
     glow: 'rgba(16, 185, 129, 0.25)'
   }
 ])
@@ -248,21 +248,21 @@ const features = [
     icon: Trophy,
     title: '竞技排行',
     description: '挑战高分排行榜，与全球玩家一较高下，展示你的地牢探险实力。',
-    gradient: 'linear-gradient(135deg, #f59e0b 0%, #f97316 100%)',
+    gradient: 'var(--gradient-warning)',
     glow: 'rgba(245, 158, 11, 0.15)'
   },
   {
     icon: ChatDotRound,
     title: '实时聊天',
     description: '与在线玩家实时交流，分享游戏心得，结交志同道合的冒险伙伴。',
-    gradient: 'linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%)',
+    gradient: 'var(--gradient-secondary)',
     glow: 'rgba(6, 182, 212, 0.15)'
   },
   {
     icon: TrendCharts,
     title: '数据追踪',
     description: '详细记录你的每一次冒险，分析游戏数据，不断提升自己的技巧。',
-    gradient: 'linear-gradient(135deg, #10b981 0%, #06b6d4 100%)',
+    gradient: 'var(--gradient-success)',
     glow: 'rgba(16, 185, 129, 0.15)'
   }
 ]

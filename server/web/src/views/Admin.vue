@@ -394,25 +394,25 @@ const stats = computed(() => [
     label: '总玩家数',
     value: serverInfo.value?.totalPlayers || 0,
     icon: UserFilled,
-    gradient: 'linear-gradient(135deg, #8b5cf6 0%, #a855f7 100%)'
+    gradient: 'var(--gradient-violet)'
   },
   {
     label: '在线玩家',
     value: serverInfo.value?.onlineCount || 0,
     icon: TrendCharts,
-    gradient: 'linear-gradient(135deg, #10b981 0%, #34d399 100%)'
+    gradient: 'var(--gradient-success)'
   },
   {
     label: '管理员数',
     value: serverInfo.value?.adminCount || 0,
     icon: Medal,
-    gradient: 'linear-gradient(135deg, #ec4899 0%, #f43f5e 100%)'
+    gradient: 'var(--gradient-rose)'
   },
   {
     label: '封禁数',
     value: serverInfo.value?.bannedCount || 0,
     icon: Lock,
-    gradient: 'linear-gradient(135deg, #f59e0b 0%, #f97316 100%)'
+    gradient: 'var(--gradient-warning)'
   }
 ])
 
@@ -683,13 +683,13 @@ onMounted(() => {
 }
 
 .refresh-btn {
-  background: linear-gradient(135deg, #8b5cf6, #a855f7);
+  background: var(--gradient-violet);
   border: none;
   color: white;
 }
 
 .refresh-btn:hover {
-  background: linear-gradient(135deg, #7c3aed, #9333ea);
+  background: var(--gradient-primary);
   box-shadow: 0 0 20px rgba(139, 92, 246, 0.4);
   color: white;
 }
@@ -997,7 +997,7 @@ onMounted(() => {
 }
 
 .player-avatar {
-  background: linear-gradient(135deg, #8b5cf6, #a855f7);
+  background: var(--gradient-violet);
   border: 2px solid rgba(139, 92, 246, 0.3);
 }
 
