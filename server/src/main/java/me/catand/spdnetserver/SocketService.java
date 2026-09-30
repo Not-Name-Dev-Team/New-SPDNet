@@ -67,6 +67,12 @@ private PlayerPrefixService playerPrefixService;
 	private Map<UUID, Player> playerMap = new ConcurrentHashMap<>();
 	// SPDNet: 玩家名 -> sessionId 索引，避免反复遍历 playerMap 找人（O(N) → O(1)）
 	private Map<String, UUID> nameToSessionId = new ConcurrentHashMap<>();
+	// SPDNet: 会话表写操作的临界区。playerMap 与 nameToSessionId 是同一份会话状态的两个投影，
+	// 必须在同一临界区内成对更新；否则会出现两类矛盾状态：
+	//   1) 按 sessionId 取不到人 → 事件派发 NPE（且跳过该事件的副作用）
+	//   2) 按名字指向已失效连接 / 索引被旧连接的回调误删 → 重复登录误判、幽灵在线
+	// 仅在连接建立/断开这类低频路径上持锁，事件派发是只读查表，不持锁。
+	private final Object sessionLock = new Object();
 	private Sender sender;
 	private Handler handler;
 	private SocketIONamespace spdNetNamespace;
@@ -172,31 +178,38 @@ private PlayerPrefixService playerPrefixService;
 				return;
 			}
 
-			// SPDNet: 用 nameToSessionId 索引判断重复登录，替代 O(N) 遍历 playerMap
-			UUID existingSessionId = nameToSessionId.get(player.getName());
-			if (existingSessionId != null) {
-				SocketIOClient existingClient = spdNetNamespace.getClient(existingSessionId);
-				// 仅当旧连接仍存活时判定为真正的重复登录
-				if (existingClient != null && existingClient.isChannelOpen()) {
-					client.sendEvent(Events.ERROR.getName(), new SError(player.getName() + "已登录, 重复登录"));
-					log.info("连接失败: " + player.getName() + "已登录, 重复登录, " + client.getSessionId());
-					client.disconnect();
-					return;
+			// SPDNet: 会话登记临界区。重复登录判定与"清理幽灵后放行"必须在同一临界区内完成，
+			// 否则两个并发连接可能都通过存活检查、互相覆盖索引（后写者留下前写者的孤儿会话）。
+			UUID ghostSessionId = null;
+			Player ghost = null;
+			synchronized (sessionLock) {
+				UUID existingSessionId = nameToSessionId.get(player.getName());
+				if (existingSessionId != null) {
+					SocketIOClient existingClient = spdNetNamespace.getClient(existingSessionId);
+					// 仅当旧连接仍存活时判定为真正的重复登录
+					if (existingClient != null && existingClient.isChannelOpen()) {
+						client.sendEvent(Events.ERROR.getName(), new SError(player.getName() + "已登录, 重复登录"));
+						log.info("连接失败: " + player.getName() + "已登录, 重复登录, " + client.getSessionId());
+						client.disconnect();
+						return;
+					}
+					// 旧连接已失效（网络抖动产生的幽灵连接），清理占位后放行新连接
+					log.info("玩家{}存在失效的旧连接({})，清理后允许重新登录", player.getName(), existingSessionId);
+					// SPDNet 症状22：先取出旧 Player 对象再移除，随后在锁外按正常断线语义补发 EXIT，
+					// 否则其它客户端/本地玩家列表/地牢层会残留旧 status 与旧 NetHero 精灵。
+					ghost = playerMap.remove(existingSessionId);
+					nameToSessionId.remove(player.getName());
+					ghostSessionId = existingSessionId;
 				}
-				// 旧连接已失效（网络抖动产生的幽灵连接），清理占位后放行新连接
-				log.info("玩家{}存在失效的旧连接({})，清理后允许重新登录", player.getName(), existingSessionId);
-				// SPDNet 症状22：必须先拿到旧 Player 对象再移除，随后按正常断线语义补发 EXIT，
-				// 否则其它客户端/本地玩家列表/地牢层会残留旧 status 与旧 NetHero 精灵。
-				Player ghost = playerMap.get(existingSessionId);
-				playerMap.remove(existingSessionId);
-				nameToSessionId.remove(player.getName());
-				// 与 addDisconnectListener 正常路径一致：清空该玩家的待补快照草稿并广播退出
+				playerMap.put(client.getSessionId(), player);
+				nameToSessionId.put(player.getName(), client.getSessionId());
+			}
+			if (ghostSessionId != null) {
+				// 锁外执行副作用：清空待补快照草稿并广播退出（含清理该玩家的移动降频记录）
 				handler.handleDisconnect(ghost);
 				String ghostPrefix = playerPrefixService.getActivePrefixName(player.getName());
 				sender.sendBroadcastExit(new SExit(player.getName(), ghostPrefix));
 			}
-			playerMap.put(client.getSessionId(), player);
-			nameToSessionId.put(player.getName(), client.getSessionId());
 			// SPDNet: 更新最后登录时间和IP
 			player.setLastLoginAt(LocalDateTime.now());
 			player.setLastLoginIp(getClientIp(client));
@@ -217,99 +230,69 @@ private PlayerPrefixService playerPrefixService;
 			sender.sendPlayerList(client, new SPlayerList(playerMap));
 			log.info("玩家已连接: " + player.getName() + ", " + client.getSessionId());
 		});
-		spdNetNamespace.addDisconnectListener(client -> {
-			Player player = playerMap.get(client.getSessionId());
-			if (player != null) {
-				playerMap.remove(client.getSessionId());
-				nameToSessionId.remove(player.getName());
-				// SPDNet: 地牢留言(Ping)系统 - 断开时清理该玩家的待补快照草稿（含占位行）
-				handler.handleDisconnect(player);
-				// SPDNet: 获取玩家当前激活的前缀
-				String activePrefixName = playerPrefixService.getActivePrefixName(player.getName());
-				sender.sendBroadcastExit(new SExit(player.getName(), activePrefixName));
-				log.info("玩家已断开连接: " + player.getName() + ", " + client.getSessionId());
-			}
-		});
-		spdNetNamespace.addEventListener(Actions.ACHIEVEMENT.getName(), String.class, (client, data, ackSender) -> {
-			handler.handleAchievement(playerMap.get(client.getSessionId()), JSON.parseObject(data, CAchievement.class));
-		});
-		spdNetNamespace.addEventListener(Actions.ANKH_USED.getName(), String.class, (client, data, ackSender) -> {
-			handler.handleAnkhUsed(playerMap.get(client.getSessionId()), JSON.parseObject(data, CAnkhUsed.class));
-		});
-		spdNetNamespace.addEventListener(Actions.ARMOR_UPDATE.getName(), String.class, (client, data, ackSender) -> {
-			handler.handleArmorUpdate(playerMap.get(client.getSessionId()), JSON.parseObject(data, CArmorUpdate.class));
-		});
-		spdNetNamespace.addEventListener(Actions.CHAT_MESSAGE.getName(), String.class, (client, data, ackSender) -> {
-			handler.handleChatMessage(playerMap.get(client.getSessionId()), JSON.parseObject(data, CChatMessage.class));
-		});
-		spdNetNamespace.addEventListener(Actions.ENTER_DUNGEON.getName(), String.class, (client, data, ackSender) -> {
-			handler.handleEnterDungeon(client, playerMap.get(client.getSessionId()), JSON.parseObject(data, CEnterDungeon.class));
-		});
-		spdNetNamespace.addEventListener(Actions.ERROR.getName(), String.class, (client, data, ackSender) -> {
-			handler.handleError(playerMap.get(client.getSessionId()), JSON.parseObject(data, CError.class));
-		});
-		spdNetNamespace.addEventListener(Actions.FLOATING_TEXT.getName(), String.class, (client, data, ackSender) -> {
-			handler.handleFloatingText(client, playerMap.get(client.getSessionId()), JSON.parseObject(data, CFloatingText.class));
-		});
-		spdNetNamespace.addEventListener(Actions.GAME_END.getName(), String.class, (client, data, ackSender) -> {
+		spdNetNamespace.addDisconnectListener(client -> unregisterSession(client.getSessionId()));
+		// SPDNet: 需要玩家上下文的事件统一走 onPlayerEvent——会话已注销时静默丢弃，
+		// 避免 playerMap.get() 返回 null 后在各 handler 内解引用抛 NPE
+		// （NPE 会中断该事件的副作用：清 status / 广播 EXIT / 清待补快照草稿）。
+		onPlayerEvent(Actions.ACHIEVEMENT, (client, player, data) ->
+				handler.handleAchievement(player, JSON.parseObject(data, CAchievement.class)));
+		onPlayerEvent(Actions.ANKH_USED, (client, player, data) ->
+				handler.handleAnkhUsed(player, JSON.parseObject(data, CAnkhUsed.class)));
+		onPlayerEvent(Actions.ARMOR_UPDATE, (client, player, data) ->
+				handler.handleArmorUpdate(player, JSON.parseObject(data, CArmorUpdate.class)));
+		onPlayerEvent(Actions.CHAT_MESSAGE, (client, player, data) ->
+				handler.handleChatMessage(player, JSON.parseObject(data, CChatMessage.class)));
+		onPlayerEvent(Actions.ENTER_DUNGEON, (client, player, data) ->
+				handler.handleEnterDungeon(client, player, JSON.parseObject(data, CEnterDungeon.class)));
+		onPlayerEvent(Actions.ERROR, (client, player, data) ->
+				handler.handleError(player, JSON.parseObject(data, CError.class)));
+		onPlayerEvent(Actions.FLOATING_TEXT, (client, player, data) ->
+				handler.handleFloatingText(client, player, JSON.parseObject(data, CFloatingText.class)));
+		onPlayerEvent(Actions.GAME_END, (client, player, data) -> {
 			JSONObject cGameEndJson = JSON.parseObject(data, JSONObject.class);
 			CGameEnd gameEnd = new CGameEnd(JSONObject.parseObject(cGameEndJson.getString("record"), GameRecord.class));
 			if (cGameEndJson.containsKey("dailyGroupIndex") && cGameEndJson.getInteger("dailyGroupIndex") != null) {
 				Integer dailyGroupIndex = cGameEndJson.getInteger("dailyGroupIndex");
 				Long dailySeed = cGameEndJson.getLong("dailySeed");
-				handler.handleDailyGameEnd(client, playerMap.get(client.getSessionId()), gameEnd, dailyGroupIndex, dailySeed);
+				handler.handleDailyGameEnd(client, player, gameEnd, dailyGroupIndex, dailySeed);
 			} else {
-				handler.handleGameEnd(playerMap.get(client.getSessionId()), gameEnd);
+				handler.handleGameEnd(player, gameEnd);
 			}
 		});
-		spdNetNamespace.addEventListener(Actions.GIVE_ITEM.getName(), String.class, (client, data, ackSender) -> {
-			handler.handleGiveItem(playerMap.get(client.getSessionId()), JSON.parseObject(data, CGiveItem.class));
-		});
-		spdNetNamespace.addEventListener(Actions.HERO.getName(), String.class, (client, data, ackSender) -> {
-			handler.handleHero(playerMap.get(client.getSessionId()), JSON.parseObject(data, CHero.class));
-		});
-		spdNetNamespace.addEventListener(Actions.LEAVE_DUNGEON.getName(), String.class, (client, data, ackSender) -> {
-			handler.handleLeaveDungeon(playerMap.get(client.getSessionId()), JSON.parseObject(data, CLeaveDungeon.class));
-		});
-		spdNetNamespace.addEventListener(Actions.PLAYER_CHANGE_FLOOR.getName(), String.class, (client, data, ackSender) -> {
-			handler.handlePlayerChangeFloor(client, playerMap.get(client.getSessionId()), JSON.parseObject(data, CPlayerChangeFloor.class));
-		});
-		spdNetNamespace.addEventListener(Actions.PLAYER_MOVE.getName(), String.class, (client, data, ackSender) -> {
-			handler.handlePlayerMove(client, playerMap.get(client.getSessionId()), JSON.parseObject(data, CPlayerMove.class));
-		});
-		spdNetNamespace.addEventListener(Actions.REQUEST_LEADERBOARD.getName(), String.class, (client, data, ackSender) -> {
-			handler.handleRequestLeaderboard(client, JSON.parseObject(data, CRequestLeaderboard.class));
-		});
-		spdNetNamespace.addEventListener(Actions.REQUEST_PLAYER_LIST.getName(), String.class, (client, data, ackSender) -> {
-			handler.handleRequestPlayerList(client, JSON.parseObject(data, CRequestPlayerList.class));
-		});
-		spdNetNamespace.addEventListener(Actions.VIEW_HERO.getName(), String.class, (client, data, ackSender) -> {
-			handler.handleViewHero(playerMap.get(client.getSessionId()), JSON.parseObject(data, CViewHero.class));
-		});
+		onPlayerEvent(Actions.GIVE_ITEM, (client, player, data) ->
+				handler.handleGiveItem(player, JSON.parseObject(data, CGiveItem.class)));
+		onPlayerEvent(Actions.HERO, (client, player, data) ->
+				handler.handleHero(player, JSON.parseObject(data, CHero.class)));
+		onPlayerEvent(Actions.LEAVE_DUNGEON, (client, player, data) ->
+				handler.handleLeaveDungeon(player, JSON.parseObject(data, CLeaveDungeon.class)));
+		onPlayerEvent(Actions.PLAYER_CHANGE_FLOOR, (client, player, data) ->
+				handler.handlePlayerChangeFloor(client, player, JSON.parseObject(data, CPlayerChangeFloor.class)));
+		onPlayerEvent(Actions.PLAYER_MOVE, (client, player, data) ->
+				handler.handlePlayerMove(client, player, JSON.parseObject(data, CPlayerMove.class)));
+		onPlayerEvent(Actions.VIEW_HERO, (client, player, data) ->
+				handler.handleViewHero(player, JSON.parseObject(data, CViewHero.class)));
 		// SPDNet: 地牢留言(Ping)系统 - 留言/点赞/删除路由
-		spdNetNamespace.addEventListener(Actions.NOTE_CREATE.getName(), String.class, (client, data, ackSender) -> {
-			handler.handleNoteCreate(client, playerMap.get(client.getSessionId()), JSON.parseObject(data, CNoteCreate.class));
-		});
-		spdNetNamespace.addEventListener(Actions.NOTE_LIKE.getName(), String.class, (client, data, ackSender) -> {
-			handler.handleNoteLike(client, playerMap.get(client.getSessionId()), JSON.parseObject(data, CNoteId.class));
-		});
-		spdNetNamespace.addEventListener(Actions.NOTE_DELETE.getName(), String.class, (client, data, ackSender) -> {
-			handler.handleNoteDelete(client, playerMap.get(client.getSessionId()), JSON.parseObject(data, CNoteId.class));
-		});
-		spdNetNamespace.addEventListener(Actions.REQUEST_DAILY_CHALLENGE.getName(), String.class, (client, data, ackSender) -> {
-			handler.handleRequestDailyChallenge(client, playerMap.get(client.getSessionId()), JSON.parseObject(data, CRequestDailyChallenge.class));
-		});
-
+		onPlayerEvent(Actions.NOTE_CREATE, (client, player, data) ->
+				handler.handleNoteCreate(client, player, JSON.parseObject(data, CNoteCreate.class)));
+		onPlayerEvent(Actions.NOTE_LIKE, (client, player, data) ->
+				handler.handleNoteLike(client, player, JSON.parseObject(data, CNoteId.class)));
+		onPlayerEvent(Actions.NOTE_DELETE, (client, player, data) ->
+				handler.handleNoteDelete(client, player, JSON.parseObject(data, CNoteId.class)));
+		onPlayerEvent(Actions.REQUEST_DAILY_CHALLENGE, (client, player, data) ->
+				handler.handleRequestDailyChallenge(client, player, JSON.parseObject(data, CRequestDailyChallenge.class)));
 		// SPDNet: Journal 相关事件监听（事件名来自共享协议枚举）
-		spdNetNamespace.addEventListener(Actions.CATALOG_UPDATE.getName(), String.class, (client, data, ackSender) -> {
-			handler.handleCatalogUpdate(playerMap.get(client.getSessionId()), JSON.parseObject(data, CCatalogUpdate.class));
-		});
-		spdNetNamespace.addEventListener(Actions.BESTIARY_UPDATE.getName(), String.class, (client, data, ackSender) -> {
-			handler.handleBestiaryUpdate(playerMap.get(client.getSessionId()), JSON.parseObject(data, CBestiaryUpdate.class));
-		});
-		spdNetNamespace.addEventListener(Actions.DOCUMENT_UPDATE.getName(), String.class, (client, data, ackSender) -> {
-			handler.handleDocumentUpdate(playerMap.get(client.getSessionId()), JSON.parseObject(data, CDocumentUpdate.class));
-		});
+		onPlayerEvent(Actions.CATALOG_UPDATE, (client, player, data) ->
+				handler.handleCatalogUpdate(player, JSON.parseObject(data, CCatalogUpdate.class)));
+		onPlayerEvent(Actions.BESTIARY_UPDATE, (client, player, data) ->
+				handler.handleBestiaryUpdate(player, JSON.parseObject(data, CBestiaryUpdate.class)));
+		onPlayerEvent(Actions.DOCUMENT_UPDATE, (client, player, data) ->
+				handler.handleDocumentUpdate(player, JSON.parseObject(data, CDocumentUpdate.class)));
+
+		// SPDNet: 不依赖玩家上下文的事件——handler 内部已自行处理无会话情形
+		spdNetNamespace.addEventListener(Actions.REQUEST_LEADERBOARD.getName(), String.class, (client, data, ackSender) ->
+				handler.handleRequestLeaderboard(client, JSON.parseObject(data, CRequestLeaderboard.class)));
+		spdNetNamespace.addEventListener(Actions.REQUEST_PLAYER_LIST.getName(), String.class, (client, data, ackSender) ->
+				handler.handleRequestPlayerList(client, JSON.parseObject(data, CRequestPlayerList.class)));
 
 	}
 
@@ -321,6 +304,77 @@ private PlayerPrefixService playerPrefixService;
 		seeds.putAll(dailyChallengeService.getDailySeeds());
 		sender.sendBroadcastError(new SError("换种子了嗷"));
 		spdNetNamespace.getAllClients().forEach(ClientOperations::disconnect);
+	}
+
+	/**
+	 * SPDNet: 需要玩家上下文的事件处理器。
+	 */
+	@FunctionalInterface
+	private interface PlayerEventHandler {
+		void handle(SocketIOClient client, Player player, String data);
+	}
+
+	/**
+	 * SPDNet: 注册"需要玩家上下文"的事件监听器。会话不存在时记录并丢弃该事件，
+	 * 不把 null 传给 handler——这是 NPE 的唯一防线（原先 26 处 playerMap.get() 全部裸传）。
+	 * 丢弃是安全的：会话已注销说明玩家已下线，其状态无需再同步。
+	 */
+	private void onPlayerEvent(Actions action, PlayerEventHandler body) {
+		spdNetNamespace.addEventListener(action.getName(), String.class, (client, data, ackSender) -> {
+			Player player = playerMap.get(client.getSessionId());
+			if (player == null) {
+				log.debug("丢弃来自已注销会话的事件: action={}, sessionId={}", action.getName(), client.getSessionId());
+				return;
+			}
+			body.handle(client, player, data);
+		});
+	}
+
+	/**
+	 * SPDNet: 注销会话并对外广播退出（幂等）。返回 true 表示本次调用真正注销了该会话。
+	 * playerMap 与 nameToSessionId 在同一临界区内成对更新，并采用条件移除：
+	 * 仅当名字索引仍指向本会话时才删除，避免旧连接的回调误删新会话的索引。
+	 */
+	private boolean unregisterSession(UUID sessionId) {
+		Player player;
+		boolean nameIndexStillMine;
+		synchronized (sessionLock) {
+			player = playerMap.remove(sessionId);
+			if (player == null) {
+				return false;
+			}
+			nameIndexStillMine = nameToSessionId.remove(player.getName(), sessionId);
+		}
+		// 锁外执行副作用：清理该玩家的待补快照草稿（含占位行）
+		handler.handleDisconnect(player);
+		if (nameIndexStillMine) {
+			String activePrefixName = playerPrefixService.getActivePrefixName(player.getName());
+			sender.sendBroadcastExit(new SExit(player.getName(), activePrefixName));
+			log.info("玩家已断开连接: " + player.getName() + ", " + sessionId);
+		} else {
+			log.info("玩家{}的旧会话已断开（已被新会话接管，跳过退出广播）: {}", player.getName(), sessionId);
+		}
+		return true;
+	}
+
+	/**
+	 * SPDNet: 回收半开（幽灵）连接。网络抖动可能让客户端通道实际已死、但 disconnect 回调迟迟不触发，
+	 * 导致该玩家长期占位：他人列表残留其旧 status、地牢层残留 NetHero 精灵，且本人无法重登。
+	 * 这里按心跳周期巡检 playerMap，对已无存活通道的会话按正常断线语义清理并广播退出。
+	 */
+	@Scheduled(fixedDelay = 30000)
+	public void reapDeadSessions() {
+		if (spdNetNamespace == null) {
+			return;
+		}
+		for (UUID sessionId : playerMap.keySet()) {
+			SocketIOClient client = spdNetNamespace.getClient(sessionId);
+			if (client == null || !client.isChannelOpen()) {
+				if (unregisterSession(sessionId)) {
+					log.info("回收失效会话（半开连接）: sessionId={}", sessionId);
+				}
+			}
+		}
 	}
 
 	private long getNoonTimestamp() {

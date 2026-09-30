@@ -141,7 +141,8 @@ public class Handler {
 	public void handleEnterDungeon(SocketIOClient client, Player player, CEnterDungeon cEnterDungeon) {
 		Status status = cEnterDungeon.getStatus();
 		player.setStatus(status);
-		playerMap.put(client.getSessionId(), player);
+		// SPDNet: 会话登记的唯一写入口是 SocketService 的 sessionLock 临界区，此处不再重复写表
+		// （player 本就取自 playerMap，原 put 是同一键值的空操作，但绕过了锁）。
 
 		Integer dailyGroupIndex = cEnterDungeon.getDailyGroupIndex();
 		Long dailySeed = cEnterDungeon.getDailySeed();
@@ -412,7 +413,10 @@ public class Handler {
 				pageable
 		);
 		// 显示第1页 共有10页 共有100条记录
-		log.info("玩家{}请求了排行榜, 显示第{}页 共有{}页 共有{}条记录", playerMap.get(client.getSessionId()).getName(), page.getNumber(), page.getTotalPages(), page.getTotalElements());
+		Player requester = playerMap.get(client.getSessionId());
+		log.info("玩家{}请求了排行榜, 显示第{}页 共有{}页 共有{}条记录",
+				requester == null ? "(已注销会话)" : requester.getName(),
+				page.getNumber(), page.getTotalPages(), page.getTotalElements());
 		int totalPages = page.getTotalPages();
 		int currentPage = page.getNumber();
 		int totalElements = (int) page.getTotalElements();
@@ -426,7 +430,8 @@ public class Handler {
 
 	public void handleRequestPlayerList(SocketIOClient client, CRequestPlayerList cRequestPlayerList) {
 		sender.sendPlayerList(client, new SPlayerList(playerMap));
-		log.info("玩家{}请求了玩家列表", playerMap.get(client.getSessionId()).getName());
+		Player requester = playerMap.get(client.getSessionId());
+		log.info("玩家{}请求了玩家列表", requester == null ? "(已注销会话)" : requester.getName());
 	}
 
 	// ================= 地牢留言(Ping)系统：服务端逻辑 =================
