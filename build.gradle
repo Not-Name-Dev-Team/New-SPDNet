@@ -5,7 +5,7 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:9.1.0'
+        classpath 'com.android.tools.build:gradle:9.2.0'
 
         // 添加获取调试信息用的Firebase
         classpath 'com.google.gms:google-services:4.4.4'
@@ -22,10 +22,11 @@ allprojects {
         appName = 'SPDNet'
         appPackageName = 'me.nonamedev.spdnet'
 
-        appVersionCode = 896
-        appVersionName = '3.3.8'
+        //Full releases gets +2 on version code, needed for an F-Droid quirk
+        appVersionCode = 912
+        appVersionName = '4.0.0'
         // Net的版本号
-        appNetVersionName = '0.1.2'
+        appNetVersionName = '0.0.1'
 
         appJavaCompatibility = JavaVersion.VERSION_11
 

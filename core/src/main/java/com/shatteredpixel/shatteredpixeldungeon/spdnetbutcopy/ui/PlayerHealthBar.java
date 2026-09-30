@@ -22,6 +22,7 @@ import com.watabou.utils.PointF;
  * - 使用 NetHero 作为目标以支持多人联机
  * - 添加 challengeIcon 和 challengeText 字段
  * - 添加 playerName 字段
+ * - 同步上游 v4.0.0 的 incomingDOT：血条叠加持续伤害(DOT)暗色预扣段
  * 
  * 用途: 在游戏场景中显示其他玩家的血条和名称。
  */
@@ -30,18 +31,21 @@ public class PlayerHealthBar extends CharHealthIndicator {
 	private static final int COLOR_BG	= 0xFFCC0000;
 	private static final int COLOR_HP	= 0xFF00EE00;
 	private static final int COLOR_SHLD = 0xFFFFFFFF;
+	private static final int COLOR_DOT	= 0x66000000;
 
 	private static final int HEIGHT = 5;
 
 	private ColorBlock Bg;
 	private ColorBlock Shld;
 	private ColorBlock Hp;
+	private ColorBlock Dot;
 	private Image challengeIcon;
 	private RenderedText challengeText;
 	private RenderedText playerName;
 
 	private float health;
 	private float shield;
+	private float incomingDOT;
 	private NetHero target;
 	public int challenges;
 
@@ -62,6 +66,9 @@ public class PlayerHealthBar extends CharHealthIndicator {
 		Hp = new ColorBlock( 1, 1, COLOR_HP );
 		add( Hp );
 
+		Dot = new ColorBlock( 1, 1, COLOR_DOT );
+		add( Dot );
+
 		challengeIcon = Icons.get(Icons.CHAL_COUNT);
 		add(challengeIcon);
 
@@ -77,8 +84,8 @@ public class PlayerHealthBar extends CharHealthIndicator {
 	@Override
 	protected void layout() {
 
-		Bg.x = Shld.x = Hp.x = x;
-		Bg.y = Shld.y = Hp.y = y;
+		Bg.x = Shld.x = Hp.x = Dot.x = x;
+		Bg.y = Shld.y = Hp.y = Dot.y = y;
 
 		Bg.size( width, height );
 
@@ -112,6 +119,11 @@ public class PlayerHealthBar extends CharHealthIndicator {
 		// SPDNet: 修复血条显示异常 - 让 HP/护盾条高度与背景(Bg)一致, 避免出现"粗红底+细绿线"的两条残影
 		Shld.size( width * (float)Math.ceil(shield * pixelWidth)/pixelWidth, height );
 		Hp.size( width * (float)Math.ceil(health * pixelWidth)/pixelWidth, height );
+
+		// SPDNet: 同步上游 v4.0.0 - 持续伤害(DOT)预扣段，与 HealthBar 同公式
+		Dot.size( width * (float)Math.ceil(incomingDOT * pixelWidth)/pixelWidth, height );
+		Dot.scale.x = Math.min(Dot.scale.x, Shld.scale.x); //DOT darken can't go outside of HP bar
+		Dot.x += Shld.width() - Dot.width();
 	}
 
 	public void level( float value ) {
@@ -119,8 +131,13 @@ public class PlayerHealthBar extends CharHealthIndicator {
 	}
 
 	public void level( float health, float shield ){
+		level( health, shield, 0f );
+	}
+
+	public void level( float health, float shield, float DOT ){
 		this.health = health;
 		this.shield = shield;
+		this.incomingDOT = DOT;
 		layout();
 	}
 
@@ -145,9 +162,10 @@ public class PlayerHealthBar extends CharHealthIndicator {
 	public void level(Char c){
 		float health = c.HP;
 		float shield = c.shielding();
+		float incomingDot = c.incomingDOT();
 		float max = Math.max(health+shield, c.HT);
 
-		level(health/max, (health+shield)/max);
+		level(health/max, (health+shield)/max, incomingDot/max);
 	}
 
 	public void setTarget(NetHero ch) {

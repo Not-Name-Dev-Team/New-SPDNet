@@ -11,8 +11,8 @@ spring:
     hibernate:
       ddl-auto: update
 spd:
-  version: 3.3.8
-  netVersion: 0.1.2
+  version: 4.0.0
+  netVersion: 0.0.1
   motd: 我去你发现我了
   bannedWordsFile: banned_words.txt
   # SPDNet: 管理员接口(JWT)访问令牌配置

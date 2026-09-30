@@ -16,6 +16,7 @@ import com.shatteredpixel.shatteredpixeldungeon.items.EquipableItem;
 import com.shatteredpixel.shatteredpixeldungeon.items.Generator;
 import com.shatteredpixel.shatteredpixeldungeon.items.Item;
 import com.shatteredpixel.shatteredpixeldungeon.items.potions.Potion;
+import com.shatteredpixel.shatteredpixeldungeon.items.quest.EscapeCrystal;
 import com.shatteredpixel.shatteredpixeldungeon.items.rings.Ring;
 import com.shatteredpixel.shatteredpixeldungeon.items.scrolls.Scroll;
 import com.shatteredpixel.shatteredpixeldungeon.items.trinkets.Trinket;
@@ -25,6 +26,8 @@ import com.shatteredpixel.shatteredpixeldungeon.messages.Messages;
 import com.shatteredpixel.shatteredpixeldungeon.scenes.PixelScene;
 import com.shatteredpixel.shatteredpixeldungeon.spdnet.web.GameRecord;
 import com.shatteredpixel.shatteredpixeldungeon.sprites.HeroSprite;
+import com.shatteredpixel.shatteredpixeldungeon.sprites.ItemSprite;
+import com.shatteredpixel.shatteredpixeldungeon.sprites.ItemSpriteSheet;
 import com.shatteredpixel.shatteredpixeldungeon.ui.Button;
 import com.shatteredpixel.shatteredpixeldungeon.ui.CheckBox;
 import com.shatteredpixel.shatteredpixeldungeon.ui.IconButton;
@@ -67,6 +70,9 @@ import java.util.Locale;
  * - 使用 GameRecord 替代 Rankings.Record 以支持网络数据
  * - 从在线排行榜获取游戏记录并显示
  * - 第183行: RankingTab.select() 方法覆盖
+ * - 不加载他人成就(Badges.loadLocal 被注释)，避免误解锁并上传
+ * - 症状21: loadGameData 用 record.restoreHeroWithQuickslot() 重建上榜英雄快捷栏
+ * - 同步上游 v4.0.0: 保险库(EscapeCrystal)物品查看按钮 + WndVaultItems（指向上榜英雄本人）
  * 
  * 用途: 在网络排行榜中点击记录后显示详细信息。
  */
@@ -455,6 +461,24 @@ public class NetWndRanking extends WndTabbed {
 
 				}
 			}
+
+			// SPDNet: 同步上游 v4.0.0 - 查看上榜英雄保险库(EscapeCrystal)内物品。
+			// 注意：此处 Dungeon.hero 已由 loadGameData() 替换为 record 还原出的"他人英雄"，
+			// 因此按钮读取的是该条记录本人的保险库，而非本机玩家。
+			EscapeCrystal crystal = Dungeon.hero.belongings.getItem(EscapeCrystal.class);
+			if (crystal != null){
+				IconButton vaultInv = new IconButton(new ItemSprite(ItemSpriteSheet.ESCAPE)){
+					@Override
+					protected void onClick() {
+						Bundle items = crystal.storedItems;
+						crystal.restoreHeroBelongings(Dungeon.hero, null);
+						crystal.storedItems = items; //want to preserve this
+						ShatteredPixelDungeon.scene().addToFront(new WndVaultItems());
+					}
+				};
+				vaultInv.setRect(width-16, 2, 16, 16);
+				add(vaultInv);
+			}
 		}
 
 		private void addItem( Item item ) {
@@ -464,6 +488,17 @@ public class NetWndRanking extends WndTabbed {
 
 			pos += slot.height() + 1;
 		}
+	}
+
+	// SPDNet: 同步上游 v4.0.0 - 保险库物品查看窗
+	private class WndVaultItems extends Window {
+
+		public WndVaultItems(){
+			resize(WIDTH, HEIGHT);
+
+			add(new ItemsTab());
+		}
+
 	}
 
 	private class BadgesTab extends Group {
