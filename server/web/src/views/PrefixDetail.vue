@@ -272,7 +272,8 @@ onMounted(() => {
   width: 56px;
   height: 56px;
   border-radius: var(--radius-lg);
-  background: linear-gradient(135deg, #8b5cf6 0%, #a855f7 100%);
+  /* SPDNet: 用主渐变 token，不要写死紫值，否则会与设计系统的主色漂移 */
+  background: var(--gradient-primary);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -284,7 +285,7 @@ onMounted(() => {
   font-size: 1.75rem;
   font-weight: 700;
   margin: 0;
-  background: linear-gradient(135deg, #8b5cf6 0%, #a855f7 100%);
+  background: var(--gradient-primary);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;

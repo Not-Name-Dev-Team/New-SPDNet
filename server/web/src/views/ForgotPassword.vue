@@ -292,7 +292,9 @@ onUnmounted(() => {
 
 <style scoped>
 .auth-page {
-  min-height: 100vh;
+  /* SPDNet: 必须减去 --header-height —— 本页在 .app-main 内渲染，
+     而 .app-main 已用 padding-top 让出头部高度，用 100vh 会溢出可视区。 */
+  min-height: calc(100vh - var(--header-height));
   display: flex;
   align-items: center;
   justify-content: center;
@@ -371,7 +373,8 @@ onUnmounted(() => {
 
 .brand-desc {
   font-size: 0.9375rem;
-  color: var(--text-tertiary);
+  /* SPDNet: 产品说明正文，属内容，用 secondary */
+  color: var(--text-secondary);
   line-height: 1.7;
   margin: 0 0 var(--space-6);
 }
@@ -475,6 +478,18 @@ onUnmounted(() => {
   gap: var(--space-3);
 }
 
+/* SPDNet: Element Plus 的校验错误提示是 position:absolute; top:100%，
+   浮在字段下方且不占文档流空间。12px 的 gap 装不下它，
+   错误文案会压在下一个字段上。给每个字段留出提示高度。 */
+.auth-form :deep(.el-form-item) {
+  margin-bottom: 0;
+  padding-bottom: 20px;
+}
+
+.auth-form :deep(.el-form-item__error) {
+  padding-top: 4px;
+}
+
 .input-wrapper {
   position: relative;
 }
@@ -509,6 +524,9 @@ onUnmounted(() => {
 
 .verification-input {
   flex: 1;
+  /* SPDNet: flex 子项默认 min-width:auto，内容过长时不肯收缩，
+     会把右侧"发送验证码"按钮挤出容器。必须显式归零。 */
+  min-width: 0;
 }
 
 .verification-input :deep(.el-input__wrapper) {
@@ -576,7 +594,8 @@ onUnmounted(() => {
   position: relative;
   background: var(--surface-1);
   padding: 0 var(--space-3);
-  color: var(--text-tertiary);
+  /* SPDNet: 分隔文案属内容，用 secondary */
+  color: var(--text-secondary);
   font-size: 0.8125rem;
 }
 

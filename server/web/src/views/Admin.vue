@@ -37,43 +37,14 @@
     </div>
 
     <!-- Main Content -->
+    <!-- SPDNet: 区块用标签页承载。四个区块纵向堆叠时，前缀管理随前缀数量持续增行，
+         整页会变得极长；标签页一次只渲染一块。 -->
     <div class="admin-content">
-      <!-- Broadcast Section -->
-      <div class="content-section">
-        <div class="section-header-bar">
-          <div class="header-title">
-            <div class="title-icon broadcast">
-              <el-icon><Bell /></el-icon>
-            </div>
-            <div class="title-content">
-              <h2>广播消息</h2>
-              <span class="section-desc">向所有在线玩家发送消息</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="broadcast-form">
-          <el-input
-            v-model="broadcastMessage"
-            type="textarea"
-            :rows="3"
-            placeholder="输入广播消息内容..."
-            maxlength="200"
-            show-word-limit
-          />
-          <div class="broadcast-actions">
-            <el-button
-              type="primary"
-              :icon="Promotion"
-              :loading="broadcasting"
-              :disabled="!broadcastMessage.trim()"
-              @click="handleBroadcast"
-            >
-              发送广播
-            </el-button>
-          </div>
-        </div>
-      </div>
+      <el-tabs v-model="activeTab" class="admin-tabs">
+        <el-tab-pane name="players">
+          <template #label>
+            <span class="tab-label"><el-icon><UserFilled /></el-icon>玩家管理</span>
+          </template>
 
       <!-- Players Section -->
       <div class="content-section">
@@ -96,7 +67,10 @@
               @change="handleRoleFilterChange"
             >
               <el-option label="管理员" value="ADMIN" />
-              <el-option label="玩家" value="PLAYER" />
+              <!-- SPDNet: 后端 UserRole 枚举常量名是 USER，不是 PLAYER。
+                   此前写 'PLAYER' 会让后端 UserRole.valueOf('PLAYER') 抛异常，
+                   选「玩家」必然筛选失败并弹「加载数据失败」。 -->
+              <el-option label="玩家" value="USER" />
               <el-option label="已封禁" value="BANNED" />
             </el-select>
             <el-input
@@ -118,7 +92,6 @@
           <el-table
             :data="filteredPlayers"
             style="width: 100%"
-            :header-cell-style="headerStyle"
             row-class-name="table-row"
           >
             <el-table-column label="玩家" min-width="180">
@@ -253,6 +226,54 @@
           </div>
         </div>
       </div>
+        </el-tab-pane>
+
+        <el-tab-pane name="broadcast">
+          <template #label>
+            <span class="tab-label"><el-icon><Bell /></el-icon>广播消息</span>
+          </template>
+
+          <div class="content-section">
+            <div class="section-header-bar">
+              <div class="header-title">
+                <div class="title-icon broadcast">
+                  <el-icon><Bell /></el-icon>
+                </div>
+                <div class="title-content">
+                  <h2>广播消息</h2>
+                  <span class="section-desc">向所有在线玩家发送消息</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="broadcast-form">
+              <el-input
+                v-model="broadcastMessage"
+                type="textarea"
+                :rows="3"
+                placeholder="输入广播消息内容..."
+                maxlength="200"
+                show-word-limit
+              />
+              <div class="broadcast-actions">
+                <el-button
+                  type="primary"
+                  :icon="Promotion"
+                  :loading="broadcasting"
+                  :disabled="!broadcastMessage.trim()"
+                  @click="handleBroadcast"
+                >
+                  发送广播
+                </el-button>
+              </div>
+            </div>
+          </div>
+        </el-tab-pane>
+
+        <el-tab-pane name="system">
+          <template #label>
+            <span class="tab-label"><el-icon><Monitor /></el-icon>系统信息</span>
+          </template>
 
       <!-- System Info -->
       <div class="content-section">
@@ -314,9 +335,19 @@
           </div>
         </div>
       </div>
+        </el-tab-pane>
 
-      <!-- Prefix Management Section -->
-      <PlayerPrefix :players="players" />
+        <el-tab-pane name="prefix">
+          <template #label>
+            <span class="tab-label"><el-icon><Medal /></el-icon>前缀管理</span>
+          </template>
+
+          <!-- Prefix Management Section -->
+          <!-- SPDNet: 不传 players。本页的 players 只是当前分页的 20 条，
+               传下去会让下拉只能选到当前页玩家；组件内部自行走服务端搜索。 -->
+          <PlayerPrefix />
+        </el-tab-pane>
+      </el-tabs>
     </div>
   </div>
 </template>
@@ -346,6 +377,9 @@ const serverInfo = ref({})
 const searchQuery = ref('')
 const broadcastMessage = ref('')
 const broadcasting = ref(false)
+
+// SPDNet: 当前标签页。区块多且长，改为一次只渲染一块，避免页面过长。
+const activeTab = ref('players')
 
 // SPDNet: 服务端分页 + 筛选状态
 const currentPage = ref(1)
@@ -385,14 +419,6 @@ const stats = computed(() => [
 // SPDNet: 搜索与角色筛选已改为服务端执行，此处不再本地过滤，
 // 否则在分页数据上过滤会得到"当前页内匹配"的错误结果。
 const filteredPlayers = computed(() => players.value)
-
-const headerStyle = () => ({
-  background: 'rgba(20, 20, 35, 0.8)',
-  color: '#a78bfa',
-  fontWeight: 600,
-  fontSize: '0.875rem',
-  borderBottom: '1px solid rgba(139, 92, 246, 0.2)'
-})
 
 // SPDNet: getRoleDisplay / formatShortDateTime 统一由 utils/format.js 提供，
 // 原先 Admin.vue 自己维护了一份角色映射表，导致 BANNED -> '已封禁' 的语义漂移。
@@ -735,6 +761,8 @@ onMounted(() => {
   font-weight: 700;
   color: var(--text-primary);
   line-height: 1.2;
+  /* SPDNet: 数字等宽对齐，避免刷新时位数变化导致宽度抖动 */
+  font-variant-numeric: tabular-nums;
 }
 
 .stat-label {
@@ -758,6 +786,36 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   gap: var(--space-6);
+}
+
+/* SPDNet: 标签页样式，对齐设计 token */
+.admin-tabs :deep(.el-tabs__header) {
+  margin-bottom: var(--space-6);
+}
+
+.admin-tabs :deep(.el-tabs__nav-wrap::after) {
+  background-color: var(--border-subtle);
+}
+
+.admin-tabs :deep(.el-tabs__item) {
+  color: var(--text-secondary);
+  font-size: 0.9375rem;
+  height: 46px;
+}
+
+.admin-tabs :deep(.el-tabs__item.is-active),
+.admin-tabs :deep(.el-tabs__item:hover) {
+  color: var(--primary-400);
+}
+
+.admin-tabs :deep(.el-tabs__active-bar) {
+  background-color: var(--primary-500);
+}
+
+.tab-label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
 }
 
 .content-section {
@@ -825,6 +883,8 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: var(--space-3);
+  /* SPDNet: 原无 flex-wrap，480-768px 之间筛选项会溢出区块 */
+  flex-wrap: wrap;
 }
 
 .search-input {
@@ -835,8 +895,11 @@ onMounted(() => {
 .pagination-bar {
   display: flex;
   justify-content: flex-end;
-  padding: var(--space-4);
+  /* SPDNet: 与 .table-container 的横向内边距对齐，避免分页器比表格右缘多缩进 16px */
+  padding: var(--space-4) var(--space-2);
   border-top: 1px solid var(--border-subtle);
+  flex-wrap: wrap;
+  gap: var(--space-2);
 }
 
 .search-input :deep(.el-input__wrapper) {
@@ -868,7 +931,20 @@ onMounted(() => {
 
 /* Table */
 .table-container {
-  padding: var(--space-2);
+  /* SPDNet: 表格各列固定宽合计约 870px，低于此宽度必须允许横向滚动 ——
+     容器的 .content-section 是 overflow:hidden，溢出会静默裁掉「操作」列
+     （封禁/删除按钮），用户点不到也不会有任何提示。 */
+  padding: var(--space-2) var(--space-2) 0;
+}
+
+@media (max-width: 1000px) {
+  .table-container {
+    overflow-x: auto;
+  }
+
+  .table-container :deep(.el-table) {
+    min-width: 870px;
+  }
 }
 
 .table-container :deep(.el-table) {
@@ -877,7 +953,18 @@ onMounted(() => {
 }
 
 .table-container :deep(.el-table__header-wrapper) {
-  background: rgba(20, 20, 35, 0.8);
+  background: var(--surface-2);
+}
+
+/* SPDNet: 表头样式走 scoped CSS + 设计 token。
+   不要改回 :header-cell-style 传 JS 对象：内联样式会盖掉 style.css 里
+   设计系统自己的 .el-table th 规则，导致表头颜色脱离调色板。 */
+.table-container :deep(.el-table th.el-table__cell) {
+  background: var(--surface-2);
+  color: var(--primary-300);
+  font-weight: 600;
+  font-size: 0.875rem;
+  border-bottom: 1px solid var(--border-strong);
 }
 
 .table-container :deep(.el-table__body-wrapper) {
@@ -946,7 +1033,9 @@ onMounted(() => {
 
 .player-id {
   font-size: 0.75rem;
-  color: var(--text-tertiary);
+  /* SPDNet: 管理员要照着念的编号，用 secondary 保证足够醒目。
+     注：--text-tertiary 已整体抬到达标值，此处是主动选择更强的一档，非缺陷修复。 */
+  color: var(--text-secondary);
 }
 
 .role-tag :deep(.el-icon) {
@@ -1121,6 +1210,8 @@ onMounted(() => {
   font-size: 1.25rem;
   font-weight: 700;
   color: var(--text-primary);
+  /* SPDNet: 数字等宽对齐，避免轮询刷新时位数变化导致宽度抖动 */
+  font-variant-numeric: tabular-nums;
 }
 
 .info-value.highlight {

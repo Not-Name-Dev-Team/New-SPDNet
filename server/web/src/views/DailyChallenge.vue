@@ -523,7 +523,8 @@ onMounted(() => {
 }
 
 .badge-2 {
-  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  /* SPDNet: 统一走调色板；原生 #ef4444 与相邻 el-tag--danger(--accent-rose) 有色差 */
+  background: linear-gradient(135deg, var(--accent-rose) 0%, #be123c 100%);
 }
 
 .group-name {
@@ -587,7 +588,9 @@ onMounted(() => {
 
 .stat-label {
   font-size: 0.75rem;
-  color: var(--text-tertiary);
+  /* SPDNet: 上方三个大数字（参赛人数/完成人数/完成率）字号完全相同，
+     唯一的区分就是这个标签，标签一弱就分不清谁是谁，因此用 secondary 而非 tertiary。 */
+  color: var(--text-secondary);
   margin-top: var(--space-1);
 }
 
@@ -639,16 +642,28 @@ onMounted(() => {
 
 .leaderboard-content {
   min-height: 300px;
+  /* SPDNet: 极窄屏下弹性轨道仍会被压到不可读，给横向滚动兜底 */
+  overflow-x: auto;
 }
 
 .leaderboard-table {
   display: flex;
   flex-direction: column;
+  min-width: 560px;
 }
 
 .table-row {
   display: grid;
-  grid-template-columns: 70px 1fr 100px 80px 80px 100px 80px 140px;
+  /* SPDNet: 弹性轨道，断点只负责 display:none 掉整列，勿改回手写固定轨道
+     （固定轨道与隐藏列两套机制并存时极易错位）。
+     完成时间列给 minmax(150px)：后端格式为 "yyyy-MM-dd HH:mm:ss"（19 字符），
+     13px 下约需 137px。 */
+  grid-template-columns:
+    56px
+    minmax(120px, 1fr)
+    repeat(3, minmax(64px, auto))
+    minmax(150px, auto);
+  gap: var(--space-2);
   align-items: center;
   padding: var(--space-3) var(--space-4);
   border-bottom: 1px solid var(--border-subtle);
@@ -669,7 +684,8 @@ onMounted(() => {
   font-weight: 600;
   font-size: 0.8125rem;
   color: var(--text-secondary);
-  text-transform: uppercase;
+  /* SPDNet: 原此处有 text-transform: uppercase —— 表头全是中文，该声明恒为空操作。
+     letter-spacing 保留，中文表头适度增加字距可读性更好。 */
   letter-spacing: 0.5px;
 }
 
@@ -763,7 +779,11 @@ onMounted(() => {
 
 .col-time {
   font-size: 0.8125rem;
-  color: var(--text-tertiary);
+  /* SPDNet: 完成时间是记录的关键信息，用 secondary；
+     并加等宽数字，避免时间戳在网格里左右跳动。 */
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .empty-state {
@@ -814,13 +834,11 @@ onMounted(() => {
   }
 }
 
+/* SPDNet: 断点只负责"隐藏列"，轨道布局交给上面的弹性定义，
+   避免"轨道数与可见列数不一致 → 错位/被裁切"。 */
 @media (max-width: 1200px) {
   .info-cards {
     grid-template-columns: 1fr;
-  }
-
-  .table-row {
-    grid-template-columns: 60px 1fr 80px 70px 80px 80px;
   }
 
   .col-hero,
@@ -838,10 +856,6 @@ onMounted(() => {
   .header-actions {
     width: 100%;
     justify-content: space-between;
-  }
-
-  .table-row {
-    grid-template-columns: 50px 1fr 70px 70px;
   }
 
   .col-duration,

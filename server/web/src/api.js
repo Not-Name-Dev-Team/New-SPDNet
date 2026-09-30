@@ -67,10 +67,6 @@ export const playerApi = {
     return api.get('/online')
   },
 
-  getAllPlayers() {
-    return api.get('/players')
-  },
-
   getPlayerPublicInfo(name) {
     return api.get(`/player/${name}`)
   },
@@ -162,12 +158,6 @@ export const adminApi = {
   getPlayers(page = 0, size = 20, role = null, search = null) {
     return api.get('/admin/players', {
       params: { page, size, role, search }
-    })
-  },
-
-  getAllPlayers() {
-    return api.get('/admin/players', {
-      params: { page: 0, size: 1000 }
     })
   },
 

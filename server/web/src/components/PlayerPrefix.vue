@@ -86,20 +86,33 @@
     <div class="assign-section">
       <h3>管理玩家前缀</h3>
       <div class="assign-form">
+        <!-- SPDNet: 玩家下拉必须走服务端搜索，不要改回 v-for 渲染传入的数组。
+             用户量上千时，一次性渲染全部 <el-option> 会拖垮页面；而父组件的
+             players 只是当前分页的 20 条，渲染它只会让下拉选不全玩家。
+             这里按关键词查询后端（复用 AdminController 的 search 参数）。 -->
         <el-select
           v-model="selectedPlayer"
-          placeholder="选择玩家"
+          placeholder="搜索并选择玩家"
           filterable
+          remote
+          reserve-keyword
           clearable
-          style="width: 200px"
+          :remote-method="searchPlayers"
+          :loading="playerSearchLoading"
+          style="width: 240px"
           @change="onPlayerChange"
         >
           <el-option
-            v-for="player in players"
+            v-for="player in playerOptions"
             :key="player.id"
             :label="player.name"
             :value="player.name"
           />
+          <template #empty>
+            <p class="select-empty-hint">
+              {{ playerSearchKeyword ? '未找到匹配的玩家' : '输入玩家名以搜索' }}
+            </p>
+          </template>
         </el-select>
       </div>
 
@@ -169,13 +182,8 @@ import { Plus, Edit, Delete, Medal } from '@element-plus/icons-vue'
 import { adminApi } from '../api'
 import PrefixBadge from './PrefixBadge.vue'
 
-const props = defineProps({
-  players: {
-    type: Array,
-    default: () => []
-  }
-})
-
+// SPDNet: 不接收父组件传入的玩家列表 —— 那是当前分页数据，选不全；
+// 玩家下拉在本组件内按关键词向服务端搜索（见 searchPlayers）。
 const loading = ref(false)
 const saving = ref(false)
 const assigning = ref(false)
@@ -186,6 +194,37 @@ const showCreateDialog = ref(false)
 const editingPrefix = ref(null)
 const selectedPlayer = ref('')
 const prefixToAssign = ref(null)
+
+// SPDNet: 玩家下拉的服务端搜索状态
+const playerOptions = ref([])
+const playerSearchLoading = ref(false)
+const playerSearchKeyword = ref('')
+let playerSearchTimer = null
+
+// SPDNet: 输入防抖 300ms，避免每敲一个字就打一次接口
+const searchPlayers = (keyword) => {
+  playerSearchKeyword.value = keyword || ''
+  clearTimeout(playerSearchTimer)
+
+  if (!playerSearchKeyword.value.trim()) {
+    playerOptions.value = []
+    return
+  }
+
+  playerSearchTimer = setTimeout(async () => {
+    playerSearchLoading.value = true
+    try {
+      const res = await adminApi.getPlayers(0, 20, null, playerSearchKeyword.value.trim())
+      if (res.data.success) {
+        playerOptions.value = res.data.data?.players || []
+      }
+    } catch (error) {
+      console.error('搜索玩家失败:', error)
+    } finally {
+      playerSearchLoading.value = false
+    }
+  }, 300)
+}
 
 const prefixForm = ref({
   name: '',
@@ -495,7 +534,8 @@ onMounted(() => {
 
 .prefix-desc {
   font-size: 0.75rem;
-  color: var(--text-tertiary);
+  /* SPDNet: 前缀描述是内容，用 secondary 保证可读 */
+  color: var(--text-secondary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -532,6 +572,15 @@ onMounted(() => {
   flex-wrap: wrap;
   align-items: center;
   margin-bottom: var(--space-4);
+}
+
+/* SPDNet: 远程搜索下拉的空状态提示 */
+.select-empty-hint {
+  margin: 0;
+  padding: var(--space-3);
+  text-align: center;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
 }
 
 .player-prefixes {

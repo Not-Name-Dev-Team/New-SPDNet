@@ -45,7 +45,7 @@
               v-model="filters.playerName"
               placeholder="输入玩家名"
               clearable
-              style="width: 150px"
+              class="filter-name-input"
             />
           </div>
 
@@ -628,6 +628,22 @@ onMounted(() => {
   margin-left: auto;
 }
 
+/* SPDNet: 900-1400px 之间筛选组会换行，而 margin-left:auto 仍把动作区推到最右，
+   与它作用的复选框脱节。此断点让动作区独占一行并靠左。 */
+@media (max-width: 1200px) {
+  .filter-actions {
+    margin-left: 0;
+    flex-basis: 100%;
+  }
+}
+
+/* SPDNet: 用类控制宽度，不要改回内联 style —— 内联样式会压过
+   900px 断点的 width:100%，两套机制会互相打架。 */
+.filter-name-input {
+  flex: 0 1 170px;
+  min-width: 120px;
+}
+
 .filter-active-tip {
   color: var(--primary-400);
   font-size: 0.875rem;
@@ -804,6 +820,7 @@ onMounted(() => {
   font-weight: 700;
   color: var(--accent-amber);
   margin-bottom: var(--space-1);
+  font-variant-numeric: tabular-nums;
 }
 
 .podium-floor {
@@ -816,11 +833,14 @@ onMounted(() => {
 }
 
 /* Table Section */
+/* SPDNet: 横向必须可滚动。用 overflow:hidden 时，表格一旦溢出，
+   列会被静默裁掉且无法触达（窄屏下的"操作"列就是一例）。 */
 .table-section {
   background: var(--surface-1);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-xl);
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
 }
 
 .table-header {
@@ -849,7 +869,14 @@ onMounted(() => {
 
 .table-row {
   display: grid;
-  grid-template-columns: 70px 1fr 120px 100px 90px 80px 80px 90px;
+  /* SPDNet: 轨道必须与"实际可见的列"匹配，因此用弹性轨道而非手写固定轨道：
+     数值列按内容自适应，玩家列占剩余空间，各断点只负责 display:none 掉整列。
+     若改成手写固定轨道，务必同步各断点隐藏的列，否则会错位。 */
+  grid-template-columns:
+    56px
+    minmax(120px, 1fr)
+    repeat(6, minmax(64px, auto));
+  gap: var(--space-2);
   align-items: center;
   padding: var(--space-3) var(--space-4);
   border-bottom: 1px solid var(--border-subtle);
@@ -944,6 +971,8 @@ onMounted(() => {
 
 .score-value {
   font-weight: 600;
+  /* SPDNet: 排行榜的核心用途是纵向比较数值，比例数字会让右边缘参差 */
+  font-variant-numeric: tabular-nums;
 }
 
 .col-floor,
@@ -1049,13 +1078,11 @@ onMounted(() => {
 }
 
 /* Responsive */
+/* SPDNet: 断点只负责"隐藏列"，轨道布局交给上面的 minmax 弹性定义，
+   避免再次出现"轨道数与可见列数不一致 → 错位/被裁切"的问题。 */
 @media (max-width: 1200px) {
   .podium-cards {
     grid-template-columns: 1fr;
-  }
-
-  .table-row {
-    grid-template-columns: 60px 1fr 100px 80px 70px 70px 80px;
   }
 
   .col-challenge {
@@ -1083,10 +1110,6 @@ onMounted(() => {
     justify-content: space-between;
   }
 
-  .table-row {
-    grid-template-columns: 50px 1fr 80px 60px 70px;
-  }
-
   .col-floor,
   .col-mode {
     display: none;
@@ -1101,7 +1124,6 @@ onMounted(() => {
   }
 
   .table-row {
-    grid-template-columns: 40px 1fr 70px 60px;
     padding: var(--space-2) var(--space-3);
   }
 

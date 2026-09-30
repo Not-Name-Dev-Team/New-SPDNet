@@ -144,7 +144,9 @@ const rules = {
   ],
   password: [
     { required: true, message: '请输入密码', trigger: 'blur' },
-    { min: 6, max: 20, message: '长度在 6 到 20 个字符', trigger: 'blur' }
+    // SPDNet: 上限原为 20，与注册/重置页的 32 及后端校验不一致
+    // （PlayerController 强制 6-32）。后果是 21-32 位密码能设置却无法登录。
+    { min: 6, max: 32, message: '长度在 6 到 32 个字符', trigger: 'blur' }
   ]
 }
 
@@ -182,7 +184,10 @@ onMounted(() => {
 
 <style scoped>
 .auth-page {
-  min-height: 100vh;
+  /* SPDNet: 必须减去 --header-height —— 本页在 .app-main 内渲染，
+     而 .app-main 已用 padding-top 让出头部高度，用 100vh 会溢出可视区、
+     卡片无法垂直居中。 */
+  min-height: calc(100vh - var(--header-height));
   display: flex;
   align-items: center;
   justify-content: center;
@@ -261,7 +266,8 @@ onMounted(() => {
 
 .brand-desc {
   font-size: 0.9375rem;
-  color: var(--text-tertiary);
+  /* SPDNet: 产品说明正文，属内容，用 secondary */
+  color: var(--text-secondary);
   line-height: 1.7;
   margin: 0 0 var(--space-6);
 }
@@ -365,6 +371,18 @@ onMounted(() => {
   gap: var(--space-3);
 }
 
+/* SPDNet: Element Plus 的校验错误提示是 position:absolute; top:100%，
+   即绝对定位"浮"在字段下方、不占据文档流空间。12px 的 gap 装不下它，
+   错误文案会压在下一个字段（用户名/密码）上。给每个字段留出提示高度。 */
+.auth-form :deep(.el-form-item) {
+  margin-bottom: 0;
+  padding-bottom: 20px;
+}
+
+.auth-form :deep(.el-form-item__error) {
+  padding-top: 4px;
+}
+
 .input-wrapper {
   position: relative;
 }
@@ -459,7 +477,8 @@ onMounted(() => {
   position: relative;
   background: var(--surface-1);
   padding: 0 var(--space-3);
-  color: var(--text-tertiary);
+  /* SPDNet: 分隔文案属内容，用 secondary */
+  color: var(--text-secondary);
   font-size: 0.8125rem;
 }
 

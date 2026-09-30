@@ -60,9 +60,17 @@
   --border-glow: rgba(139, 92, 246, 0.4);
 
   /* 文字色 */
+  /* SPDNet: 对比度按 WCAG 相对亮度实测（括号内为最差背景 #1a1a24 卡片底色上的值）：
+       --text-secondary #a1a1aa  6.73:1  AA 通过 —— 可承载正文
+       --text-tertiary  #8b8b96  5.12:1  AA 通过 —— 可承载次要正文
+       --text-muted     #52525b  2.23:1  仅装饰
+     原 --text-tertiary 为 #71717a，实测 3.57:1（页面底色上也仅 4.09:1），
+     不达 AA 正文 4.5:1，但全站有 40 余处用它渲染真实内容（标签、时间、说明）。
+     逐处替换易漏且会不断回流，故直接抬升该 token 到达标值，
+     保留其"比 secondary 弱"的层次语义。 */
   --text-primary: #fafafa;
   --text-secondary: #a1a1aa;
-  --text-tertiary: #71717a;
+  --text-tertiary: #8b8b96;
   --text-muted: #52525b;
 
   /* 渐变 */

@@ -474,7 +474,6 @@ const now = useNow()
 const route = useRoute()
 const playerInfo = ref(null)
 const playerRank = ref(null)
-const rankDiff = ref(0)
 const recentGames = ref([])
 const expandedDetail = ref(null)
 const expandedSubDetail = ref(null)
@@ -638,13 +637,6 @@ const statsList = computed(() => [
   }
 ])
 
-const progressPercent = computed(() => {
-  if (!playerInfo.value?.maxScore || !rankDiff.value) return 0
-  const base = playerInfo.value.maxScore - rankDiff.value
-  if (base <= 0) return 100
-  return Math.min(100, Math.round((playerInfo.value.maxScore / (base + rankDiff.value)) * 100))
-})
-
 const getResultClass = (result) => {
   const classes = {
     '胜利': 'success',
@@ -690,11 +682,8 @@ const loadPlayerRank = async () => {
     const res = await leaderboardApi.getPlayerRank(name)
     if (res.data.success && res.data.data?.ranked) {
       playerRank.value = res.data.data.rank
-      // 与上一名（分数更高者）的分差；已是第一名时为 null
-      rankDiff.value = res.data.data.scoreGap || 0
     } else {
       playerRank.value = null
-      rankDiff.value = 0
     }
   } catch (error) {
     console.error('获取排名失败:', error)
@@ -906,6 +895,8 @@ onMounted(() => {
   font-weight: 700;
   color: var(--text-primary);
   line-height: 1.2;
+  /* SPDNet: 数值等宽对齐，便于纵向比较 */
+  font-variant-numeric: tabular-nums;
 }
 
 .stat-label {
@@ -1062,7 +1053,8 @@ onMounted(() => {
 
 .game-time {
   font-size: 0.75rem;
-  color: var(--text-tertiary);
+  /* SPDNet: 相对时间（"3 分钟前"）是判断战绩列表是否新鲜的有效信息，改用 secondary */
+  color: var(--text-secondary);
 }
 
 .game-stats {
@@ -1085,56 +1077,10 @@ onMounted(() => {
   justify-content: center;
   gap: var(--space-2);
   padding: var(--space-8);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 
 /* Rank Info */
-.rank-info {
-  padding: var(--space-4);
-}
-
-.rank-display {
-  text-align: center;
-  margin-bottom: var(--space-4);
-}
-
-.rank-number {
-  font-size: 3rem;
-  font-weight: 800;
-  background: var(--gradient-primary);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  line-height: 1;
-}
-
-.rank-label {
-  color: var(--text-secondary);
-  font-size: 0.875rem;
-  margin-top: var(--space-1);
-}
-
-.rank-progress {
-  background: var(--surface-2);
-  padding: var(--space-4);
-  border-radius: var(--radius-lg);
-}
-
-.progress-header {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: var(--space-2);
-  font-size: 0.875rem;
-}
-
-.progress-header span:first-child {
-  color: var(--text-secondary);
-}
-
-.progress-diff {
-  color: var(--accent-amber);
-  font-weight: 600;
-}
 
 .progress-bar {
   height: 8px;
@@ -1295,7 +1241,10 @@ onMounted(() => {
 }
 
 .detail-item span:first-child {
-  color: var(--text-tertiary);
+  /* SPDNet: 这里渲染的是图鉴/词条的名称，是用户展开后最该读到的内容，
+     因此用 secondary 而非 tertiary。 */
+  color: var(--text-secondary);
+  font-weight: 500;
 }
 
 .detail-item span:last-child {
@@ -1368,8 +1317,12 @@ onMounted(() => {
 }
 
 .third-level-item .item-meta {
-  color: var(--text-tertiary);
-  font-size: 0.6875rem;
+  /* SPDNet: 这里渲染的是"使用 N 次 / 遭遇 N 次"这类真实数据，
+     字号下限取 12px（11px 正文可读性不足），颜色取 secondary。
+     需要弱化层次时用字重，不要靠降低字号或对比度。 */
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
 }
 
 .achievement-items {
@@ -1429,7 +1382,7 @@ onMounted(() => {
 .empty-detail {
   padding: var(--space-3);
   text-align: center;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   font-size: 0.8125rem;
 }
 
@@ -1472,12 +1425,8 @@ onMounted(() => {
     grid-template-columns: 1fr;
   }
 
-  .game-stats {
-    grid-template-columns: 1fr;
-  }
-
   .rank-number {
-    font-size: 2rem;
+    font-size: 1.5rem;
   }
 }
 </style>

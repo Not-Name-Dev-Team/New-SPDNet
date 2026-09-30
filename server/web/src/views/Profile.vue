@@ -489,6 +489,9 @@ onMounted(() => {
 .user-badges {
   display: flex;
   gap: var(--space-2);
+  /* SPDNet: 原无 flex-wrap，而其中一枚是"注册于 …（N 年前）"这类长标签。
+     窄屏下它不肯换行，会把容器顶破并横向溢出。 */
+  flex-wrap: wrap;
 }
 
 /* Profile Content */

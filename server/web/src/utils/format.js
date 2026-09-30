@@ -2,29 +2,40 @@
 // 该模块收敛各视图重复实现的前缀样式、角色标签、游戏模式文本逻辑
 // 说明：其余夹具(角色/游戏模式)映射需与后端保持一致
 
-// 玩家角色 -> Element Plus tag 类型
-// 兼容两种取值：中文枚举（前端页）与英文枚举（Admin 管理端）
+// SPDNet: 角色 -> Element Plus tag 类型
+// 兼容三种取值：后端枚举名（USER/ADMIN/BANNED）、中文显示名（登录接口）、以及历史遗留的 'PLAYER'
+//
+// 重要（踩坑记录）：后端 UserRole 枚举的常量名是 USER，不是 PLAYER
+//   （UserRole.java: USER("玩家"), ADMIN("管理员"), BANNED("封禁")）
+// 而 Admin 接口返回的是 player.getRole().name()，即 'USER'。
+// 早期前端误以为是 'PLAYER'，导致 'USER' 落空、角色列原样显示英文。此处以 USER 为准，
+// 同时保留 'PLAYER' 键，兼容可能存在的旧缓存/旧数据，避免再次漂移。
 export function getRoleType(role) {
   const types = {
-    // 中文：玩家侧页面
+    // 后端枚举名（Admin 管理端）
+    'ADMIN': 'danger',
+    'USER': 'primary',
+    'BANNED': 'info',
+    // 中文显示名（玩家侧页面 / 登录接口返回 getDisplayName()）
     '管理员': 'danger',
     '玩家': 'primary',
     '已封禁': 'info',
-    // 英文：Admin 管理端 (玩家角色为 'ADMIN'/'PLAYER'/'BANNED')
-    'ADMIN': 'danger',
-    'PLAYER': 'primary',
-    'BANNED': 'info'
+    '封禁': 'info',
+    // 历史遗留：曾用 PLAYER 表示普通玩家
+    'PLAYER': 'primary'
   }
   return types[role] || 'primary'
 }
 
-// SPDNet: 角色英文枚举 -> 中文显示名（Admin 表格复用，避免各处自建映射表）
+// SPDNet: 角色 -> 中文显示名（Admin 表格复用，避免各处自建映射表）
 // 兼容已经是中文显示名的情况，直接原样返回
 export function getRoleDisplay(role) {
   const displays = {
     'ADMIN': '管理员',
-    'PLAYER': '玩家',
-    'BANNED': '已封禁'
+    'USER': '玩家',
+    'BANNED': '已封禁',
+    // 历史遗留：曾用 PLAYER 表示普通玩家
+    'PLAYER': '玩家'
   }
   return displays[role] || role
 }

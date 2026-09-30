@@ -2,15 +2,21 @@
   <div class="chat-page">
     <div class="chat-wrapper">
       <!-- Sidebar - Online Users -->
-      <aside class="chat-sidebar">
-        <div class="sidebar-header">
+      <aside class="chat-sidebar" :class="{ collapsed: sidebarCollapsed }">
+        <div class="sidebar-header" @click="sidebarCollapsed = !sidebarCollapsed">
           <div class="header-title">
             <el-icon><UserFilled /></el-icon>
             <span>在线玩家</span>
           </div>
-          <el-tag type="success" effect="dark" round size="small">
-            {{ onlineUsers.length }}
-          </el-tag>
+          <div class="header-actions">
+            <el-tag type="success" effect="dark" round size="small">
+              {{ onlineUsers.length }}
+            </el-tag>
+            <!-- SPDNet: 窄屏下侧栏改为可点击折叠，避免整块消失 -->
+            <el-icon class="collapse-toggle" :class="{ rotated: sidebarCollapsed }">
+              <ArrowDown />
+            </el-icon>
+          </div>
         </div>
 
         <div class="users-list" v-if="onlineUsers.length > 0">
@@ -25,13 +31,15 @@
               <span class="online-dot"></span>
             </div>
             <div class="user-info">
-              <span class="user-name">
+              <span class="user-name" :title="user.name">
                 <PrefixBadge v-if="user.prefix" :prefix="user.prefix" />
                 {{ user.name }}
               </span>
               <div class="user-meta">
                 <el-tag :type="getRoleType(user.role)" size="small" effect="dark" round>
-                  {{ user.role }}
+                  <!-- SPDNet: 原直接渲染 user.role。后端此处返回枚举名（USER/ADMIN/BANNED），
+                       一旦出现映射表未覆盖的取值就会把英文原样显示给玩家。 -->
+                  {{ getRoleDisplay(user.role) }}
                 </el-tag>
                 <span v-if="user.status" class="user-status-text">
                   {{ user.status.depth }}层
@@ -153,15 +161,17 @@
 import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { ElMessage } from 'element-plus'
 import {
-  UserFilled, User, ChatDotRound, Refresh, Promotion, InfoFilled
+  UserFilled, User, ChatDotRound, Refresh, Promotion, InfoFilled, ArrowDown
 } from '@element-plus/icons-vue'
 import { playerApi, chatApi } from '../api'
 import { authStore } from '../store/auth'
 import PrefixBadge from '../components/PrefixBadge.vue'
-import { getRoleType } from '../utils/format'
+import { getRoleType, getRoleDisplay } from '../utils/format'
 
 const onlineUsers = ref([])
 const messages = ref([])
+// SPDNet: 窄屏下在线名单的折叠状态（宽屏不受影响，见样式里的断点）
+const sidebarCollapsed = ref(false)
 const messageText = ref('')
 const loading = ref(false)
 const sending = ref(false)
@@ -361,14 +371,17 @@ onUnmounted(() => {
   max-width: var(--max-width);
   margin: 0 auto;
   padding: var(--space-6) var(--content-padding);
-  min-height: calc(100vh - var(--header-height) - 200px); /* 确保最小高度 */
 }
 
 /* 聊天包装器 */
+/* SPDNet: 高度计算此前减了两次 --header-height 又多减 200px。
+   顶部偏移由 App.vue 的 .app-main{padding-top:var(--header-height)} 承担，
+   这里再减一次就等于凭空缩短约 70px，加上尾部没有对应元素的 200px，
+   页面必然出现一条永久滚动条。此处只减去本页自己的上下 padding。 */
 .chat-wrapper {
   display: flex;
-  height: calc(100vh - var(--header-height) - var(--space-12) - 200px); /* 视口高度减去header、padding和footer空间 */
-  min-height: 500px;
+  height: calc(100vh - var(--header-height) - 2 * var(--space-6));
+  min-height: 420px;
   background: var(--surface-1);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-xl);
@@ -392,6 +405,23 @@ onUnmounted(() => {
   padding: var(--space-4);
   border-bottom: 1px solid var(--border-subtle);
   flex-shrink: 0;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* SPDNet: 折叠箭头只在窄屏出现（宽屏侧栏不会折叠） */
+.collapse-toggle {
+  display: none;
+  color: var(--text-secondary);
+  transition: transform var(--transition-fast);
+}
+
+.collapse-toggle.rotated {
+  transform: rotate(-90deg);
 }
 
 .header-title {
@@ -546,7 +576,8 @@ onUnmounted(() => {
   justify-content: center;
   gap: var(--space-2);
   padding: var(--space-8);
-  color: var(--text-tertiary);
+  /* SPDNet: 该容器内含可操作的提示文案（引导用户发第一条消息），属内容，用 secondary。 */
+  color: var(--text-secondary);
 }
 
 .empty-icon {
@@ -616,7 +647,9 @@ onUnmounted(() => {
 
 .message-time {
   font-size: 0.75rem;
-  color: var(--text-tertiary);
+  /* SPDNet: 时间戳是判断消息新旧的依据，尤其在轮询刷新的聊天页里，用 secondary。 */
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
 }
 
 .message-bubble {
@@ -710,9 +743,26 @@ onUnmounted(() => {
 }
 
 /* Responsive */
+/* SPDNet: 窄屏下侧栏折叠而非隐藏 —— 在线玩家名单含段位与挑战数，
+   直接 display:none 会让手机端完全没有在线名单入口。 */
 @media (max-width: 900px) {
   .chat-sidebar {
+    flex: 0 0 auto;
+    max-height: 220px;
+    overflow-y: auto;
+  }
+
+  .chat-sidebar.collapsed .users-list {
     display: none;
+  }
+
+  /* 窄屏才显示折叠把手 */
+  .collapse-toggle {
+    display: inline-flex;
+  }
+
+  .sidebar-header {
+    cursor: pointer;
   }
 }
 
