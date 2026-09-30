@@ -1,5 +1,13 @@
 server:
   port: 42910
+logging:
+  level:
+    root: INFO
+    # SPDNet: 本服务端日志分两档——INFO 只留状态变更/里程碑/异常（连接与断开、进层、通关、
+    # 每日挑战记录、成就、认证失败、屏蔽词加载等），逐事件流水（移动、聊天、图鉴增量、
+    # Journal 全量下发、各类请求查询）统一为 DEBUG。
+    # 排查联机问题时把下面这行临时改成 DEBUG 即可，无需改代码重新构建部署。
+    me.catand.spdnetserver: INFO
 spring:
   datasource:
     url: jdbc:sqlite:SPDNetData.db

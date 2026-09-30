@@ -130,7 +130,9 @@ public class Handler {
 	}
 
 	public void handleChatMessage(Player player, CChatMessage cChatMessage) {
-		log.info("玩家{}发送了消息：{}", player.getName(), cChatMessage.getMessage());
+		// SPDNet: 聊天属逐条流水且正文会原样进日志（等于把聊天记录抄进 journald，消息内的换行还能伪造日志行），
+		// 故降为 DEBUG 且不记录正文——聊天本身已由 ChatService 留存并可在 web 端回看。
+		log.debug("玩家{}发送了聊天消息", player.getName());
 		// SPDNet: 使用客户端传来的时间，如果没有则使用服务端时间
 		String prefixName = getPlayerPrefixName(player.getName());
 		SChatMessage chatMessage = new SChatMessage(player.getName(), cChatMessage.getMessage(), cChatMessage.getTime(), prefixName);
@@ -277,7 +279,7 @@ public class Handler {
 			Arrays.asList(DailyGameRecord.DailyRecordStatus.CREATED, DailyGameRecord.DailyRecordStatus.COMPLETED)
 		);
 
-		log.info("玩家{}查询每日挑战: 组别={}, 种子={}, 已有记录={}", player.getName(), groupIndex, seed, hasExistingRecord);
+		log.debug("玩家{}查询每日挑战: 组别={}, 种子={}, 已有记录={}", player.getName(), groupIndex, seed, hasExistingRecord);
 		sender.sendAllowDailyChallenge(client, new SAllowDailyChallenge(groupIndex, seed, today.toString(), hasExistingRecord, challenges));
 	}
 
@@ -386,7 +388,9 @@ public class Handler {
 		}
 		String prefixName = getPlayerPrefixName(player.getName());
 		sender.sendBroadcastPlayerMove(client, player.getStatus(), new SPlayerMove(player.getName(), cPlayerMove.getPos(), prefixName));
-		log.info("玩家{}移动到了{}", player.getName(), cPlayerMove.getPos());
+		// SPDNet: 移动是逐格事件（每走一步一条），且服务端已移除降频合并，INFO 会刷屏；
+		// 降为 DEBUG 仅用于联机位置同步排查。
+		log.debug("玩家{}移动到了{}", player.getName(), cPlayerMove.getPos());
 	}
 
 	public void handleRequestLeaderboard(SocketIOClient client, CRequestLeaderboard cRequestLeaderboard) {
@@ -414,7 +418,7 @@ public class Handler {
 		);
 		// 显示第1页 共有10页 共有100条记录
 		Player requester = registry.playerOf(client.getSessionId());
-		log.info("玩家{}请求了排行榜, 显示第{}页 共有{}页 共有{}条记录",
+		log.debug("玩家{}请求了排行榜, 显示第{}页 共有{}页 共有{}条记录",
 				requester == null ? "(已注销会话)" : requester.getName(),
 				page.getNumber(), page.getTotalPages(), page.getTotalElements());
 		int totalPages = page.getTotalPages();
@@ -431,7 +435,9 @@ public class Handler {
 	public void handleRequestPlayerList(SocketIOClient client, CRequestPlayerList cRequestPlayerList) {
 		sender.sendPlayerList(client, new SPlayerList(registry.onlinePlayers()));
 		Player requester = registry.playerOf(client.getSessionId());
-		log.info("玩家{}请求了玩家列表", requester == null ? "(已注销会话)" : requester.getName());
+		// SPDNet: 客户端在本地玩家表缺人时会主动 syncPlayerList()（见 spdnet/web/Handler.handlePlayerMove），
+		// 一旦列表不同步就会随每次移动级联触发，故为逐请求流水，降为 DEBUG。
+		log.debug("玩家{}请求了玩家列表", requester == null ? "(已注销会话)" : requester.getName());
 	}
 
 	// ================= 地牢留言(Ping)系统：服务端逻辑 =================
@@ -605,7 +611,7 @@ public class Handler {
 	}
 
 	public void handleViewHero(Player player, CViewHero cViewHero) {
-		log.info("玩家{}请求查看玩家{}", player.getName(), cViewHero.getTargetName());
+		log.debug("玩家{}请求查看玩家{}", player.getName(), cViewHero.getTargetName());
 		String prefixName = getPlayerPrefixName(player.getName());
 		// SPDNet: 经 SessionRegistry 的 name→sessionId 索引 O(1) 找到目标连接
 		SocketIOClient targetClient = socketService.getClientByName(cViewHero.getTargetName());
@@ -636,7 +642,8 @@ public class Handler {
 		catalog.setUseCount(cCatalogUpdate.getUseCount());
 
 		playerCatalogRepository.save(catalog);
-		log.info("玩家{}更新了 Catalog 数据：{} - {}", player.getName(), cCatalogUpdate.getCatalogType(), cCatalogUpdate.getItemClass());
+		// SPDNet: 图鉴为增量同步——喝药/进食/拾取露水/买卖等每次 countUses 都会触发一条，属逐事件流水，降为 DEBUG。
+		log.debug("玩家{}更新了 Catalog 数据：{} - {}", player.getName(), cCatalogUpdate.getCatalogType(), cCatalogUpdate.getItemClass());
 	}
 
 	// SPDNet: 处理 Bestiary 更新
@@ -661,7 +668,8 @@ public class Handler {
 		bestiary.setEncountered(cBestiaryUpdate.getEncountered());
 
 		playerBestiaryRepository.save(bestiary);
-		log.info("玩家{}更新了 Bestiary 数据：{} - {}", player.getName(), cBestiaryUpdate.getBestiaryType(), cBestiaryUpdate.getEntityClass());
+		// SPDNet: 同 Catalog，图鉴/遭遇计数为逐事件增量同步，降为 DEBUG。
+		log.debug("玩家{}更新了 Bestiary 数据：{} - {}", player.getName(), cBestiaryUpdate.getBestiaryType(), cBestiaryUpdate.getEntityClass());
 	}
 
 	// SPDNet: 处理 Document 更新
@@ -685,7 +693,8 @@ public class Handler {
 		document.setState(cDocumentUpdate.getState());
 
 		playerDocumentRepository.save(document);
-		log.info("玩家{}更新了 Document 数据：{} - {} state={}", player.getName(), cDocumentUpdate.getDocumentType(), cDocumentUpdate.getPageName(), cDocumentUpdate.getState());
+		// SPDNet: 同 Catalog，文档阅读状态为逐事件增量同步，降为 DEBUG。
+		log.debug("玩家{}更新了 Document 数据：{} - {} state={}", player.getName(), cDocumentUpdate.getDocumentType(), cDocumentUpdate.getPageName(), cDocumentUpdate.getState());
 	}
 
 	// SPDNet: 加载玩家的 Journal 数据并发送给客户端
@@ -716,7 +725,8 @@ public class Handler {
 		}
 
 		sender.sendJournals(client, new SJournals(catalogDataList, bestiaryDataList, documentDataList));
-		log.info("玩家{}的 Journal 数据已发送，包含 {} 个 Catalog, {} 个 Bestiary, {} 个 Document",
+		// SPDNet: 每次登录都会全量下发一次（条数固定且较长），非状态变更，降为 DEBUG。
+		log.debug("玩家{}的 Journal 数据已发送，包含 {} 个 Catalog, {} 个 Bestiary, {} 个 Document",
 			player.getName(), catalogs.size(), bestiaries.size(), documents.size());
 	}
 }

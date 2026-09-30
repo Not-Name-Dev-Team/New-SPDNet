@@ -138,7 +138,8 @@ private PlayerPrefixService playerPrefixService;
 
 			if (name == null || password == null) {
 				client.sendEvent(Events.ERROR.getName(), new SError("请提供用户名和密码"));
-				log.info("连接失败: 缺少认证信息, " + client.getSessionId());
+				// SPDNet: 未携带凭据时没有账号可归因，多为扫描器/半截客户端握手，属噪音，降为 DEBUG。
+				log.debug("连接失败: 缺少认证信息, {}", client.getSessionId());
 				client.disconnect();
 				return;
 			}
@@ -146,28 +147,28 @@ private PlayerPrefixService playerPrefixService;
 			Player player = playerRepository.findByName(name);
 			if (player == null) {
 				client.sendEvent(Events.ERROR.getName(), new SError("用户名或密码错误"));
-				log.info("连接失败: 用户不存在, " + name + ", " + client.getSessionId());
+				log.info("连接失败: 用户不存在, {}, {}", name, client.getSessionId());
 				client.disconnect();
 				return;
 			}
 
 			if (!passwordEncoder.matches(password, player.getPassword())) {
 				client.sendEvent(Events.ERROR.getName(), new SError("用户名或密码错误"));
-				log.info("连接失败: 密码错误, " + name + ", " + client.getSessionId());
+				log.info("连接失败: 密码错误, {}, {}", name, client.getSessionId());
 				client.disconnect();
 				return;
 			}
 
 			if (player.getRole() == UserRole.BANNED) {
 				client.sendEvent(Events.ERROR.getName(), new SError("账号已被封禁"));
-				log.info("连接失败: 账号已封禁, " + name + ", " + client.getSessionId());
+				log.info("连接失败: 账号已封禁, {}, {}", name, client.getSessionId());
 				client.disconnect();
 				return;
 			}
 
 			if (!(spdProperties.getVersion().equals(spdVersion) && (spdProperties.getNetVersion().equals(netVersion) || netVersion.equals(spdProperties.getNetVersion() + "-INDEV")))) {
 				client.sendEvent(Events.ERROR.getName(), new SError("版本不匹配"));
-				log.info("连接失败: 版本不匹配, 破碎版本: " + spdVersion + ", Net版本: " + netVersion + ", " + client.getSessionId());
+				log.info("连接失败: 版本不匹配, 破碎版本: {}, Net版本: {}, {}", spdVersion, netVersion, client.getSessionId());
 				client.disconnect();
 				return;
 			}
@@ -181,7 +182,7 @@ private PlayerPrefixService playerPrefixService;
 					});
 			if (!reg.accepted()) {
 				client.sendEvent(Events.ERROR.getName(), new SError(player.getName() + "已登录, 重复登录"));
-				log.info("连接失败: " + player.getName() + "已登录, 重复登录, " + client.getSessionId());
+				log.info("连接失败: {}已登录, 重复登录, {}", player.getName(), client.getSessionId());
 				client.disconnect();
 				return;
 			}
@@ -211,7 +212,7 @@ private PlayerPrefixService playerPrefixService;
 			player.setPrefixName(activePrefixName);
 			sender.sendBroadcastJoin(new SJoin(player.getName(), player.getRole().getDisplayName(), activePrefixName));
 			sender.sendPlayerList(client, new SPlayerList(registry.onlinePlayers()));
-			log.info("玩家已连接: " + player.getName() + ", " + client.getSessionId());
+			log.info("玩家已连接: {}, {}", player.getName(), client.getSessionId());
 		});
 		spdNetNamespace.addDisconnectListener(client -> unregisterSession(client.getSessionId()));
 		// SPDNet: 需要玩家上下文的事件统一走 onPlayerEvent——会话已注销时静默丢弃，
@@ -328,7 +329,7 @@ private PlayerPrefixService playerPrefixService;
 		if (result.wasCurrentSession()) {
 			String activePrefixName = playerPrefixService.getActivePrefixName(player.getName());
 			sender.sendBroadcastExit(new SExit(player.getName(), activePrefixName));
-			log.info("玩家已断开连接: " + player.getName() + ", " + sessionId);
+			log.info("玩家已断开连接: {}, {}", player.getName(), sessionId);
 		} else {
 			log.info("玩家{}的旧会话已断开（已被新会话接管，跳过退出广播）: {}", player.getName(), sessionId);
 		}
