@@ -104,6 +104,11 @@ export const leaderboardApi = {
   // SPDNet: 获取铁人模式前三名（未被ban玩家）
   getTop3IronmanPlayers() {
     return api.get('/leaderboard/top3-ironman')
+  },
+
+  // SPDNet: 获取某玩家的全球排名（服务端计算，避免前端拉取全量记录）
+  getPlayerRank(name) {
+    return api.get(`/leaderboard/rank/${encodeURIComponent(name)}`)
   }
 }
 

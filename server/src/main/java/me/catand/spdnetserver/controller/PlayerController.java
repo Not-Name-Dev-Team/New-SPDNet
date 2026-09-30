@@ -358,6 +358,39 @@ public class PlayerController {
         return ApiResponse.success("获取成功", data);
     }
 
+    // SPDNet: 获取某玩家的全球排名。
+    // 名次定义为"分数高于该玩家的记录数 + 1"（排除被ban玩家），与排行榜默认排序口径一致。
+    // 前端原先通过拉取 1000 条记录在本地计算，既产生大响应又被硬性截断在 1000 名。
+    @GetMapping("/leaderboard/rank/{name}")
+    public ApiResponse<Map<String, Object>> getPlayerRank(@PathVariable String name) {
+        List<GameRecord> best = gameRecordRepository.findBestByPlayerName(name, PageRequest.of(0, 1));
+
+        Map<String, Object> data = new HashMap<>();
+        if (best.isEmpty()) {
+            data.put("ranked", false);
+            return ApiResponse.success("该玩家暂无成绩", data);
+        }
+
+        GameRecord top = best.get(0);
+        int score = top.getScore();
+        // 名次 = 分数严格高于该玩家的记录数 + 1
+        long higher = gameRecordRepository.countHigherScore(score);
+
+        // SPDNet: 与分数更高的最近一名之间的分差，供前端展示追赶进度
+        Integer scoreGap = null;
+        List<GameRecord> above = gameRecordRepository.findLowestScoreAbove(score, PageRequest.of(0, 1));
+        if (!above.isEmpty()) {
+            scoreGap = above.get(0).getScore() - score;
+        }
+
+        data.put("ranked", true);
+        data.put("rank", higher + 1);
+        data.put("bestScore", score);
+        data.put("bestFloor", top.getMaxDepth());
+        data.put("scoreGap", scoreGap);
+        return ApiResponse.success("获取成功", data);
+    }
+
     // SPDNet: 获取铁人模式前三名（未被ban玩家）
     @GetMapping("/leaderboard/top3-ironman")
     public ApiResponse<List<LeaderboardRecordDTO>> getTop3IronmanPlayers() {

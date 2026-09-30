@@ -51,4 +51,23 @@ public interface GameRecordRepository extends JpaRepository<GameRecord, Long> {
             "g.daily = false " +
             "ORDER BY g.score DESC")
     List<GameRecord> findTop3IronmanPlayers(Pageable pageable);
+
+    // SPDNet: 统计分数严格高于给定值的记录数（排除被ban玩家）。
+    // 名次 = 该计数 + 1。前端原先为此拉取 1000 条记录到本地排序，既慢又被硬性截断。
+    @Query("SELECT COUNT(g) FROM GameRecord g WHERE " +
+            "g.player.role != 'BANNED' AND " +
+            "g.score > :score")
+    long countHigherScore(@Param("score") int score);
+
+    // SPDNet: 取某玩家的最高分记录，用于计算其名次
+    @Query("SELECT g FROM GameRecord g WHERE g.player.name = :username " +
+            "ORDER BY g.score DESC")
+    List<GameRecord> findBestByPlayerName(@Param("username") String username, Pageable pageable);
+
+    // SPDNet: 取分数高于给定值中最低的那条记录（即紧邻该玩家上一名），用于计算分差
+    @Query("SELECT g FROM GameRecord g WHERE " +
+            "g.player.role != 'BANNED' AND " +
+            "g.score > :score " +
+            "ORDER BY g.score ASC")
+    List<GameRecord> findLowestScoreAbove(@Param("score") int score, Pageable pageable);
 }
