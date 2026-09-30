@@ -41,7 +41,8 @@ public class SPDNetUpdates extends UpdateService {
 				} else {
 					String latestSPDVersion = NetConfig.config.getString("SPDVersion");
 					String latestNetVersion = NetConfig.config.getString("NetVersion");
-					if (isVersionNewer(ShatteredPixelDungeon.version, latestSPDVersion) || isVersionNewer(ShatteredPixelDungeon.netVersion.split("-")[0], latestNetVersion)) {
+					if (isVersionNewer(ShatteredPixelDungeon.version, latestSPDVersion)
+							|| isNetVersionNewer(ShatteredPixelDungeon.netVersion.split("-")[0], latestNetVersion)) {
 						AvailableUpdateData update = new AvailableUpdateData();
 						update.versionName = latestSPDVersion + "-" + latestNetVersion;
 						update.desc = NetConfig.config.getString("changeLog");
@@ -90,29 +91,49 @@ public class SPDNetUpdates extends UpdateService {
 		//does nothing
 	}
 
+	/**
+	 * 远程版本是否比当前版本更新。
+	 * 逐位比较，缺失的位按 0 补齐（"4.0" 与 "4.0.0" 等价），任一位不同即出结果。
+	 */
 	private static boolean isVersionNewer(String currentVersion, String newVersion) {
-		int[] currentVersionNumbers = splitVersion(currentVersion);
-		int[] lastedVersionNumbers = splitVersion(newVersion);
-		boolean isVersionNewer = false;
-		if (currentVersionNumbers[0] < lastedVersionNumbers[0]) {
-			isVersionNewer = true;
-		} else if (currentVersionNumbers[0] == lastedVersionNumbers[0]) {
-			if (currentVersionNumbers[1] < lastedVersionNumbers[1]) {
-				isVersionNewer = true;
-			} else if (currentVersionNumbers[1] == lastedVersionNumbers[1]) {
-				if (currentVersionNumbers[2] < lastedVersionNumbers[2]) {
-					isVersionNewer = true;
-				}
+		int[] current = splitVersion(currentVersion);
+		int[] latest = splitVersion(newVersion);
+		for (int i = 0; i < Math.max(current.length, latest.length); i++) {
+			int c = i < current.length ? current[i] : 0;
+			int l = i < latest.length ? latest[i] : 0;
+			if (c != l) {
+				return c < l;
 			}
 		}
-		return isVersionNewer;
+		return false;
 	}
 
+	/**
+	 * Net 版本是否比当前版本更新。
+	 * Net 版本号独立于破碎版本号演进，主版本必须保持一致才有可比性：
+	 * 主版本更高时当前构建更新（如 4.0.0 不需要降级到 3.3.8 的 Net 版本），
+	 * 主版本更低时交给主版本比较负责，此处不再重复报告更新。
+	 */
+	private static boolean isNetVersionNewer(String currentVersion, String newVersion) {
+		int[] current = splitVersion(currentVersion);
+		int[] latest = splitVersion(newVersion);
+		int currentMajor = current.length > 0 ? current[0] : 0;
+		int latestMajor = latest.length > 0 ? latest[0] : 0;
+		if (currentMajor != latestMajor) {
+			return false;
+		}
+		return isVersionNewer(currentVersion, newVersion);
+	}
+
+	/**
+	 * 把版本号解析为数字数组，容忍预发布后缀（-INDEV / -RC1 等）与空段。
+	 */
 	private static int[] splitVersion(String version) {
-		String[] parts = version.split("\\.");
+		String[] parts = version.split("[-+]")[0].split("\\.");
 		int[] numbers = new int[parts.length];
 		for (int i = 0; i < parts.length; i++) {
-			numbers[i] = Integer.parseInt(parts[i]);
+			String digits = parts[i].replaceAll("\\D", "");
+			numbers[i] = digits.isEmpty() ? 0 : Integer.parseInt(digits);
 		}
 		return numbers;
 	}
