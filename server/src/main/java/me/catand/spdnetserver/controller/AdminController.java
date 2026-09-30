@@ -178,7 +178,7 @@ public class AdminController {
         Map<String, Object> data = new HashMap<>();
         data.put("totalPlayers", playerRepository.count());
         data.put("totalRecords", gameRecordRepository.count());
-        data.put("onlineCount", socketService.getPlayerMap().size());
+        data.put("onlineCount", socketService.getOnlinePlayers().size());
         data.put("winCount", gameRecordRepository.countByWinTrue());
         data.put("bannedCount", playerRepository.countByRole(UserRole.BANNED));
         data.put("adminCount", playerRepository.countByRole(UserRole.ADMIN));
@@ -197,7 +197,7 @@ public class AdminController {
 
     @GetMapping("/online")
     public ApiResponse<List<Map<String, Object>>> getOnlinePlayers() {
-        List<Map<String, Object>> onlinePlayers = socketService.getPlayerMap().values().stream()
+        List<Map<String, Object>> onlinePlayers = socketService.getOnlinePlayers().values().stream()
             .map(player -> {
                 Map<String, Object> playerInfo = new HashMap<>();
                 playerInfo.put("name", player.getName());

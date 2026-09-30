@@ -64,15 +64,9 @@ private PlayerPrefixService playerPrefixService;
 @Autowired
 	private NoteService noteService;
 	private SocketIOServer server;
-	private Map<UUID, Player> playerMap = new ConcurrentHashMap<>();
-	// SPDNet: 玩家名 -> sessionId 索引，避免反复遍历 playerMap 找人（O(N) → O(1)）
-	private Map<String, UUID> nameToSessionId = new ConcurrentHashMap<>();
-	// SPDNet: 会话表写操作的临界区。playerMap 与 nameToSessionId 是同一份会话状态的两个投影，
-	// 必须在同一临界区内成对更新；否则会出现两类矛盾状态：
-	//   1) 按 sessionId 取不到人 → 事件派发 NPE（且跳过该事件的副作用）
-	//   2) 按名字指向已失效连接 / 索引被旧连接的回调误删 → 重复登录误判、幽灵在线
-	// 仅在连接建立/断开这类低频路径上持锁，事件派发是只读查表，不持锁。
-	private final Object sessionLock = new Object();
+	// SPDNet: 在线会话状态的唯一所有者。两张索引表与配对更新的临界区都在 SessionRegistry 内，
+	// 本类只做策略（重复登录判定、EXIT 广播时机），不再直接持有裸表。
+	private final SessionRegistry registry = new SessionRegistry();
 	private Sender sender;
 	private Handler handler;
 	private SocketIONamespace spdNetNamespace;
@@ -109,11 +103,11 @@ private PlayerPrefixService playerPrefixService;
 		seeds.putAll(dailyChallengeService.getDailySeeds());
 		server.start();
 		startAll();
-		sender = new Sender(server, spdNetNamespace);
+		sender = new Sender(server, spdNetNamespace, registry);
 		handler = new Handler(playerRepository, gameRecordRepository,
 		                      playerCatalogRepository, playerBestiaryRepository, playerDocumentRepository,
 		                      dailyGameRecordRepository, playerPrefixService, dailyChallengeService,
-		                      this, sender, playerMap, chatService, noteService);
+		                      this, sender, registry, chatService, noteService);
 	}
 
 	@PreDestroy
@@ -178,35 +172,24 @@ private PlayerPrefixService playerPrefixService;
 				return;
 			}
 
-			// SPDNet: 会话登记临界区。重复登录判定与"清理幽灵后放行"必须在同一临界区内完成，
-			// 否则两个并发连接可能都通过存活检查、互相覆盖索引（后写者留下前写者的孤儿会话）。
-			UUID ghostSessionId = null;
-			Player ghost = null;
-			synchronized (sessionLock) {
-				UUID existingSessionId = nameToSessionId.get(player.getName());
-				if (existingSessionId != null) {
-					SocketIOClient existingClient = spdNetNamespace.getClient(existingSessionId);
-					// 仅当旧连接仍存活时判定为真正的重复登录
-					if (existingClient != null && existingClient.isChannelOpen()) {
-						client.sendEvent(Events.ERROR.getName(), new SError(player.getName() + "已登录, 重复登录"));
-						log.info("连接失败: " + player.getName() + "已登录, 重复登录, " + client.getSessionId());
-						client.disconnect();
-						return;
-					}
-					// 旧连接已失效（网络抖动产生的幽灵连接），清理占位后放行新连接
-					log.info("玩家{}存在失效的旧连接({})，清理后允许重新登录", player.getName(), existingSessionId);
-					// SPDNet 症状22：先取出旧 Player 对象再移除，随后在锁外按正常断线语义补发 EXIT，
-					// 否则其它客户端/本地玩家列表/地牢层会残留旧 status 与旧 NetHero 精灵。
-					ghost = playerMap.remove(existingSessionId);
-					nameToSessionId.remove(player.getName());
-					ghostSessionId = existingSessionId;
-				}
-				playerMap.put(client.getSessionId(), player);
-				nameToSessionId.put(player.getName(), client.getSessionId());
+			// SPDNet: 会话登记临界区（含重复登录判定与幽灵清理）由 SessionRegistry 保证原子性
+			SessionRegistry.RegisterResult reg = registry.tryRegister(
+					client.getSessionId(), player,
+					existingSessionId -> {
+						SocketIOClient existingClient = spdNetNamespace.getClient(existingSessionId);
+						return existingClient != null && existingClient.isChannelOpen();
+					});
+			if (!reg.accepted()) {
+				client.sendEvent(Events.ERROR.getName(), new SError(player.getName() + "已登录, 重复登录"));
+				log.info("连接失败: " + player.getName() + "已登录, 重复登录, " + client.getSessionId());
+				client.disconnect();
+				return;
 			}
-			if (ghostSessionId != null) {
-				// 锁外执行副作用：清空待补快照草稿并广播退出（含清理该玩家的移动降频记录）
-				handler.handleDisconnect(ghost);
+			if (reg.ghost() != null) {
+				// SPDNet 症状22：被顶替的失效会话需按正常断线语义补发 EXIT，
+				// 否则其它客户端/本地玩家列表/地牢层会残留旧 status 与旧 NetHero 精灵。
+				log.info("玩家{}存在失效的旧连接，已清理并放行新连接", player.getName());
+				handler.handleDisconnect(reg.ghost());
 				String ghostPrefix = playerPrefixService.getActivePrefixName(player.getName());
 				sender.sendBroadcastExit(new SExit(player.getName(), ghostPrefix));
 			}
@@ -227,12 +210,12 @@ private PlayerPrefixService playerPrefixService;
 			String activePrefixName = playerPrefixService.getActivePrefixName(player.getName());
 			player.setPrefixName(activePrefixName);
 			sender.sendBroadcastJoin(new SJoin(player.getName(), player.getRole().getDisplayName(), activePrefixName));
-			sender.sendPlayerList(client, new SPlayerList(playerMap));
+			sender.sendPlayerList(client, new SPlayerList(registry.onlinePlayers()));
 			log.info("玩家已连接: " + player.getName() + ", " + client.getSessionId());
 		});
 		spdNetNamespace.addDisconnectListener(client -> unregisterSession(client.getSessionId()));
 		// SPDNet: 需要玩家上下文的事件统一走 onPlayerEvent——会话已注销时静默丢弃，
-		// 避免 playerMap.get() 返回 null 后在各 handler 内解引用抛 NPE
+		// 避免会话已注销时把 null 传进 handler 解引用抛 NPE
 		// （NPE 会中断该事件的副作用：清 status / 广播 EXIT / 清待补快照草稿）。
 		onPlayerEvent(Actions.ACHIEVEMENT, (client, player, data) ->
 				handler.handleAchievement(player, JSON.parseObject(data, CAchievement.class)));
@@ -316,12 +299,12 @@ private PlayerPrefixService playerPrefixService;
 
 	/**
 	 * SPDNet: 注册"需要玩家上下文"的事件监听器。会话不存在时记录并丢弃该事件，
-	 * 不把 null 传给 handler——这是 NPE 的唯一防线（原先 26 处 playerMap.get() 全部裸传）。
+	 * 不把 null 传给 handler——这是 NPE 的唯一防线（原先 26 处取玩家全部裸传）。
 	 * 丢弃是安全的：会话已注销说明玩家已下线，其状态无需再同步。
 	 */
 	private void onPlayerEvent(Actions action, PlayerEventHandler body) {
 		spdNetNamespace.addEventListener(action.getName(), String.class, (client, data, ackSender) -> {
-			Player player = playerMap.get(client.getSessionId());
+			Player player = registry.playerOf(client.getSessionId());
 			if (player == null) {
 				log.debug("丢弃来自已注销会话的事件: action={}, sessionId={}", action.getName(), client.getSessionId());
 				return;
@@ -331,23 +314,18 @@ private PlayerPrefixService playerPrefixService;
 	}
 
 	/**
-	 * SPDNet: 注销会话并对外广播退出（幂等）。返回 true 表示本次调用真正注销了该会话。
-	 * playerMap 与 nameToSessionId 在同一临界区内成对更新，并采用条件移除：
-	 * 仅当名字索引仍指向本会话时才删除，避免旧连接的回调误删新会话的索引。
+	 * SPDNet: 注销会话并对外广播退出（幂等）。委托 SessionRegistry 完成配对移除，
+	 * 并仅在"本会话确实是该玩家当前会话"时广播 EXIT——避免旧会话的退出把新会话也一并退出。
 	 */
 	private boolean unregisterSession(UUID sessionId) {
-		Player player;
-		boolean nameIndexStillMine;
-		synchronized (sessionLock) {
-			player = playerMap.remove(sessionId);
-			if (player == null) {
-				return false;
-			}
-			nameIndexStillMine = nameToSessionId.remove(player.getName(), sessionId);
+		SessionRegistry.UnregisterResult result = registry.unregister(sessionId);
+		if (result == null) {
+			return false;
 		}
-		// 锁外执行副作用：清理该玩家的待补快照草稿（含占位行）
+		Player player = result.player();
+		// 清理该玩家的待补快照草稿（含占位行）
 		handler.handleDisconnect(player);
-		if (nameIndexStillMine) {
+		if (result.wasCurrentSession()) {
 			String activePrefixName = playerPrefixService.getActivePrefixName(player.getName());
 			sender.sendBroadcastExit(new SExit(player.getName(), activePrefixName));
 			log.info("玩家已断开连接: " + player.getName() + ", " + sessionId);
@@ -360,14 +338,14 @@ private PlayerPrefixService playerPrefixService;
 	/**
 	 * SPDNet: 回收半开（幽灵）连接。网络抖动可能让客户端通道实际已死、但 disconnect 回调迟迟不触发，
 	 * 导致该玩家长期占位：他人列表残留其旧 status、地牢层残留 NetHero 精灵，且本人无法重登。
-	 * 这里按心跳周期巡检 playerMap，对已无存活通道的会话按正常断线语义清理并广播退出。
+	 * 这里按心跳周期巡检，对已无存活通道的会话按正常断线语义清理并广播退出。
 	 */
 	@Scheduled(fixedDelay = 30000)
 	public void reapDeadSessions() {
 		if (spdNetNamespace == null) {
 			return;
 		}
-		for (UUID sessionId : playerMap.keySet()) {
+		for (UUID sessionId : registry.sessionIds()) {
 			SocketIOClient client = spdNetNamespace.getClient(sessionId);
 			if (client == null || !client.isChannelOpen()) {
 				if (unregisterSession(sessionId)) {
@@ -375,6 +353,11 @@ private PlayerPrefixService playerPrefixService;
 				}
 			}
 		}
+	}
+
+	/** SPDNet: 在线玩家快照（只读），供控制器/广播读取。 */
+	public Map<UUID, Player> getOnlinePlayers() {
+		return registry.onlinePlayers();
 	}
 
 	private long getNoonTimestamp() {
@@ -392,11 +375,11 @@ private PlayerPrefixService playerPrefixService;
 	}
 
 	/**
-	 * SPDNet: 通过玩家名获取在线连接，使用 nameToSessionId 索引，O(1) 查找。
-	 * 替代原先遍历整个 playerMap 再 getClient 的做法。
+	 * SPDNet: 通过玩家名获取在线连接，经 SessionRegistry 的 name→sessionId 索引 O(1) 查找。
+	 * 替代原先遍历在线玩家表再 getClient 的做法。
 	 */
 	public SocketIOClient getClientByName(String name) {
-		UUID uuid = nameToSessionId.get(name);
+		UUID uuid = registry.sessionOf(name);
 		if (uuid == null) {
 			return null;
 		}

@@ -28,7 +28,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Slf4j
@@ -43,7 +42,8 @@ public class Handler {
 	private final DailyChallengeService dailyChallengeService;
 	private SocketService socketService;
 	private Sender sender;
-	private Map<UUID, Player> playerMap;
+	// SPDNet: 在线会话状态由 SessionRegistry 统一持有，本类不再持有裸表
+	private final SessionRegistry registry;
 	private ChatService chatService;
 	private NoteService noteService;
 
@@ -69,7 +69,7 @@ public class Handler {
 	               PlayerCatalogRepository playerCatalogRepository, PlayerBestiaryRepository playerBestiaryRepository,
 	               PlayerDocumentRepository playerDocumentRepository, DailyGameRecordRepository dailyGameRecordRepository,
 	               PlayerPrefixService playerPrefixService, DailyChallengeService dailyChallengeService,
-	               SocketService socketService, Sender sender, Map<UUID, Player> playerMap, ChatService chatService,
+	               SocketService socketService, Sender sender, SessionRegistry registry, ChatService chatService,
 	               NoteService noteService) {
 		this.playerRepository = playerRepository;
 		this.gameRecordRepository = gameRecordRepository;
@@ -81,7 +81,7 @@ public class Handler {
 		this.dailyChallengeService = dailyChallengeService;
 		this.socketService = socketService;
 		this.sender = sender;
-		this.playerMap = playerMap;
+		this.registry = registry;
 		this.chatService = chatService;
 		this.noteService = noteService;
 	}
@@ -110,7 +110,7 @@ public class Handler {
 		if (!hasAchievement) {
 			dbPlayer.getAchievements().add(cAchievement.getBadgeEnumString());
 			playerRepository.save(dbPlayer);
-			// 更新 playerMap 中的 Player 对象
+			// 更新在线注册表中的 Player 对象
 			player.setAchievements(dbPlayer.getAchievements());
 		}
 
@@ -141,8 +141,8 @@ public class Handler {
 	public void handleEnterDungeon(SocketIOClient client, Player player, CEnterDungeon cEnterDungeon) {
 		Status status = cEnterDungeon.getStatus();
 		player.setStatus(status);
-		// SPDNet: 会话登记的唯一写入口是 SocketService 的 sessionLock 临界区，此处不再重复写表
-		// （player 本就取自 playerMap，原 put 是同一键值的空操作，但绕过了锁）。
+		// SPDNet: 会话登记的唯一写入口是 SessionRegistry，此处不再重复写表
+		// （player 本就取自注册表，原 put 是同一键值的空操作，但绕过了配对更新的临界区）。
 
 		Integer dailyGroupIndex = cEnterDungeon.getDailyGroupIndex();
 		Long dailySeed = cEnterDungeon.getDailySeed();
@@ -192,7 +192,7 @@ public class Handler {
 
 	public void handleFloatingText(SocketIOClient client, Player player, CFloatingText cFloatingText) {
 		String prefixName = getPlayerPrefixName(player.getName());
-		sender.sendBroadcastFloatingText(client, player.getStatus(), playerMap, new SFloatingText(
+		sender.sendBroadcastFloatingText(client, player.getStatus(), new SFloatingText(
 				player.getName(),
 				cFloatingText.getColor(),
 				cFloatingText.getText(),
@@ -318,7 +318,7 @@ public class Handler {
 
 	public void handleGiveItem(Player player, CGiveItem cGiveItem) {
 		String prefixName = getPlayerPrefixName(player.getName());
-		// SPDNet: 用 nameToSessionId 索引 O(1) 找到目标连接，替代遍历 playerMap
+		// SPDNet: 经 SessionRegistry 的 name→sessionId 索引 O(1) 找到目标连接
 		SocketIOClient targetClient = socketService.getClientByName(cGiveItem.getTargetName());
 		if (targetClient != null) {
 			sender.sendGiveItem(targetClient, new SGiveItem(player.getName(), cGiveItem.getItem(), prefixName));
@@ -344,13 +344,13 @@ public class Handler {
 			// 同层 DELTA_ADD 广播（含创建者）+ 全局系统消息
 			SNoteList delta = new SNoteList("DELTA_ADD", note.getSeed(), note.getDepth(),
 					List.of(noteService.serializeNote(note)), List.of());
-			sender.broadcastToLayer(Events.NOTE_LIST.getName(), delta, note.getSeed(), note.getDepth(), playerMap);
+			sender.broadcastToLayer(Events.NOTE_LIST.getName(), delta, note.getSeed(), note.getDepth());
 			sender.sendBroadcastNoteNotify(new SServerMessage(cHero.getSourceName() + "在楼层 " + note.getDepth() + " 留下了一条关于玩家的留言"));
 			return;
 		}
 
 		String prefixName = getPlayerPrefixName(player.getName());
-		// SPDNet: 用 nameToSessionId 索引 O(1) 找到目标连接，替代遍历 playerMap
+		// SPDNet: 经 SessionRegistry 的 name→sessionId 索引 O(1) 找到目标连接
 		SocketIOClient targetClient = socketService.getClientByName(cHero.getSourceName());
 		if (targetClient != null) {
 			sender.sendHero(targetClient, new SHero(player.getName(), cHero.getHero(), prefixName));
@@ -385,7 +385,7 @@ public class Handler {
 			player.getStatus().setPos(cPlayerMove.getPos());
 		}
 		String prefixName = getPlayerPrefixName(player.getName());
-		sender.sendBroadcastPlayerMove(client, player.getStatus(), playerMap, new SPlayerMove(player.getName(), cPlayerMove.getPos(), prefixName));
+		sender.sendBroadcastPlayerMove(client, player.getStatus(), new SPlayerMove(player.getName(), cPlayerMove.getPos(), prefixName));
 		log.info("玩家{}移动到了{}", player.getName(), cPlayerMove.getPos());
 	}
 
@@ -413,7 +413,7 @@ public class Handler {
 				pageable
 		);
 		// 显示第1页 共有10页 共有100条记录
-		Player requester = playerMap.get(client.getSessionId());
+		Player requester = registry.playerOf(client.getSessionId());
 		log.info("玩家{}请求了排行榜, 显示第{}页 共有{}页 共有{}条记录",
 				requester == null ? "(已注销会话)" : requester.getName(),
 				page.getNumber(), page.getTotalPages(), page.getTotalElements());
@@ -429,8 +429,8 @@ public class Handler {
 	}
 
 	public void handleRequestPlayerList(SocketIOClient client, CRequestPlayerList cRequestPlayerList) {
-		sender.sendPlayerList(client, new SPlayerList(playerMap));
-		Player requester = playerMap.get(client.getSessionId());
+		sender.sendPlayerList(client, new SPlayerList(registry.onlinePlayers()));
+		Player requester = registry.playerOf(client.getSessionId());
 		log.info("玩家{}请求了玩家列表", requester == null ? "(已注销会话)" : requester.getName());
 	}
 
@@ -483,7 +483,7 @@ public class Handler {
 		// 非 PLAYER：直接落库 + 同层 DELTA_ADD 广播（含创建者回显）
 		DungeonNote note = noteService.createNote(seed, depth, c.getPos(), noteType, c.getSnapshot(), c.getMessage(), author, authorMode);
 		SNoteList delta = new SNoteList("DELTA_ADD", seed, depth, List.of(noteService.serializeNote(note)), List.of());
-		sender.broadcastToDungeon(Events.NOTE_LIST.getName(), delta, client, status, playerMap, true, false);
+		sender.broadcastToDungeon(Events.NOTE_LIST.getName(), delta, client, status, true, false);
 		sender.sendBroadcastNoteNotify(new SServerMessage(author + "在楼层 " + depth + " 留下了一条留言"));
 	}
 
@@ -534,7 +534,7 @@ public class Handler {
 		}
 		// 点赞后同层 DELTA_ADD 增量刷新（含更新后的 likes 计数）
 		SNoteList delta = new SNoteList("DELTA_ADD", note.getSeed(), note.getDepth(), List.of(noteService.serializeNote(fresh)), List.of());
-		sender.broadcastToDungeon(Events.NOTE_LIST.getName(), delta, client, status, playerMap, true, false);
+		sender.broadcastToDungeon(Events.NOTE_LIST.getName(), delta, client, status, true, false);
 	}
 
 	public void handleNoteDelete(SocketIOClient client, Player player, CNoteId c) {
@@ -561,7 +561,7 @@ public class Handler {
 		JSONObject idJson = new JSONObject();
 		idJson.put("id", noteId);
 		SNoteList delta = new SNoteList("DELTA_REMOVE", seed, depth, List.of(JSON.toJSONString(idJson)), List.of());
-		sender.broadcastToDungeon(Events.NOTE_LIST.getName(), delta, client, status, playerMap, true, false);
+		sender.broadcastToDungeon(Events.NOTE_LIST.getName(), delta, client, status, true, false);
 	}
 
 	// SPDNet: 断开连接时清理该玩家的待补快照草稿（目标 B 下线同理触发）
@@ -607,7 +607,7 @@ public class Handler {
 	public void handleViewHero(Player player, CViewHero cViewHero) {
 		log.info("玩家{}请求查看玩家{}", player.getName(), cViewHero.getTargetName());
 		String prefixName = getPlayerPrefixName(player.getName());
-		// SPDNet: 用 nameToSessionId 索引 O(1) 找到目标连接，替代遍历 playerMap
+		// SPDNet: 经 SessionRegistry 的 name→sessionId 索引 O(1) 找到目标连接
 		SocketIOClient targetClient = socketService.getClientByName(cViewHero.getTargetName());
 		if (targetClient != null) {
 			sender.sendViewHero(targetClient, new SViewHero(player.getName(), prefixName));

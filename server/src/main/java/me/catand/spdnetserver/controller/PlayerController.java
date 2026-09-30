@@ -264,7 +264,7 @@ public class PlayerController {
 
     @GetMapping("/online")
     public ApiResponse<List<PlayerInfo>> getOnlinePlayers() {
-        Map<?, Player> playerMap = socketService.getPlayerMap();
+        Map<?, Player> playerMap = socketService.getOnlinePlayers();
         List<PlayerInfo> onlinePlayers = playerMap.values().stream()
             .map(p -> new PlayerInfo(p.getName(), p.getRole().getDisplayName(), true,
                 playerPrefixService.getActivePrefixDTO(p.getName()),
@@ -276,7 +276,7 @@ public class PlayerController {
     @GetMapping("/players")
     public ApiResponse<List<PlayerInfo>> getAllPlayers() {
         List<Player> players = playerRepository.findAll();
-        Map<?, Player> onlineMap = socketService.getPlayerMap();
+        Map<?, Player> onlineMap = socketService.getOnlinePlayers();
 
         List<PlayerInfo> playerInfos = players.stream()
             .map(p -> {
@@ -396,7 +396,7 @@ public class PlayerController {
             return ApiResponse.error("玩家不存在");
         }
 
-        Map<?, Player> onlineMap = socketService.getPlayerMap();
+        Map<?, Player> onlineMap = socketService.getOnlinePlayers();
         boolean isOnline = onlineMap.values().stream()
             .anyMatch(p -> p.getName().equals(name));
 
@@ -700,7 +700,7 @@ public class PlayerController {
         Map<String, Object> data = new HashMap<>();
         data.put("version", spdProperties.getVersion());
         data.put("netVersion", spdProperties.getNetVersion());
-        data.put("onlineCount", socketService.getPlayerMap().size());
+        data.put("onlineCount", socketService.getOnlinePlayers().size());
         data.put("totalPlayers", playerRepository.count());
         data.put("adminCount", playerRepository.countByRole(UserRole.ADMIN));
         data.put("bannedCount", playerRepository.countByRole(UserRole.BANNED));

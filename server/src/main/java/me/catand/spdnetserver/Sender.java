@@ -9,9 +9,6 @@ import me.catand.spdnetserver.data.Status;
 import me.catand.spdnetserver.data.events.*;
 import me.catand.spdnetserver.entitys.Player;
 
-import java.util.Map;
-import java.util.UUID;
-
 @Slf4j
 public class Sender {
 	private SocketIOServer server;
@@ -19,10 +16,13 @@ public class Sender {
 	// （真实客户端都连 /spdnet，传入的是空的），导致所有基于 getAllClients() 的同层 DELTA 广播全落空；
 	// 直发(client.sendEvent)与全局通告(getBroadcastOperations)不受影响。因此这里必须遍历命名空间客户端。
 	private SocketIONamespace spdNetNamespace;
+	// SPDNet: 在线会话状态由 SessionRegistry 统一持有，本类不再按参数接收裸表
+	private final SessionRegistry registry;
 
-	public Sender(SocketIOServer server, SocketIONamespace spdNetNamespace) {
+	public Sender(SocketIOServer server, SocketIONamespace spdNetNamespace, SessionRegistry registry) {
 		this.server = server;
 		this.spdNetNamespace = spdNetNamespace;
+		this.registry = registry;
 	}
 
 	/**
@@ -40,12 +40,11 @@ public class Sender {
 	 * @param data          事件数据
 	 * @param sourceClient  发起者连接（excludeSender=true 时排除）
 	 * @param sourceStatus  发起者状态，null 且 matchDepth=true 时静默拒绝；null 且 matchDepth=false 时退化为"除发送者广播给所有人"
-	 * @param playerMap     在线玩家表（sessionId -> Player）
 	 * @param matchDepth    是否要求接收者与发起者同 seed 且同 depth
 	 * @param excludeSender 是否排除发起者连接
 	 */
 	public void broadcastToDungeon(String eventName, Object data, SocketIOClient sourceClient,
-	                               Status sourceStatus, Map<UUID, Player> playerMap,
+	                               Status sourceStatus,
 	                               boolean matchDepth, boolean excludeSender) {
 		// 留言(需同层)但发起者不在任何地牢 → 静默拒绝，绝不广播到所有地牢
 		if (matchDepth && sourceStatus == null) {
@@ -61,7 +60,7 @@ public class Sender {
 				c.sendEvent(eventName, data);
 				continue;
 			}
-			Player p = playerMap == null ? null : playerMap.get(c.getSessionId());
+			Player p = registry.playerOf(c.getSessionId());
 			Status s = p == null ? null : p.getStatus();
 			if (matchDepth) {
 				// 留言：接收者必须在同 seed 同 depth，未知状态跳过
@@ -82,9 +81,9 @@ public class Sender {
 	 * SPDNet: 向指定 (seed, depth) 层内所有玩家广播（不做发送者排除，天然含创建者回显）。
 	 * 用于地牢留言 DELTA 广播——尤其 PLAYER 快照回填时源连接状态已不可靠，故直接按目标层目标匹配。
 	 */
-	public void broadcastToLayer(String eventName, Object data, long seed, int depth, Map<UUID, Player> playerMap) {
+	public void broadcastToLayer(String eventName, Object data, long seed, int depth) {
 		for (SocketIOClient c : spdNetNamespace.getAllClients()) {
-			Player p = playerMap == null ? null : playerMap.get(c.getSessionId());
+			Player p = registry.playerOf(c.getSessionId());
 			Status s = p == null ? null : p.getStatus();
 			if (s == null || s.getSeed() != seed || s.getDepth() != depth) {
 				continue;
@@ -125,9 +124,9 @@ public class Sender {
 		server.getBroadcastOperations().sendEvent(Events.GIVE_ITEM.getName(), data);
 	}
 
-	public void sendBroadcastFloatingText(SocketIOClient sourceClient, Status sourceStatus, Map<UUID, Player> playerMap, SFloatingText data) {
+	public void sendBroadcastFloatingText(SocketIOClient sourceClient, Status sourceStatus, SFloatingText data) {
 		// SPDNet: 浮动文字只发给同地牢的其他玩家，排除发起者（不需同层）
-		broadcastToDungeon(Events.FLOATING_TEXT.getName(), data, sourceClient, sourceStatus, playerMap, false, true);
+		broadcastToDungeon(Events.FLOATING_TEXT.getName(), data, sourceClient, sourceStatus, false, true);
 	}
 
 	public void sendBroadcastGameEnd(SGameEnd data) {
@@ -146,9 +145,9 @@ public class Sender {
 		server.getBroadcastOperations().sendEvent(Events.LEAVE_DUNGEON.getName(), data);
 	}
 
-	public void sendBroadcastPlayerMove(SocketIOClient sourceClient, Status sourceStatus, Map<UUID, Player> playerMap, SPlayerMove data) {
+	public void sendBroadcastPlayerMove(SocketIOClient sourceClient, Status sourceStatus, SPlayerMove data) {
 		// SPDNet: 移动只发给同地牢的其他玩家，排除发起者（不需同层）
-		broadcastToDungeon(Events.PLAYER_MOVE.getName(), data, sourceClient, sourceStatus, playerMap, false, true);
+		broadcastToDungeon(Events.PLAYER_MOVE.getName(), data, sourceClient, sourceStatus, false, true);
 	}
 
 	// SPDNet: 地牢留言(Ping)系统 - 向单个客户端下发留言列表（进/换层单播 REPLACE）
