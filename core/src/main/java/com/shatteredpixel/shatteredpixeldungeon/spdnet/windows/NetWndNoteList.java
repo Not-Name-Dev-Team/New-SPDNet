@@ -25,6 +25,7 @@ import com.shatteredpixel.shatteredpixeldungeon.windows.WndInfoItem;
 import com.shatteredpixel.shatteredpixeldungeon.windows.WndInfoMob;
 import com.shatteredpixel.shatteredpixeldungeon.windows.WndInfoPlant;
 import com.shatteredpixel.shatteredpixeldungeon.windows.WndInfoTrap;
+import com.watabou.noosa.Gizmo;
 import com.watabou.noosa.Image;
 import com.watabou.noosa.ui.Component;
 import com.watabou.utils.Bundle;
@@ -98,8 +99,15 @@ public class NetWndNoteList extends NetWindow {
 		list.setRect(0, list.top(), width, rowArea(rows));
 	}
 
-	// SPDNet: 依据 NetNoteStore 当前数据重建列表（删除后 / 点赞刷新时调用）
+	// SPDNet: 依据 NetNoteStore 当前数据重建列表（删除后 / 点赞刷新时调用）。
+	// 窗口可能已被关闭：hide()/destroy() 会把 content 与 list 一并置空并注销其相机，
+	// 而删除/点赞按钮的点击回调仍可能排在消息队列里随后执行，此时重建必须直接返回
+	// （否则 Group.add 会对已置空的 members 调用 ArrayList.add 触发 NPE）。
 	private void rebuild() {
+		if (content == null || list == null) {
+			return;
+		}
+
 		content.clear();
 
 		float ypos = 0;
@@ -120,6 +128,20 @@ public class NetWndNoteList extends NetWindow {
 		content.setRect(0, 0, width, ypos);
 		list.setRect(0, list.top(), width, rowArea(Math.min(notes.size(), MAX_ROWS)));
 		list.scrollTo(0, 0);
+	}
+
+	// SPDNet: 窗口关闭时摘除各行的重建回调。ScrollPane/Component 的 destroy 只注销相机并清空
+	// members，不会回收按钮已注册的 PointerArea 监听；排队的点击仍会跑到 NoteEntry 的回调上。
+	@Override
+	public void destroy() {
+		if (content != null) {
+			for (Gizmo g : content.toArray()) {
+				if (g instanceof NoteEntry) {
+					((NoteEntry) g).setCallback(null);
+				}
+			}
+		}
+		super.destroy();
 	}
 
 	// SPDNet: 留言行：图标 + 发送者/文字(第一行) + 赞数/时间(最后一行) + 操作按钮(详情/删除-点赞)

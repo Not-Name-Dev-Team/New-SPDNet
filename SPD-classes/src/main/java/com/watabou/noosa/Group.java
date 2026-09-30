@@ -40,6 +40,12 @@ public class Group extends Gizmo {
 		members = new ArrayList<>();
 		length = 0;
 	}
+
+	// SPDNet: 返回成员的即时快照。destroy() 之后 members 为 null，这里返回空数组而非抛错——
+	// 渲染线程遍历成员时对象可能已被销毁（如窗口关闭后仍在跑的回调），遍历方不该再承担空指针。
+	public synchronized Gizmo[] toArray() {
+		return members == null ? new Gizmo[0] : members.toArray(new Gizmo[0]);
+	}
 	
 	@Override
 	public synchronized void destroy() {
