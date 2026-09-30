@@ -20,7 +20,7 @@
               </el-tag>
               <el-tag type="info" effect="dark" round size="large">
                 <el-icon><Calendar /></el-icon>
-                <span>注册于 {{ formatDate(userInfo?.createdAt) }} ({{ formatTimeAgo(userInfo?.createdAt) }})</span>
+                <span>注册于 {{ formatDate(userInfo?.createdAt) }} ({{ formatTimeAgo(userInfo?.createdAt, now) }})</span>
               </el-tag>
             </div>
           </div>
@@ -57,11 +57,11 @@
               </div>
               <div class="info-item">
                 <span class="info-label">注册时间</span>
-                <span class="info-value">{{ formatDateTimeWithAgo(userInfo?.createdAt) }}</span>
+                <span class="info-value">{{ formatDateTimeWithAgo(userInfo?.createdAt, now) }}</span>
               </div>
               <div class="info-item">
                 <span class="info-label">最后登录时间</span>
-                <span class="info-value">{{ formatDateTimeWithAgo(userInfo?.lastLoginAt) }}</span>
+                <span class="info-value">{{ formatDateTimeWithAgo(userInfo?.lastLoginAt, now) }}</span>
               </div>
               <div class="info-item">
                 <span class="info-label">最后登录IP</span>
@@ -234,6 +234,10 @@ import { authStore } from '../store/auth'
 import MyPrefixSelector from '../components/MyPrefixSelector.vue'
 import PrefixBadge from '../components/PrefixBadge.vue'
 import { getRoleType, formatTimeAgo, formatDateTimeWithAgo } from '../utils/format'
+import { useNow } from '../utils/useNow'
+
+// SPDNet: 注入每分钟推进的"当前时间"，使相对时间文案能自行刷新
+const now = useNow()
 
 const router = useRouter()
 const userInfo = ref(null)

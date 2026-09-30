@@ -81,6 +81,10 @@
             <!-- SPDNet: 玩家可以选择只查看被ban玩家的记录 -->
             <el-checkbox v-model="filters.bannedOnly">只显示被封禁玩家</el-checkbox>
             <el-button type="primary" :icon="Search" @click="applyFilters">筛选</el-button>
+            <!-- SPDNet: 仅在筛选生效时出现，作为空状态的出口（空状态文案会引导用户点它） -->
+            <el-button v-if="filtersActive" :icon="RefreshLeft" @click="resetFilters">
+              重置筛选
+            </el-button>
           </div>
         </div>
       </div>
@@ -212,8 +216,17 @@
           <div class="empty-icon">
             <el-icon :size="48"><Trophy /></el-icon>
           </div>
-          <p>暂无数据</p>
-          <span>没有找到符合条件的记录</span>
+          <p>{{ emptyStateHint.title }}</p>
+          <span>{{ emptyStateHint.desc }}</span>
+          <!-- SPDNet: 筛选筛空的场景直接给出出口，省得用户自己逐个字段调回去 -->
+          <el-button
+            v-if="filtersActive"
+            class="empty-reset-btn"
+            :icon="RefreshLeft"
+            @click="resetFilters"
+          >
+            重置筛选
+          </el-button>
         </div>
 
         <!-- Pagination -->
@@ -238,7 +251,7 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import {
-  Trophy, Refresh, UserFilled, Medal, Location,
+  Trophy, Refresh, RefreshLeft, UserFilled, Medal, Location,
   Search, View, StarFilled
 } from '@element-plus/icons-vue'
 import { leaderboardApi } from '../api'
@@ -286,17 +299,48 @@ const getModeLabel = (gameMode) => MODE_LABELS[gameMode] || gameMode || '标准'
 
 const getModeTagType = (gameMode) => MODE_TAG_TYPES[gameMode] || 'info'
 
-// 是否应用了筛选
-// SPDNet: playerType==='self' 只在真正带上了 playerName 时才算生效筛选，
+// SPDNet: 把当前生效的筛选条件列成人类可读的短语，供空状态解释"为什么没有结果"。
+// 只读 filters 中真正会发到后端的字段，避免显示一个请求里并未使用的条件。
+const filterLabels = computed(() => {
+  const f = filters.value
+  const labels = []
+
+  // SPDNet: playerType==='self' 只在真正带上了 playerName 时才算生效筛选——
+  // 否则仅凭下拉选择就显示"已应用筛选"会与实际请求不符（请求会退化成全服数据）。
+  if (f.playerType === 'self' && f.playerName) {
+    labels.push(`“我的记录”`)
+  } else if (f.playerName) {
+    labels.push(`玩家名包含“${f.playerName}”`)
+  }
+  if (f.challengeCount !== null) labels.push(`${f.challengeCount} 挑战`)
+  if (f.gameMode) labels.push(`${getModeLabel(f.gameMode)}模式`)
+  if (f.winOnly) labels.push('仅胜利')
+  if (f.bannedOnly) labels.push('仅被封禁玩家')
+
+  return labels
+})
+
+// SPDNet: 是否应用了筛选
+// playerType==='self' 只在真正带上了 playerName 时才算生效筛选，
 // 否则仅凭下拉选择就显示"已应用筛选"会与实际请求不符。
-const filtersActive = computed(() => {
-  const selfFilterActive = filters.value.playerType === 'self' && !!filters.value.playerName
-  return selfFilterActive ||
-    (filters.value.playerType === 'all' && !!filters.value.playerName) ||
-    filters.value.challengeCount !== null ||
-    filters.value.gameMode !== null ||
-    filters.value.winOnly ||
-    filters.value.bannedOnly
+const filtersActive = computed(() => filterLabels.value.length > 0)
+
+// SPDNet: 空结果的可操作解释。区分"服务端就没有记录"与"筛选条件过滤掉了全部记录"，
+// 后者要告诉用户是哪些条件、以及怎么退回。原先两种情况都只说"暂无数据"。
+const emptyStateHint = computed(() => {
+  if (!filtersActive.value) {
+    return { title: '暂无数据', desc: '还没有任何游戏记录上榜' }
+  }
+
+  // SPDNet: 不预设任何"条件组合不合理"——被封禁玩家本就留有成绩（作弊刷分才会被封），
+  // "仅胜利 + 仅被封禁玩家"是查作弊通关记录的正当组合。
+  // 空结果只如实说明是哪些条件筛掉了全部记录，并给出退出的入口。
+  const parts = [
+    `当前筛选：${filterLabels.value.join('、')}`,
+    '可点击“重置筛选”查看全部记录'
+  ]
+
+  return { title: '没有符合条件的记录', desc: parts.join('　·　') }
 })
 
 // SPDNet: 前三名改为使用铁人模式未被ban玩家的数据
@@ -346,6 +390,26 @@ const handlePlayerTypeChange = (val) => {
 }
 
 const applyFilters = () => {
+  currentPage.value = 1
+  loadData()
+}
+
+// SPDNet: 一键清空全部筛选条件。
+// 需要显式 loadData：playerName 不被 watch 监听，而"只搜了个找不到的玩家名、
+// 其余条件本就是默认值"是完全常见的路径——此时点重置，被 watch 的字段一个都没变，
+// 不主动重载就会毫无反应、空状态原地不动。
+// 其余字段同时变化时会连带触发 watch，两次 loadData 由 loadSeq 序号保证
+// 只有最后一次的结果生效，不会出现旧结果覆盖新结果。
+const resetFilters = () => {
+  filters.value = {
+    playerType: 'all',
+    playerName: '',
+    challengeCount: null,
+    gameMode: null,
+    sortBy: 'score',
+    winOnly: false,
+    bannedOnly: false
+  }
   currentPage.value = 1
   loadData()
 }
@@ -951,9 +1015,17 @@ onMounted(() => {
   margin: 0 0 var(--space-1);
 }
 
-.empty-state span {
+/* SPDNet: 限定为直接子级 span——否则会命中 el-button 内部的 <span>，
+   把按钮文字染成次要灰并压小字号 */
+.empty-state > span {
   color: var(--text-secondary);
   font-size: 0.875rem;
+  max-width: 46ch;
+  line-height: 1.7;
+}
+
+.empty-reset-btn {
+  margin-top: var(--space-4);
 }
 
 /* Pagination */

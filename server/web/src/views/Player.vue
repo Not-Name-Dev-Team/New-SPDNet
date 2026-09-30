@@ -84,7 +84,7 @@
               </div>
               <div class="info-item">
                 <span class="info-label">注册时间</span>
-                <span class="info-value">{{ formatDateTimeWithAgo(playerInfo?.createdAt) }}</span>
+                <span class="info-value">{{ formatDateTimeWithAgo(playerInfo?.createdAt, now) }}</span>
               </div>
               <div class="info-item">
                 <span class="info-label">当前状态</span>
@@ -115,7 +115,7 @@
                     <span class="game-result" :class="getResultClass(game.result)">
                       {{ game.result }}
                     </span>
-                    <span class="game-time">{{ formatTimeAgo(game.endTime) }}</span>
+                    <span class="game-time">{{ formatTimeAgo(game.endTime, now) }}</span>
                   </div>
                   <div class="game-stats">
                     <span><el-icon><Trophy /></el-icon> {{ game.score }} 分</span>
@@ -466,6 +466,10 @@ import {
 import { playerApi, leaderboardApi } from '../api'
 import PrefixBadge from '../components/PrefixBadge.vue'
 import { getRoleType, formatTimeAgo, formatDateTimeWithAgo } from '../utils/format'
+import { useNow } from '../utils/useNow'
+
+// SPDNet: 注入每分钟推进的"当前时间"，使相对时间文案能自行刷新
+const now = useNow()
 
 const route = useRoute()
 const playerInfo = ref(null)

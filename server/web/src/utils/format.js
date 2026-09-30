@@ -90,12 +90,14 @@ export function formatDateTime(time) {
 }
 
 // 相对时间："3 分钟前"
-export function formatTimeAgo(time) {
+// SPDNet: 可选的 nowMs 参数用于让调用方注入一个响应式时间源（见 utils/useNow.js）。
+// 不传时退化为 Date.now()，保持原有的纯函数用法不变。
+export function formatTimeAgo(time, nowMs) {
   if (!time) return '-'
   const date = new Date(time)
   if (isNaN(date.getTime())) return '-'
 
-  const diff = Date.now() - date.getTime()
+  const diff = (nowMs ?? Date.now()) - date.getTime()
   const seconds = Math.floor(diff / 1000)
   const minutes = Math.floor(diff / 60000)
   const hours = Math.floor(diff / 3600000)
@@ -112,9 +114,9 @@ export function formatTimeAgo(time) {
 }
 
 // 完整时间 + 括号内相对时间
-export function formatDateTimeWithAgo(time) {
+export function formatDateTimeWithAgo(time, nowMs) {
   if (!time) return '-'
-  return `${formatDateTime(time)} (${formatTimeAgo(time)})`
+  return `${formatDateTime(time)} (${formatTimeAgo(time, nowMs)})`
 }
 
 // 仅日期（月/日 + 时分），用于管理端表格

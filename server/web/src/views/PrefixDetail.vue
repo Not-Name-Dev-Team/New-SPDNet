@@ -90,7 +90,7 @@
                 </el-tag>
                 <span class="obtain-time">
                   <el-icon><Clock /></el-icon>
-                  获得于 {{ formatTimeAgo(owner.assignedAt) }}
+                  获得于 {{ formatTimeAgo(owner.assignedAt, now) }}
                 </span>
               </div>
             </div>
@@ -153,6 +153,10 @@ import {
 import { prefixApi } from '../api'
 import PrefixBadge from '../components/PrefixBadge.vue'
 import { formatTimeAgo } from '../utils/format'
+import { useNow } from '../utils/useNow'
+
+// SPDNet: 注入每分钟推进的"当前时间"，使相对时间文案能自行刷新
+const now = useNow()
 
 const route = useRoute()
 const router = useRouter()
