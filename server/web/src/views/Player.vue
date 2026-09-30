@@ -566,28 +566,28 @@ const statsList = computed(() => [
   {
     label: '最高分数',
     value: playerInfo.value?.maxScore || 0,
-    icon: 'Trophy',
+    icon: Trophy,
     gradient: 'linear-gradient(135deg, #f59e0b 0%, #f97316 100%)',
     glow: 'rgba(245, 158, 11, 0.2)'
   },
   {
     label: '最高通关挑战',
     value: playerInfo.value?.maxChallengeAmount || 0,
-    icon: 'Flag',
+    icon: Flag,
     gradient: 'linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%)',
     glow: 'rgba(6, 182, 212, 0.2)'
   },
   {
     label: '总分数',
     value: playerInfo.value?.totalScore || 0,
-    icon: 'Medal',
+    icon: Medal,
     gradient: 'linear-gradient(135deg, #8b5cf6 0%, #a855f7 100%)',
     glow: 'rgba(139, 92, 246, 0.2)'
   },
   {
     label: '胜利次数',
     value: playerInfo.value?.wins || 0,
-    icon: 'StarFilled',
+    icon: StarFilled,
     gradient: 'linear-gradient(135deg, #ec4899 0%, #f43f5e 100%)',
     glow: 'rgba(236, 72, 153, 0.2)'
   }

@@ -204,39 +204,40 @@ const serverInfo = ref(null)
 const onlinePlayers = ref([])
 const loading = ref(true)
 
+// SPDNet: 图标以组件引用绑定（不再依赖全局注册，故不能传字符串名）
 const floatingIcons = [
-  { name: 'StarFilled', size: 18, x: '10%', y: '20%' },
-  { name: 'Trophy', size: 22, x: '85%', y: '15%' },
-  { name: 'FirstAidKit', size: 20, x: '75%', y: '75%' },
-  { name: 'Medal', size: 16, x: '15%', y: '70%' }
+  { name: StarFilled, size: 18, x: '10%', y: '20%' },
+  { name: Trophy, size: 22, x: '85%', y: '15%' },
+  { name: FirstAidKit, size: 20, x: '75%', y: '75%' },
+  { name: Medal, size: 16, x: '15%', y: '70%' }
 ]
 
 const statsList = computed(() => [
   {
     label: '当前在线',
     value: serverInfo.value?.onlineCount || 0,
-    icon: 'UserFilled',
+    icon: UserFilled,
     gradient: 'linear-gradient(135deg, #9333ea 0%, #a855f7 100%)',
     glow: 'rgba(147, 51, 234, 0.25)'
   },
   {
     label: '注册玩家',
     value: serverInfo.value?.totalPlayers || 0,
-    icon: 'User',
+    icon: User,
     gradient: 'linear-gradient(135deg, #ec4899 0%, #f43f5e 100%)',
     glow: 'rgba(236, 72, 153, 0.25)'
   },
   {
     label: '游戏版本',
     value: serverInfo.value?.version || '-',
-    icon: 'CollectionTag',
+    icon: CollectionTag,
     gradient: 'linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%)',
     glow: 'rgba(6, 182, 212, 0.25)'
   },
   {
     label: '联机版本',
     value: serverInfo.value?.netVersion || '-',
-    icon: 'CircleCheck',
+    icon: CircleCheck,
     gradient: 'linear-gradient(135deg, #10b981 0%, #06b6d4 100%)',
     glow: 'rgba(16, 185, 129, 0.25)'
   }
@@ -244,21 +245,21 @@ const statsList = computed(() => [
 
 const features = [
   {
-    icon: 'Trophy',
+    icon: Trophy,
     title: '竞技排行',
     description: '挑战高分排行榜，与全球玩家一较高下，展示你的地牢探险实力。',
     gradient: 'linear-gradient(135deg, #f59e0b 0%, #f97316 100%)',
     glow: 'rgba(245, 158, 11, 0.15)'
   },
   {
-    icon: 'ChatDotRound',
+    icon: ChatDotRound,
     title: '实时聊天',
     description: '与在线玩家实时交流，分享游戏心得，结交志同道合的冒险伙伴。',
     gradient: 'linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%)',
     glow: 'rgba(6, 182, 212, 0.15)'
   },
   {
-    icon: 'TrendCharts',
+    icon: TrendCharts,
     title: '数据追踪',
     description: '详细记录你的每一次冒险，分析游戏数据，不断提升自己的技巧。',
     gradient: 'linear-gradient(135deg, #10b981 0%, #06b6d4 100%)',

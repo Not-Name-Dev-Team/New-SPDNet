@@ -39,7 +39,14 @@
         </nav>
 
         <!-- Mobile Menu Button -->
-        <button class="mobile-menu-btn" @click="mobileMenuOpen = true">
+        <button
+          class="mobile-menu-btn"
+          type="button"
+          aria-label="打开导航菜单"
+          :aria-expanded="String(mobileMenuOpen)"
+          aria-controls="mobile-nav-drawer"
+          @click="mobileMenuOpen = true"
+        >
           <el-icon :size="24"><Menu /></el-icon>
         </button>
 
@@ -107,6 +114,7 @@
       size="280px"
       :with-header="false"
       class="mobile-nav-drawer"
+      id="mobile-nav-drawer"
     >
       <div class="mobile-nav-content">
         <div class="mobile-nav-header">

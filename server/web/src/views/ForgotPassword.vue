@@ -144,7 +144,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import {
@@ -205,6 +205,19 @@ const rules = {
   ]
 }
 
+// SPDNet: 启动验证码倒计时；重复调用会先清掉上一个定时器，避免连点叠加
+const startCountdown = (seconds) => {
+  clearInterval(countdownTimer)
+  codeCountdown.value = seconds
+  countdownTimer = setInterval(() => {
+    codeCountdown.value--
+    if (codeCountdown.value <= 0) {
+      clearInterval(countdownTimer)
+      countdownTimer = null
+    }
+  }, 1000)
+}
+
 const handleSendCode = async () => {
   // 验证邮箱格式
   const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/
@@ -224,13 +237,7 @@ const handleSendCode = async () => {
       ElMessage.success('验证码已发送')
       // 开始倒计时，使用后端返回的冷却时间（默认60秒）
       const cooldownSeconds = res.data.data?.cooldownSeconds || 60
-      codeCountdown.value = cooldownSeconds
-      countdownTimer = setInterval(() => {
-        codeCountdown.value--
-        if (codeCountdown.value <= 0) {
-          clearInterval(countdownTimer)
-        }
-      }, 1000)
+      startCountdown(cooldownSeconds)
     } else {
       ElMessage.error(res.data.message || '验证码发送失败')
     }
@@ -274,6 +281,12 @@ onMounted(() => {
   if (authStore.isLoggedIn) {
     router.push('/')
   }
+})
+
+// SPDNet: 组件卸载时清理倒计时，避免定时器继续向已销毁的 ref 写入
+onUnmounted(() => {
+  clearInterval(countdownTimer)
+  countdownTimer = null
 })
 </script>
 

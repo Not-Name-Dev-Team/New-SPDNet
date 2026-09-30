@@ -157,6 +157,26 @@ body {
   color: var(--text-primary);
 }
 
+/* Focus visibility
+   键盘用户必须能看到焦点位置；仅用 :focus-visible，避免鼠标点击也出现轮廓 */
+:focus-visible {
+  outline: 2px solid var(--primary-400);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* 尊重系统的"减少动态效果"设置：关闭装饰性动画与过渡 */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 /* Scrollbar */
 ::-webkit-scrollbar {
   width: 5px;

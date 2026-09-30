@@ -75,7 +75,7 @@
         </header>
 
         <!-- Messages Area - 使用独立滚动区域 -->
-        <div class="messages-wrapper" ref="messagesWrapper">
+        <div class="messages-wrapper" ref="messagesWrapper" @scroll.passive="handleMessagesScroll">
           <div v-if="messages.length === 0" class="empty-messages">
             <div class="empty-icon">
               <el-icon :size="48"><ChatDotRound /></el-icon>
@@ -142,7 +142,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { ElMessage } from 'element-plus'
 import {
   UserFilled, User, ChatDotRound, Refresh, Promotion, InfoFilled
@@ -159,6 +159,25 @@ const loading = ref(false)
 const sending = ref(false)
 const messagesWrapper = ref(null)
 let refreshInterval = null
+// SPDNet: 用户是否停留在消息区底部附近；仅在底部时才自动滚动，避免打断向上翻看历史
+const stickToBottom = ref(true)
+// SPDNet: 上一次渲染的消息指纹，用于轻量判重（替代全量 JSON 序列化比对）
+let lastMessagesSignature = ''
+
+// SPDNet: 消息指纹 = 条数 + 每条消息的标识与内容。
+// 覆盖新增、清空、以及任意位置的就地编辑；比原来的两次 JSON.stringify 仍然便宜得多，
+// 且不受键顺序/格式化差异影响。
+const messageKey = (msg) => (msg?.id != null ? `id:${msg.id}` : `${msg?.name}|${msg?.time}`)
+
+const messagesSignature = (list) => {
+  if (!list.length) return 'empty'
+  let sig = `${list.length}`
+  for (let i = 0; i < list.length; i++) {
+    const m = list[i]
+    sig += `\u0001${messageKey(m)}\u0002${m?.message ?? ''}`
+  }
+  return sig
+}
 
 const canSend = computed(() => {
   return authStore.isLoggedIn && messageText.value.trim() && !sending.value
@@ -180,12 +199,21 @@ const formatTime = (time) => {
   })
 }
 
-const scrollToBottom = () => {
+// SPDNet: 滚动到底部；force=true 时忽略"用户正在翻看历史"的判断（如自己发送消息）
+const scrollToBottom = (force = false) => {
+  if (!force && !stickToBottom.value) return
   nextTick(() => {
     if (messagesWrapper.value) {
       messagesWrapper.value.scrollTop = messagesWrapper.value.scrollHeight
     }
   })
+}
+
+// SPDNet: 记录用户是否贴近底部（容差 80px，覆盖图片/换行带来的高度抖动）
+const handleMessagesScroll = () => {
+  const el = messagesWrapper.value
+  if (!el) return
+  stickToBottom.value = el.scrollHeight - el.scrollTop - el.clientHeight < 80
 }
 
 const loadOnlineUsers = async () => {
@@ -217,8 +245,12 @@ const loadMessages = async () => {
         return msg
       })
       const reversedMessages = [...parsedMessages].reverse()
-      if (JSON.stringify(reversedMessages) !== JSON.stringify(messages.value)) {
+      // SPDNet: 指纹比对替代每 5 秒两次 JSON.stringify；能覆盖清空与就地编辑
+      const nextSignature = messagesSignature(reversedMessages)
+      if (nextSignature !== lastMessagesSignature) {
+        lastMessagesSignature = nextSignature
         messages.value = reversedMessages
+        // 首次加载或用户本来就在底部时跟随新消息；翻看历史时不打断
         scrollToBottom()
       }
     }
@@ -239,6 +271,8 @@ const sendMessage = async () => {
     if (res.data.success) {
       messageText.value = ''
       await loadMessages()
+      // SPDNet: 自己发送的消息总是滚到底部
+      scrollToBottom(true)
     } else {
       ElMessage.error(res.data.message || '发送失败')
     }
@@ -250,24 +284,37 @@ const sendMessage = async () => {
   }
 }
 
-watch(messages, () => {
-  scrollToBottom()
-}, { deep: true })
+// SPDNet: 页面转入后台时暂停轮询，回到前台立即刷新一次并恢复
+const handleVisibilityChange = () => {
+  if (document.hidden) {
+    clearInterval(refreshInterval)
+    refreshInterval = null
+  } else if (!refreshInterval) {
+    loadOnlineUsers()
+    loadMessages()
+    startPolling()
+  }
+}
 
-onMounted(() => {
-  loadOnlineUsers()
-  loadMessages()
-
+const startPolling = () => {
+  if (refreshInterval) return
   refreshInterval = setInterval(() => {
     loadOnlineUsers()
     loadMessages()
   }, 5000)
+}
+
+onMounted(() => {
+  loadOnlineUsers()
+  loadMessages()
+  startPolling()
+  document.addEventListener('visibilitychange', handleVisibilityChange)
 })
 
 onUnmounted(() => {
-  if (refreshInterval) {
-    clearInterval(refreshInterval)
-  }
+  clearInterval(refreshInterval)
+  refreshInterval = null
+  document.removeEventListener('visibilitychange', handleVisibilityChange)
 })
 </script>
 
@@ -382,16 +429,6 @@ onUnmounted(() => {
 .user-status-text {
   font-size: 0.75rem;
   color: var(--text-secondary);
-}
-
-.message-author {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-2);
-  padding: var(--space-8);
-  color: var(--text-tertiary);
 }
 
 /* Main Chat Area */
@@ -644,7 +681,6 @@ onUnmounted(() => {
 
 @media (max-width: 640px) {
   .chat-page {
-    top: 56px;
     padding: var(--space-2);
   }
 

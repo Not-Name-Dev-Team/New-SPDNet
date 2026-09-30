@@ -311,25 +311,25 @@ const stats = computed(() => [
   {
     label: '总玩家数',
     value: serverInfo.value?.totalPlayers || 0,
-    icon: 'UserFilled',
+    icon: UserFilled,
     gradient: 'linear-gradient(135deg, #8b5cf6 0%, #a855f7 100%)'
   },
   {
     label: '在线玩家',
     value: serverInfo.value?.onlineCount || 0,
-    icon: 'TrendCharts',
+    icon: TrendCharts,
     gradient: 'linear-gradient(135deg, #10b981 0%, #34d399 100%)'
   },
   {
     label: '管理员数',
     value: serverInfo.value?.adminCount || 0,
-    icon: 'Medal',
+    icon: Medal,
     gradient: 'linear-gradient(135deg, #ec4899 0%, #f43f5e 100%)'
   },
   {
     label: '封禁数',
     value: serverInfo.value?.bannedCount || 0,
-    icon: 'Lock',
+    icon: Lock,
     gradient: 'linear-gradient(135deg, #f59e0b 0%, #f97316 100%)'
   }
 ])
