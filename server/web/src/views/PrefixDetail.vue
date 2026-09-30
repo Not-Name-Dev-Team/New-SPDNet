@@ -75,7 +75,7 @@
             :class="{ 'is-active': owner.active }"
           >
             <div class="owner-avatar">
-              <el-avatar :size="48" :icon="UserFilled" />
+              <el-avatar :size="48" :icon="UserFilled" aria-hidden="true" />
               <div v-if="owner.active" class="active-badge" title="当前使用中">
                 <el-icon><Check /></el-icon>
               </div>

@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { ElMessage } from 'element-plus'
 import { authStore } from './store/auth'
 
 const api = axios.create({
@@ -18,14 +19,31 @@ api.interceptors.request.use((config) => {
   return config
 })
 
-// SPDNet: 响应拦截器——登录令牌失效(401)时清除本地登录态并跳转登录页
+// SPDNet: 登录令牌失效(401)时清除本地登录态并跳转登录页。
+//  - 带上 redirect，登录后可回到原页面（原先直接跳 /login，用户当前所在页面被丢弃）
+//  - 提示"登录已过期"，避免用户被无声传送、以为页面出错
+//  - 已登录态才提示：登录页本身返回 401（密码错误）不应报"过期"
+//  - 跳转延迟到提示渲染之后，否则 location.replace 会立刻卸载页面、提示一闪即逝
+let redirecting = false
+
 api.interceptors.response.use(
   (resp) => resp,
   (error) => {
-    if (error.response?.status === 401) {
+    if (error.response?.status === 401 && !redirecting) {
+      redirecting = true
+      const wasLoggedIn = authStore.isLoggedIn
+      const current = window.location.pathname + window.location.search
       authStore.logout()
+
       if (window.location.pathname !== '/login') {
-        window.location.href = '/login'
+        if (wasLoggedIn) {
+          ElMessage.warning('登录已过期，请重新登录')
+        }
+        const redirect = current === '/' ? '' : `?redirect=${encodeURIComponent(current)}`
+        // 用 replace 而非 href：失效页面不应留在浏览器历史里
+        setTimeout(() => {
+          window.location.replace(`/login${redirect}`)
+        }, wasLoggedIn ? 600 : 0)
       }
     }
     return Promise.reject(error)
@@ -83,14 +101,6 @@ export const playerApi = {
 
   resetPassword(data) {
     return api.post('/forgot-password/reset', data)
-  },
-
-  getChatHistory(count = 50) {
-    return api.get('/chat/messages', { params: { count } })
-  },
-
-  sendMessage(name, message) {
-    return api.post('/chat/send', { name, message })
   }
 }
 

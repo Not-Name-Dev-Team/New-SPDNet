@@ -106,7 +106,7 @@
             <span class="rank-number">{{ index + 1 }}</span>
           </div>
           <div class="podium-avatar">
-            <el-avatar :size="60" :icon="UserFilled" />
+            <el-avatar :size="60" :icon="UserFilled" aria-hidden="true" />
           </div>
           <div class="podium-info">
             <router-link :to="`/player/${player.name}`" class="podium-name">
@@ -169,7 +169,7 @@
               </div>
             </div>
             <div class="col-player">
-              <el-avatar :size="32" :icon="UserFilled" class="player-avatar" />
+              <el-avatar :size="32" :icon="UserFilled" class="player-avatar" aria-hidden="true" />
               <router-link :to="`/player/${player.name}`" class="player-name">
                 <PrefixBadge v-if="player.prefix" :prefix="player.prefix" />
                 {{ player.name }}

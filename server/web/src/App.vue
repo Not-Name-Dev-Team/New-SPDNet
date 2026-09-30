@@ -31,6 +31,7 @@
             :key="item.path"
             :to="item.path"
             :class="['nav-link', { active: $route.path === item.path }]"
+            :aria-current="$route.path === item.path ? 'page' : undefined"
           >
             <span class="nav-indicator"></span>
             <el-icon :size="16"><component :is="item.icon" /></el-icon>
@@ -66,7 +67,7 @@
             <el-dropdown @command="handleCommand" trigger="click" popper-class="user-dropdown-menu">
               <div class="user-trigger">
                 <div class="user-avatar-wrapper">
-                  <el-avatar :size="34" :icon="UserFilled" class="user-avatar" />
+                  <el-avatar :size="34" :icon="UserFilled" class="user-avatar" aria-hidden="true" />
                   <span class="status-indicator online"></span>
                 </div>
                 <span class="user-name">{{ authStore.user?.name }}</span>
@@ -135,6 +136,7 @@
             :key="item.path"
             :to="item.path"
             :class="['mobile-nav-link', { active: $route.path === item.path }]"
+            :aria-current="$route.path === item.path ? 'page' : undefined"
             @click="mobileMenuOpen = false"
           >
             <el-icon :size="20"><component :is="item.icon" /></el-icon>

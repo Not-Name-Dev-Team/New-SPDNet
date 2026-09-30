@@ -177,7 +177,7 @@
                 </div>
               </div>
               <div class="col-player">
-                <el-avatar :size="32" :icon="UserFilled" class="player-avatar" />
+                <el-avatar :size="32" :icon="UserFilled" class="player-avatar" aria-hidden="true" />
                 <router-link :to="`/player/${record.playerName}`" class="player-name">
                   <PrefixBadge v-if="record.prefix" :prefix="record.prefix" />
                   {{ record.playerName }}

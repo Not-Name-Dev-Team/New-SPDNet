@@ -6,7 +6,7 @@
       <div class="header-content">
         <div class="avatar-section">
           <div class="avatar-wrapper">
-            <el-avatar :size="100" :icon="UserFilled" class="profile-avatar" />
+            <el-avatar :size="100" :icon="UserFilled" class="profile-avatar" aria-hidden="true" />
             <div class="avatar-glow"></div>
           </div>
           <div class="user-info">

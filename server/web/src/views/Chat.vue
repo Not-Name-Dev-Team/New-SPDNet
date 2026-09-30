@@ -21,7 +21,7 @@
             class="user-item"
           >
             <div class="user-avatar-wrapper">
-              <el-avatar :size="36" :icon="UserFilled" class="user-avatar" />
+              <el-avatar :size="36" :icon="UserFilled" class="user-avatar" aria-hidden="true" />
               <span class="online-dot"></span>
             </div>
             <div class="user-info">
@@ -66,7 +66,7 @@
               type="primary"
               text
               :icon="Refresh"
-              @click="loadOnlineUsers"
+              @click="pollNow"
               :loading="loading"
             >
               刷新
@@ -90,7 +90,15 @@
             class="message-item"
             :class="{ 'self': isSelfMessage(msg) }"
           >
-            <router-link :to="`/player/${msg.name}`" class="message-avatar">
+            <!-- SPDNet: 头像链接对读屏隐藏——它只含装饰性头像，
+                 而紧随其后的 .message-author 已提供指向同一玩家的可达链接，
+                 重复暴露会制造两个同名的冗余链接 -->
+            <router-link
+              :to="`/player/${msg.name}`"
+              class="message-avatar"
+              aria-hidden="true"
+              tabindex="-1"
+            >
               <el-avatar :size="40" :icon="UserFilled" />
             </router-link>
             <div class="message-content">
@@ -158,7 +166,13 @@ const messageText = ref('')
 const loading = ref(false)
 const sending = ref(false)
 const messagesWrapper = ref(null)
-let refreshInterval = null
+let refreshTimer = null
+// SPDNet: 轮询退避——消息无变化时逐级拉长间隔，有新消息立即回到最快节奏。
+// 原先固定 5 秒轮询在冷清时段是每分钟 24 个请求且永不停歇；退避后空转请求量降到约 1/6，
+// 而活跃时仍保持 5 秒的即时感。
+const POLL_FAST = 5000
+const POLL_SLOW = 30000
+let pollDelay = POLL_FAST
 // SPDNet: 用户是否停留在消息区底部附近；仅在底部时才自动滚动，避免打断向上翻看历史
 const stickToBottom = ref(true)
 // SPDNet: 上一次渲染的消息指纹，用于轻量判重（替代全量 JSON 序列化比对）
@@ -228,6 +242,7 @@ const loadOnlineUsers = async () => {
   }
 }
 
+// SPDNet: 返回本次拉取是否带来了新内容，供轮询退避判断
 const loadMessages = async () => {
   try {
     const res = await chatApi.getMessages(50)
@@ -252,11 +267,13 @@ const loadMessages = async () => {
         messages.value = reversedMessages
         // 首次加载或用户本来就在底部时跟随新消息；翻看历史时不打断
         scrollToBottom()
+        return true
       }
     }
   } catch (error) {
     console.error('获取聊天记录失败:', error)
   }
+  return false
 }
 
 const sendMessage = async () => {
@@ -273,6 +290,8 @@ const sendMessage = async () => {
       await loadMessages()
       // SPDNet: 自己发送的消息总是滚到底部
       scrollToBottom(true)
+      // SPDNet: 刚发过言说明聊天室活跃，重置轮询节奏
+      pollDelay = POLL_FAST
     } else {
       ElMessage.error(res.data.message || '发送失败')
     }
@@ -287,33 +306,51 @@ const sendMessage = async () => {
 // SPDNet: 页面转入后台时暂停轮询，回到前台立即刷新一次并恢复
 const handleVisibilityChange = () => {
   if (document.hidden) {
-    clearInterval(refreshInterval)
-    refreshInterval = null
-  } else if (!refreshInterval) {
-    loadOnlineUsers()
-    loadMessages()
-    startPolling()
+    stopPolling()
+  } else {
+    // 回到前台视为可能已错过消息，重置为最快节奏
+    pollDelay = POLL_FAST
+    refresh()
   }
 }
 
-const startPolling = () => {
-  if (refreshInterval) return
-  refreshInterval = setInterval(() => {
-    loadOnlineUsers()
-    loadMessages()
-  }, 5000)
+// SPDNet: 单次轮询——在线列表与消息并行拉取，再按消息是否变化决定下次间隔
+const refresh = async () => {
+  if (document.hidden) return
+  const [hasNew] = await Promise.all([loadMessages(), loadOnlineUsers()])
+  pollDelay = hasNew ? POLL_FAST : Math.min(pollDelay * 2, POLL_SLOW)
+  schedulePoll()
+}
+
+const schedulePoll = () => {
+  if (refreshTimer !== null || document.hidden) return
+  refreshTimer = setTimeout(() => {
+    refreshTimer = null
+    refresh()
+  }, pollDelay)
+}
+
+// SPDNet: 用户主动操作（发送消息、点刷新）后立即回到最快节奏
+const pollNow = () => {
+  stopPolling()
+  pollDelay = POLL_FAST
+  refresh()
+}
+
+const stopPolling = () => {
+  if (refreshTimer !== null) {
+    clearTimeout(refreshTimer)
+    refreshTimer = null
+  }
 }
 
 onMounted(() => {
-  loadOnlineUsers()
-  loadMessages()
-  startPolling()
+  refresh()
   document.addEventListener('visibilitychange', handleVisibilityChange)
 })
 
 onUnmounted(() => {
-  clearInterval(refreshInterval)
-  refreshInterval = null
+  stopPolling()
   document.removeEventListener('visibilitychange', handleVisibilityChange)
 })
 </script>

@@ -125,7 +125,7 @@
               <template #default="{ row }">
                 <div class="player-cell">
                   <div class="avatar-wrapper">
-                    <el-avatar :size="40" :icon="UserFilled" class="player-avatar" />
+                    <el-avatar :size="40" :icon="UserFilled" class="player-avatar" aria-hidden="true" />
                     <div :class="['online-indicator', row.online ? 'online' : 'offline']"></div>
                   </div>
                   <div class="player-info">

@@ -1,5 +1,5 @@
 <template>
-  <div class="particle-background">
+  <div class="particle-background" aria-hidden="true">
     <canvas ref="canvasRef" class="particle-canvas"></canvas>
     <div class="gradient-overlay"></div>
     <div class="grid-overlay"></div>

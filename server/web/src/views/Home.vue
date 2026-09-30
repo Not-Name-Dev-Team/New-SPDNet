@@ -115,7 +115,7 @@
         >
           <div class="card-glow"></div>
           <div class="player-avatar-wrapper">
-            <el-avatar :size="44" :icon="UserFilled" class="player-avatar" />
+            <el-avatar :size="44" :icon="UserFilled" class="player-avatar" aria-hidden="true" />
             <span class="online-indicator"></span>
           </div>
           <div class="player-info">
