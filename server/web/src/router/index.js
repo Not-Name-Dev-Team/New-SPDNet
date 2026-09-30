@@ -2,12 +2,7 @@
 // 采用路由级代码分包(懒加载)，并为受保护页面添加登录/管理员守卫
 import { createRouter, createWebHistory } from 'vue-router'
 import { authStore } from '../store/auth'
-
-// 判断当前用户是否具有管理员权限（兼容中英文角色枚举）
-function isAdmin(user) {
-  const role = user?.role
-  return role === 'ADMIN' || role === '管理员'
-}
+import { isAdminUser } from '../utils/format'
 
 const routes = [
   { path: '/', component: () => import('../views/Home.vue'), meta: { title: '首页' } },
@@ -43,7 +38,7 @@ router.beforeEach((to, _from, next) => {
   }
 
   // 需要管理员权限的页面
-  if (to.meta.requiresAdmin && !isAdmin(user)) {
+  if (to.meta.requiresAdmin && !isAdminUser(user)) {
     return next({ path: '/dashboard' })
   }
 

@@ -11,7 +11,7 @@
         </div>
       </div>
       <div class="header-actions">
-        <el-button type="primary" :icon="Plus" @click="showCreateDialog = true">
+        <el-button type="primary" :icon="Plus" @click="openCreateDialog">
           创建前缀
         </el-button>
       </div>
@@ -21,12 +21,7 @@
     <div class="prefix-list" v-loading="loading">
       <div v-for="prefix in prefixes" :key="prefix.id" class="prefix-card">
         <div class="prefix-preview">
-          <span
-            class="prefix-badge"
-            :style="getPrefixStyle(prefix)"
-          >
-            {{ prefix.displayText }}
-          </span>
+          <PrefixBadge :prefix="prefix" :clickable="false" />
         </div>
         <div class="prefix-info">
           <div class="prefix-name">{{ prefix.name }}</div>
@@ -49,6 +44,7 @@
       v-model="showCreateDialog"
       :title="editingPrefix ? '编辑前缀' : '创建前缀'"
       width="500px"
+      @closed="closeDialog"
     >
       <el-form :model="prefixForm" label-width="100px">
         <el-form-item label="标识" v-if="!editingPrefix">
@@ -72,12 +68,10 @@
           />
         </el-form-item>
         <el-form-item label="预览">
-          <span
-            class="prefix-badge"
-            :style="getPrefixStyle(prefixForm)"
-          >
-            {{ prefixForm.displayText || '预览' }}
-          </span>
+          <PrefixBadge
+            :prefix="{ ...prefixForm, displayText: prefixForm.displayText || '预览' }"
+            :clickable="false"
+          />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -119,12 +113,7 @@
             class="assigned-prefix-item"
             :class="{ active: assignment.active }"
           >
-            <span
-              class="prefix-badge-small"
-              :style="getPrefixStyle(assignment.prefix)"
-            >
-              {{ assignment.prefix.displayText }}
-            </span>
+            <PrefixBadge :prefix="assignment.prefix" :clickable="false" />
             <span v-if="assignment.active" class="active-tag">当前使用</span>
             <el-button
               type="danger"
@@ -155,12 +144,7 @@
                 :label="prefix.displayText"
                 :value="prefix.id"
               >
-                <span
-                  class="prefix-badge-small"
-                  :style="getPrefixStyle(prefix)"
-                >
-                  {{ prefix.displayText }}
-                </span>
+                <PrefixBadge :prefix="prefix" :clickable="false" size="xs" />
               </el-option>
             </el-select>
             <el-button
@@ -183,6 +167,7 @@ import { ref, onMounted, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Edit, Delete, Medal } from '@element-plus/icons-vue'
 import { adminApi } from '../api'
+import PrefixBadge from './PrefixBadge.vue'
 
 const props = defineProps({
   players: {
@@ -216,18 +201,8 @@ const availablePrefixesToAssign = computed(() => {
   return prefixes.value.filter(p => !assignedIds.includes(p.id))
 })
 
-const getPrefixStyle = (prefix) => {
-  return {
-    color: prefix.color || '#ffffff',
-    backgroundColor: prefix.backgroundColor || 'rgba(139, 92, 246, 0.8)',
-    padding: '2px 8px',
-    borderRadius: '4px',
-    fontSize: '12px',
-    fontWeight: 'bold',
-    marginRight: '4px'
-  }
-}
-
+// SPDNet: 前缀渲染统一走 PrefixBadge + utils/format.js 的 getPrefixStyle，
+// 不再各处自己维护一份（原先此处与 MyPrefixSelector、format.js 三份数值互相不一致）。
 const loadPrefixes = async () => {
   loading.value = true
   try {
@@ -265,6 +240,9 @@ const loadPlayerPrefixes = async () => {
 
 const onPlayerChange = () => {
   prefixToAssign.value = null
+  // SPDNet: 先清空上一个玩家的前缀列表，否则新玩家数据到达前，
+  // availablePrefixesToAssign 会基于旧玩家的分配情况计算，导致下拉出现已分配的前缀。
+  playerPrefixes.value = []
   loadPlayerPrefixes()
 }
 
@@ -278,6 +256,12 @@ const closeDialog = () => {
     backgroundColor: 'rgba(139, 92, 246, 0.8)',
     description: ''
   }
+}
+
+// SPDNet: 供"创建前缀"入口使用，确保不会带着上一次编辑的残留状态打开
+const openCreateDialog = () => {
+  closeDialog()
+  showCreateDialog.value = true
 }
 
 const editPrefix = (prefix) => {
@@ -496,19 +480,6 @@ onMounted(() => {
 
 .prefix-preview {
   flex-shrink: 0;
-}
-
-.prefix-badge {
-  display: inline-block;
-  font-weight: bold;
-}
-
-.prefix-badge-small {
-  display: inline-block;
-  font-weight: bold;
-  font-size: 11px;
-  padding: 1px 6px;
-  border-radius: 3px;
 }
 
 .prefix-info {

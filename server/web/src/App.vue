@@ -205,6 +205,7 @@ import { computed, ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { authStore } from './store/auth'
+import { isAdminUser } from './utils/format'
 import ParticleBackground from './components/ParticleBackground.vue'
 import {
   House, Trophy, ChatDotRound, User, Plus, UserFilled,
@@ -212,7 +213,7 @@ import {
 } from '@element-plus/icons-vue'
 
 const router = useRouter()
-const isAdmin = computed(() => authStore.user?.role === '管理员')
+const isAdmin = computed(() => isAdminUser(authStore.user))
 const isScrolled = ref(false)
 const mobileMenuOpen = ref(false)
 

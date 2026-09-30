@@ -86,7 +86,7 @@
 
           <div
             v-for="(msg, index) in messages"
-            :key="index"
+            :key="msg.id ?? `${msg.name}-${msg.time}-${index}`"
             class="message-item"
             :class="{ 'self': isSelfMessage(msg) }"
           >

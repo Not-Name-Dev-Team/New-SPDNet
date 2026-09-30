@@ -12,12 +12,7 @@
       <div class="current-prefix-section">
         <span class="section-label">当前使用：</span>
         <div v-if="activePrefix" class="active-prefix">
-          <span
-            class="prefix-badge"
-            :style="getPrefixStyle(activePrefix.prefix)"
-          >
-            {{ activePrefix.prefix.displayText }}
-          </span>
+          <PrefixBadge :prefix="activePrefix.prefix" size="md" :clickable="false" />
         </div>
         <div v-else class="no-active-prefix">
           未选择前缀
@@ -28,33 +23,33 @@
       <div class="my-prefixes-section">
         <h4>我的前缀列表</h4>
         <div v-if="myPrefixes.length > 0" class="prefix-list">
-          <div
+          <!-- SPDNet: 渲染为 <button> 并标注 aria-pressed，键盘用户才能选择前缀 -->
+          <button
             v-for="assignment in myPrefixes"
             :key="assignment.id"
+            type="button"
             class="prefix-item"
             :class="{ active: assignment.active }"
+            :aria-pressed="assignment.active"
             @click="selectPrefix(assignment)"
           >
-            <span
-              class="prefix-badge"
-              :style="getPrefixStyle(assignment.prefix)"
-            >
-              {{ assignment.prefix.displayText }}
-            </span>
+            <PrefixBadge :prefix="assignment.prefix" size="md" :clickable="false" />
             <span v-if="assignment.active" class="active-indicator">
               <el-icon><Check /></el-icon>
               使用中
             </span>
             <span v-else class="select-hint">点击选择</span>
-          </div>
+          </button>
         </div>
         <el-empty v-else description="暂无称号前缀" />
 
         <!-- No Prefix Option -->
-        <div
+        <button
           v-if="myPrefixes.length > 0"
+          type="button"
           class="prefix-item no-prefix"
           :class="{ active: !activePrefix }"
+          :aria-pressed="!activePrefix"
           @click="selectPrefix(null)"
         >
           <span>不使用前缀</span>
@@ -63,7 +58,7 @@
             使用中
           </span>
           <span v-else class="select-hint">点击选择</span>
-        </div>
+        </button>
       </div>
     </div>
   </div>
@@ -75,6 +70,7 @@ import { ElMessage } from 'element-plus'
 import { Medal, Check } from '@element-plus/icons-vue'
 import { prefixApi } from '../api'
 import { authStore } from '../store/auth'
+import PrefixBadge from './PrefixBadge.vue'
 
 const emit = defineEmits(['prefix-changed'])
 
@@ -86,17 +82,6 @@ const activePrefix = ref(null)
 const playerName = computed(() => {
   return authStore.user?.name || ''
 })
-
-const getPrefixStyle = (prefix) => {
-  return {
-    color: prefix.color || '#ffffff',
-    backgroundColor: prefix.backgroundColor || 'rgba(139, 92, 246, 0.8)',
-    padding: '4px 12px',
-    borderRadius: '6px',
-    fontSize: '14px',
-    fontWeight: 'bold'
-  }
-}
 
 const loadMyPrefixes = async () => {
   if (!playerName.value) {
@@ -227,10 +212,6 @@ watch(playerName, (newName) => {
   font-style: italic;
 }
 
-.prefix-badge {
-  display: inline-block;
-}
-
 .my-prefixes-section h4 {
   font-size: 0.875rem;
   font-weight: 600;
@@ -256,6 +237,17 @@ watch(playerName, (newName) => {
   border-radius: var(--radius-lg);
   cursor: pointer;
   transition: all 0.2s ease;
+  /* SPDNet: 渲染为 <button>，重置 UA 默认外观 */
+  width: 100%;
+  font-family: inherit;
+  font-size: inherit;
+  color: var(--text-primary);
+  text-align: left;
+}
+
+.prefix-item:focus-visible {
+  outline: 2px solid var(--primary-400);
+  outline-offset: 2px;
 }
 
 .prefix-item:hover {

@@ -30,7 +30,12 @@
             <span class="filter-label">排行榜类型</span>
             <el-select v-model="filters.playerType" placeholder="选择类型" @change="handlePlayerTypeChange">
               <el-option label="所有玩家" value="all" />
-              <el-option label="我的记录" value="self" />
+              <!-- SPDNet: 未登录时没有"我的记录"可言；禁用而非静默退化为全服数据 -->
+              <el-option
+                label="我的记录"
+                value="self"
+                :disabled="!authStore.isLoggedIn"
+              />
             </el-select>
           </div>
 
@@ -130,7 +135,13 @@
           </div>
         </div>
 
-        <div class="leaderboard-table" v-if="filteredLeaderboard.length > 0">
+        <div class="leaderboard-table" v-if="loading && leaderboard.length === 0">
+          <div class="table-loading">
+            <el-skeleton :rows="5" animated />
+          </div>
+        </div>
+
+        <div class="leaderboard-table" v-else-if="rankedLeaderboard.length > 0">
           <div class="table-row header">
             <div class="col-rank">排名</div>
             <div class="col-player">玩家</div>
@@ -143,18 +154,18 @@
           </div>
 
           <div
-            v-for="(player, index) in paginatedLeaderboard"
-            :key="player.id || index"
+            v-for="(player, index) in rankedLeaderboard"
+            :key="player.id || `${player.name}-${index}`"
             class="table-row"
-            :class="{ 'highlight': getActualRank(index) <= 3 && !filtersActive }"
-            :style="{ animationDelay: `${index * 0.03}s` }"
+            :class="{ 'highlight': player.actualRank <= 3 && !filtersActive }"
+            :style="{ animationDelay: `${Math.min(index, 12) * 0.03}s` }"
           >
             <div class="col-rank">
-              <div class="rank-badge" :class="`rank-${getActualRank(index) <= 3 ? getActualRank(index) : 'other'}`">
-                <span v-if="getActualRank(index) <= 3">
-                  <el-icon><component :is="getRankIcon(getActualRank(index) - 1)" /></el-icon>
+              <div class="rank-badge" :class="`rank-${player.actualRank <= 3 ? player.actualRank : 'other'}`">
+                <span v-if="player.actualRank <= 3">
+                  <el-icon><component :is="getRankIcon(player.actualRank - 1)" /></el-icon>
                 </span>
-                <span v-else>{{ getActualRank(index) }}</span>
+                <span v-else>{{ player.actualRank }}</span>
               </div>
             </div>
             <div class="col-player">
@@ -179,8 +190,8 @@
               <span v-else>-</span>
             </div>
             <div class="col-mode">
-              <el-tag :type="player.daily ? 'success' : 'info'" size="small" effect="dark">
-                {{ player.daily ? '每日' : '标准' }}
+              <el-tag :type="getModeTagType(player.gameMode)" size="small" effect="dark">
+                {{ getModeLabel(player.gameMode) }}
               </el-tag>
             </div>
             <div class="col-result">
@@ -237,7 +248,6 @@ import PrefixBadge from '../components/PrefixBadge.vue'
 const leaderboard = ref([])
 const top3IronmanPlayers = ref([])
 const loading = ref(false)
-const loadingTop3 = ref(false)
 const currentPage = ref(1)
 const pageSize = ref(20)
 const totalElements = ref(0)
@@ -258,23 +268,35 @@ const rankIcons = [Trophy, Medal, StarFilled]
 
 const getRankIcon = (index) => rankIcons[index] || Medal
 
+// SPDNet: 模式列直接读后端 gameMode（'NORMAL'/'IRONMAN'/'DAILY'）。
+// 原先用 player.daily 反推，导致所有铁人模式记录被错标为"标准"。
+const MODE_LABELS = {
+  NORMAL: '标准',
+  IRONMAN: '铁人',
+  DAILY: '每日'
+}
+
+const MODE_TAG_TYPES = {
+  NORMAL: 'info',
+  IRONMAN: 'warning',
+  DAILY: 'success'
+}
+
+const getModeLabel = (gameMode) => MODE_LABELS[gameMode] || gameMode || '标准'
+
+const getModeTagType = (gameMode) => MODE_TAG_TYPES[gameMode] || 'info'
+
 // 是否应用了筛选
+// SPDNet: playerType==='self' 只在真正带上了 playerName 时才算生效筛选，
+// 否则仅凭下拉选择就显示"已应用筛选"会与实际请求不符。
 const filtersActive = computed(() => {
-  return filters.value.playerType !== 'all' ||
-    filters.value.playerName ||
+  const selfFilterActive = filters.value.playerType === 'self' && !!filters.value.playerName
+  return selfFilterActive ||
+    (filters.value.playerType === 'all' && !!filters.value.playerName) ||
     filters.value.challengeCount !== null ||
     filters.value.gameMode !== null ||
     filters.value.winOnly ||
     filters.value.bannedOnly
-})
-
-const filteredLeaderboard = computed(() => {
-  return leaderboard.value
-})
-
-const paginatedLeaderboard = computed(() => {
-  // 使用后端分页
-  return leaderboard.value
 })
 
 // SPDNet: 前三名改为使用铁人模式未被ban玩家的数据
@@ -285,6 +307,16 @@ const topPlayers = computed(() => {
 const getActualRank = (index) => {
   return (currentPage.value - 1) * pageSize.value + index + 1
 }
+
+// SPDNet: 把名次预计算进每行数据，模板里不再每格调用 getActualRank
+// （原先每行 5 次调用，20 行即每次渲染 100 次求值）
+const rankedLeaderboard = computed(() => {
+  const base = (currentPage.value - 1) * pageSize.value
+  return leaderboard.value.map((player, index) => ({
+    ...player,
+    actualRank: base + index + 1
+  }))
+})
 
 const handleSizeChange = (val) => {
   pageSize.value = val
@@ -299,6 +331,14 @@ const handleCurrentChange = (val) => {
 
 const handlePlayerTypeChange = (val) => {
   if (val === 'self') {
+    // SPDNet: 理论上入口已禁用，此处再兜底一次，避免未登录时 playerName 为空
+    // 导致请求退化成"所有玩家"、UI 却显示"已应用筛选"的错误呈现。
+    if (!authStore.isLoggedIn) {
+      ElMessage.warning('请先登录后查看个人记录')
+      filters.value.playerType = 'all'
+      filters.value.playerName = ''
+      return
+    }
     filters.value.playerName = authStore.user?.name || ''
   } else {
     filters.value.playerName = ''
@@ -311,8 +351,8 @@ const applyFilters = () => {
 }
 
 // SPDNet: 加载铁人模式前三名（未被ban玩家）
+// 该请求由 loadData 统一 await，加载态复用 loading，无需单独的 flag
 const loadTop3IronmanPlayers = async () => {
-  loadingTop3.value = true
   try {
     const res = await leaderboardApi.getTop3IronmanPlayers()
     if (res.data.success) {
@@ -335,12 +375,14 @@ const loadTop3IronmanPlayers = async () => {
     }
   } catch (error) {
     console.error('获取铁人模式前三名失败:', error)
-  } finally {
-    loadingTop3.value = false
   }
 }
 
+// SPDNet: 请求序号，防止快速切换筛选时先发出的慢响应覆盖后发出的新结果
+let loadSeq = 0
+
 const loadData = async () => {
+  const seq = ++loadSeq
   loading.value = true
   try {
     const params = {
@@ -368,6 +410,8 @@ const loadData = async () => {
     }
 
     const res = await leaderboardApi.getLeaderboard(params.page, params.size, params)
+    // SPDNet: 已有更新的请求发出，丢弃这次的结果
+    if (seq !== loadSeq) return
     if (res.data.success) {
       const data = res.data.data || {}
       const records = data.records || []
@@ -390,10 +434,12 @@ const loadData = async () => {
       totalPages.value = data.totalPages || 1
     }
   } catch (error) {
+    if (seq !== loadSeq) return
     console.error('获取排行榜失败:', error)
     ElMessage.error('获取排行榜失败')
   } finally {
-    loading.value = false
+    // 仅最新请求负责结束 loading，避免旧请求提前清掉加载态
+    if (seq === loadSeq) loading.value = false
   }
 }
 
@@ -730,6 +776,11 @@ onMounted(() => {
 .leaderboard-table {
   display: flex;
   flex-direction: column;
+}
+
+/* SPDNet: 首次加载骨架屏，避免数据到达前闪现"暂无数据" */
+.table-loading {
+  padding: var(--space-5);
 }
 
 .table-row {

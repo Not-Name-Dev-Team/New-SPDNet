@@ -143,7 +143,12 @@
             </div>
             <div class="progress-list">
               <!-- 成就 -->
-              <div class="progress-item" @click="toggleDetail('achievement')">
+              <button
+                type="button"
+                class="progress-item"
+                :aria-expanded="expandedDetail === 'achievement'"
+                @click="toggleDetail('achievement')"
+              >
                 <div class="progress-icon" style="background: rgba(245, 158, 11, 0.12); color: #f59e0b;">
                   <el-icon><Trophy /></el-icon>
                 </div>
@@ -157,7 +162,7 @@
                   </div>
                   <el-icon class="expand-icon" :class="{ expanded: expandedDetail === 'achievement' }"><ArrowRight /></el-icon>
                 </div>
-              </div>
+              </button>
 
               <!-- 成就展开详情 -->
               <div v-if="expandedDetail === 'achievement'" class="progress-detail">
@@ -183,7 +188,12 @@
               </div>
 
               <!-- 图鉴主分类 -->
-              <div class="progress-item" @click="toggleDetail('catalog')">
+              <button
+                type="button"
+                class="progress-item"
+                :aria-expanded="expandedDetail === 'catalog'"
+                @click="toggleDetail('catalog')"
+              >
                 <div class="progress-icon" style="background: rgba(139, 92, 246, 0.12); color: #8b5cf6;">
                   <el-icon><View /></el-icon>
                 </div>
@@ -197,28 +207,35 @@
                   </div>
                   <el-icon class="expand-icon" :class="{ expanded: expandedDetail === 'catalog' }"><ArrowRight /></el-icon>
                 </div>
-              </div>
+              </button>
 
               <!-- 图鉴展开详情 -->
               <div v-if="expandedDetail === 'catalog'" class="progress-detail">
                 <!-- 装备 -->
                 <div class="detail-section">
-                  <div class="detail-header" @click="toggleSubDetail('equipment')">
+                  <button
+                    type="button"
+                    class="detail-header"
+                    :aria-expanded="expandedSubDetail === 'equipment'"
+                    @click="toggleSubDetail('equipment')"
+                  >
                     <span class="detail-title">装备</span>
                     <span class="detail-count">{{ playerInfo?.equipmentSeen || 0 }}/{{ playerInfo?.equipmentTotal || 165 }}</span>
                     <el-icon class="expand-icon" :class="{ expanded: expandedSubDetail === 'equipment' }"><ArrowRight /></el-icon>
-                  </div>
+                  </button>
                   <div v-if="expandedSubDetail === 'equipment'" class="detail-items">
-                    <div
+                    <button
                       v-for="eqType in ['MELEE_WEAPONS', 'ARMOR', 'ENCHANTMENTS', 'GLYPHS', 'THROWN_WEAPONS', 'WANDS', 'RINGS', 'ARTIFACTS', 'TRINKETS', 'MISC_EQUIPMENT']"
                       :key="eqType"
+                      type="button"
                       class="detail-item expandable"
+                      :aria-expanded="expandedThirdDetail === eqType"
                       @click="toggleThirdDetail(eqType)"
                     >
                       <span class="item-label">{{ getEquipmentLabel(eqType) }}</span>
                       <span class="item-count">{{ getEquipmentDetail(eqType) }}</span>
                       <el-icon class="expand-icon-small" :class="{ expanded: expandedThirdDetail === eqType }"><ArrowRight /></el-icon>
-                    </div>
+                    </button>
                   </div>
                   <!-- 装备第三级展开 -->
                   <div v-if="expandedThirdDetail && expandedSubDetail === 'equipment'" class="detail-third-level">
@@ -238,11 +255,16 @@
                 </div>
                 <!-- 消耗品 -->
                 <div class="detail-section">
-                  <div class="detail-header" @click="toggleSubDetail('consumables')">
+                  <button
+                    type="button"
+                    class="detail-header"
+                    :aria-expanded="expandedSubDetail === 'consumables'"
+                    @click="toggleSubDetail('consumables')"
+                  >
                     <span class="detail-title">消耗品</span>
                     <span class="detail-count">{{ playerInfo?.consumablesSeen || 0 }}/{{ playerInfo?.consumablesTotal || 161 }}</span>
                     <el-icon class="expand-icon" :class="{ expanded: expandedSubDetail === 'consumables' }"><ArrowRight /></el-icon>
-                  </div>
+                  </button>
                   <div v-if="expandedSubDetail === 'consumables'" class="detail-items">
                     <div
                       v-for="cType in ['POTIONS', 'SCROLLS', 'SEEDS', 'STONES', 'FOOD', 'EXOTIC_POTIONS', 'EXOTIC_SCROLLS', 'BOMBS', 'TIPPED_DARTS', 'BREWS_ELIXIRS', 'SPELLS', 'MISC_CONSUMABLES']"
@@ -273,11 +295,16 @@
                 </div>
                 <!-- 单位图鉴 -->
                 <div class="detail-section">
-                  <div class="detail-header" @click="toggleSubDetail('bestiary')">
+                  <button
+                    type="button"
+                    class="detail-header"
+                    :aria-expanded="expandedSubDetail === 'bestiary'"
+                    @click="toggleSubDetail('bestiary')"
+                  >
                     <span class="detail-title">单位图鉴</span>
                     <span class="detail-count">{{ playerInfo?.bestiarySeen || 0 }}/{{ playerInfo?.bestiaryTotal || 143 }}</span>
                     <el-icon class="expand-icon" :class="{ expanded: expandedSubDetail === 'bestiary' }"><ArrowRight /></el-icon>
-                  </div>
+                  </button>
                   <div v-if="expandedSubDetail === 'bestiary'" class="detail-items">
                     <div
                       v-for="bType in ['REGIONAL', 'BOSSES', 'UNIVERSAL', 'RARE', 'QUEST', 'NEUTRAL', 'ALLY', 'TRAP', 'PLANT']"
@@ -308,11 +335,16 @@
                 </div>
                 <!-- 背景故事 -->
                 <div class="detail-section">
-                  <div class="detail-header" @click="toggleSubDetail('lore')">
+                  <button
+                    type="button"
+                    class="detail-header"
+                    :aria-expanded="expandedSubDetail === 'lore'"
+                    @click="toggleSubDetail('lore')"
+                  >
                     <span class="detail-title">背景故事</span>
                     <span class="detail-count">{{ playerInfo?.loreFound || 0 }}/{{ playerInfo?.loreTotal || 36 }}</span>
                     <el-icon class="expand-icon" :class="{ expanded: expandedSubDetail === 'lore' }"><ArrowRight /></el-icon>
-                  </div>
+                  </button>
                   <div v-if="expandedSubDetail === 'lore'" class="detail-items">
                     <div class="detail-item"><span>地牢区域介绍</span><span>{{ getLoreDetail('INTROS') }}</span></div>
                     <div class="detail-item"><span>巡逻队员的信件</span><span>{{ getLoreDetail('SEWERS_GUARD') }}</span></div>
@@ -325,7 +357,12 @@
               </div>
 
               <!-- 地牢指南 -->
-              <div class="progress-item" @click="toggleDetail('guide')">
+              <button
+                type="button"
+                class="progress-item"
+                :aria-expanded="expandedDetail === 'guide'"
+                @click="toggleDetail('guide')"
+              >
                 <div class="progress-icon" style="background: rgba(16, 185, 129, 0.12); color: #10b981;">
                   <el-icon><Notebook /></el-icon>
                 </div>
@@ -339,7 +376,7 @@
                   </div>
                   <el-icon class="expand-icon" :class="{ expanded: expandedDetail === 'guide' }"><ArrowRight /></el-icon>
                 </div>
-              </div>
+              </button>
 
               <!-- 地牢指南展开详情 -->
               <div v-if="expandedDetail === 'guide'" class="progress-detail">
@@ -365,7 +402,12 @@
               </div>
 
               <!-- 炼金指南 -->
-              <div class="progress-item" @click="toggleDetail('alchemy')">
+              <button
+                type="button"
+                class="progress-item"
+                :aria-expanded="expandedDetail === 'alchemy'"
+                @click="toggleDetail('alchemy')"
+              >
                 <div class="progress-icon" style="background: rgba(6, 182, 212, 0.12); color: #06b6d4;">
                   <el-icon><FirstAidKit /></el-icon>
                 </div>
@@ -379,7 +421,7 @@
                   </div>
                   <el-icon class="expand-icon" :class="{ expanded: expandedDetail === 'alchemy' }"><ArrowRight /></el-icon>
                 </div>
-              </div>
+              </button>
 
               <!-- 炼金指南展开详情 -->
               <div v-if="expandedDetail === 'alchemy'" class="progress-detail">
@@ -423,14 +465,13 @@ import {
 } from '@element-plus/icons-vue'
 import { playerApi, leaderboardApi } from '../api'
 import PrefixBadge from '../components/PrefixBadge.vue'
-import { getRoleType } from '../utils/format'
+import { getRoleType, formatTimeAgo, formatDateTimeWithAgo } from '../utils/format'
 
 const route = useRoute()
 const playerInfo = ref(null)
 const playerRank = ref(null)
 const rankDiff = ref(0)
 const recentGames = ref([])
-const loading = ref(false)
 const expandedDetail = ref(null)
 const expandedSubDetail = ref(null)
 const expandedThirdDetail = ref(null)
@@ -618,47 +659,10 @@ const getResultIcon = (result) => {
   return icons[result] || CircleCheckFilled
 }
 
-const formatDateTime = (time) => {
-  if (!time) return '-'
-  const date = new Date(time)
-  return date.toLocaleString('zh-CN')
-}
-
-// 格式化时间为"多久之前"的形式
-const formatTimeAgo = (time) => {
-  if (!time) return '-'
-  const date = new Date(time)
-  const now = new Date()
-  const diff = now - date
-
-  const seconds = Math.floor(diff / 1000)
-  const minutes = Math.floor(diff / 60000)
-  const hours = Math.floor(diff / 3600000)
-  const days = Math.floor(diff / 86400000)
-  const months = Math.floor(days / 30)
-  const years = Math.floor(days / 365)
-
-  if (seconds < 60) return '刚刚'
-  if (minutes < 60) return `${minutes} 分钟前`
-  if (hours < 24) return `${hours} 小时前`
-  if (days < 30) return `${days} 天前`
-  if (months < 12) return `${months} 个月前`
-  return `${years} 年前`
-}
-
-// 格式化时间，带括号显示多久之前
-const formatDateTimeWithAgo = (time) => {
-  if (!time) return '-'
-  const dateTime = formatDateTime(time)
-  const ago = formatTimeAgo(time)
-  return `${dateTime} (${ago})`
-}
-
 const loadPlayerInfo = async () => {
   const name = route.params.name
   if (!name) return
 
-  loading.value = true
   try {
     const res = await playerApi.getPlayerPublicInfo(name)
     if (res.data.success) {
@@ -668,28 +672,25 @@ const loadPlayerInfo = async () => {
   } catch (error) {
     console.error('获取玩家信息失败:', error)
     ElMessage.error('获取玩家信息失败')
-  } finally {
-    loading.value = false
   }
 }
 
 const loadPlayerRank = async () => {
+  const name = playerInfo.value?.name || route.params.name
+  if (!name) return
+
   try {
-    const res = await leaderboardApi.getLeaderboard(0, 1000)
-    if (res.data.success) {
-      const records = res.data.data?.records || []
-      const leaderboard = records.map(record => ({
-        name: record.playerName || '未知',
-        bestScore: record.score || 0,
-        bestFloor: record.maxDepth || 0
-      }))
-      const index = leaderboard.findIndex(p => p.name === playerInfo.value?.name)
-      if (index !== -1) {
-        playerRank.value = index + 1
-        if (index > 0) {
-          rankDiff.value = leaderboard[index - 1].bestScore - leaderboard[index].bestScore
-        }
-      }
+    // SPDNet: 由服务端计算名次。
+    // 原先拉取 getLeaderboard(0, 1000) 到本地排序，每次访问玩家页都要传输 1000 条记录，
+    // 且名次被硬性截断在 1000 以内。
+    const res = await leaderboardApi.getPlayerRank(name)
+    if (res.data.success && res.data.data?.ranked) {
+      playerRank.value = res.data.data.rank
+      // 与上一名（分数更高者）的分差；已是第一名时为 null
+      rankDiff.value = res.data.data.scoreGap || 0
+    } else {
+      playerRank.value = null
+      rankDiff.value = 0
     }
   } catch (error) {
     console.error('获取排名失败:', error)
@@ -1083,51 +1084,6 @@ onMounted(() => {
   color: var(--text-tertiary);
 }
 
-/* Game Stats */
-.game-stats {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--space-4);
-  padding: var(--space-4);
-}
-
-.game-stat-item {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-4);
-  background: var(--surface-2);
-  border-radius: var(--radius-lg);
-}
-
-.stat-circle {
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  flex-shrink: 0;
-}
-
-.stat-detail {
-  display: flex;
-  flex-direction: column;
-}
-
-.detail-value {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: var(--text-primary);
-}
-
-.detail-label {
-  font-size: 0.8125rem;
-  color: var(--text-secondary);
-}
-
 /* Rank Info */
 .rank-info {
   padding: var(--space-4);
@@ -1202,10 +1158,24 @@ onMounted(() => {
   padding: var(--space-3);
   border-radius: var(--radius-md);
   transition: all var(--transition-fast);
+  /* SPDNet: 折叠头渲染为 <button> 以支持键盘操作，重置 UA 默认外观 */
+  width: 100%;
+  border: none;
+  background: none;
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
 }
 
 .progress-item:hover {
   background: var(--surface-2);
+}
+
+.progress-item:focus-visible {
+  outline: 2px solid var(--primary-400);
+  outline-offset: 2px;
 }
 
 .progress-icon {

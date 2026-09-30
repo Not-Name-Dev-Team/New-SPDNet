@@ -84,15 +84,28 @@
             </div>
             <div class="title-content">
               <h2>玩家管理</h2>
-              <span class="player-count">{{ filteredPlayers.length }} 位玩家</span>
+              <span class="player-count">{{ totalPlayers }} 位玩家</span>
             </div>
           </div>
           <div class="header-filters">
+            <el-select
+              v-model="roleFilter"
+              placeholder="全部角色"
+              clearable
+              style="width: 130px"
+              @change="handleRoleFilterChange"
+            >
+              <el-option label="管理员" value="ADMIN" />
+              <el-option label="玩家" value="PLAYER" />
+              <el-option label="已封禁" value="BANNED" />
+            </el-select>
             <el-input
               v-model="searchQuery"
               placeholder="搜索玩家..."
               clearable
               class="search-input"
+              @input="handleSearch"
+              @clear="handleSearch"
             >
               <template #prefix>
                 <el-icon><Search /></el-icon>
@@ -174,7 +187,12 @@
             <el-table-column label="操作" width="150" align="center">
               <template #default="{ row }">
                 <el-dropdown @command="(cmd) => handlePlayerAction(cmd, row)" trigger="click">
-                  <el-button type="primary" text class="action-menu-btn">
+                  <el-button
+                    type="primary"
+                    text
+                    class="action-menu-btn"
+                    :aria-label="`管理玩家 ${row.name}`"
+                  >
                     <el-icon><MoreFilled /></el-icon>
                   </el-button>
                   <template #dropdown>
@@ -213,6 +231,26 @@
               </template>
             </el-table-column>
           </el-table>
+
+          <!-- SPDNet: 空状态提示，避免搜索无结果时只剩表头 -->
+          <el-empty
+            v-if="!loading && players.length === 0"
+            :description="searchQuery || roleFilter ? '没有匹配的玩家' : '暂无玩家数据'"
+          />
+
+          <!-- SPDNet: 服务端分页 -->
+          <div class="pagination-bar" v-if="totalPlayers > 0">
+            <el-pagination
+              :current-page="currentPage"
+              :page-size="pageSize"
+              :total="totalPlayers"
+              :page-sizes="[20, 50, 100]"
+              layout="total, sizes, prev, pager, next, jumper"
+              background
+              @current-change="handlePageChange"
+              @size-change="handlePageSizeChange"
+            />
+          </div>
         </div>
       </div>
 
@@ -297,7 +335,9 @@ import { playerApi, adminApi } from '../api'
 import { authStore } from '../store/auth'
 import PlayerPrefix from '../components/PlayerPrefix.vue'
 import PrefixBadge from '../components/PrefixBadge.vue'
-import { getRoleType } from '../utils/format'
+import {
+  getRoleType, getRoleDisplay, isAdminUser, formatShortDateTime
+} from '../utils/format'
 
 const router = useRouter()
 const loading = ref(false)
@@ -306,6 +346,14 @@ const serverInfo = ref({})
 const searchQuery = ref('')
 const broadcastMessage = ref('')
 const broadcasting = ref(false)
+
+// SPDNet: 服务端分页 + 筛选状态
+const currentPage = ref(1)
+const pageSize = ref(20)
+const totalPlayers = ref(0)
+const roleFilter = ref(null)
+let loadSeq = 0
+let searchTimer = null
 
 const stats = computed(() => [
   {
@@ -334,13 +382,9 @@ const stats = computed(() => [
   }
 ])
 
-const filteredPlayers = computed(() => {
-  if (!searchQuery.value) return players.value
-  const query = searchQuery.value.toLowerCase()
-  return players.value.filter(p =>
-    p.name?.toLowerCase().includes(query)
-  )
-})
+// SPDNet: 搜索与角色筛选已改为服务端执行，此处不再本地过滤，
+// 否则在分页数据上过滤会得到"当前页内匹配"的错误结果。
+const filteredPlayers = computed(() => players.value)
 
 const headerStyle = () => ({
   background: 'rgba(20, 20, 35, 0.8)',
@@ -350,46 +394,64 @@ const headerStyle = () => ({
   borderBottom: '1px solid rgba(139, 92, 246, 0.2)'
 })
 
-const getRoleDisplay = (role) => {
-  const displays = {
-    'ADMIN': '管理员',
-    'PLAYER': '玩家',
-    'BANNED': '已封禁'
-  }
-  return displays[role] || role
-}
-
-const formatDate = (dateStr) => {
-  if (!dateStr) return '-'
-  return new Date(dateStr).toLocaleString('zh-CN', {
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  })
-}
+// SPDNet: getRoleDisplay / formatShortDateTime 统一由 utils/format.js 提供，
+// 原先 Admin.vue 自己维护了一份角色映射表，导致 BANNED -> '已封禁' 的语义漂移。
+const formatDate = (dateStr) => formatShortDateTime(dateStr)
 
 const loadData = async () => {
   loading.value = true
+  const seq = ++loadSeq
   try {
+    // SPDNet: 改为服务端分页。
+    // 原先每次调用 getAllPlayers()（size=1000）全量拉取，且每次增删改后又重新全量拉取。
     const [playersRes, infoRes] = await Promise.all([
-      adminApi.getAllPlayers(),
+      adminApi.getPlayers(currentPage.value - 1, pageSize.value, roleFilter.value, searchQuery.value || null),
       playerApi.getServerInfo()
     ])
 
+    if (seq !== loadSeq) return
+
     if (playersRes.data.success) {
       // 后端返回的数据结构是 { players: [...], totalElements: ..., totalPages: ... }
-      players.value = playersRes.data.data?.players || []
+      const data = playersRes.data.data || {}
+      players.value = data.players || []
+      totalPlayers.value = data.totalElements ?? players.value.length
     }
     if (infoRes.data.success) {
       serverInfo.value = infoRes.data.data
     }
   } catch (error) {
+    if (seq !== loadSeq) return
     console.error('加载数据失败:', error)
     ElMessage.error('加载数据失败')
   } finally {
-    loading.value = false
+    if (seq === loadSeq) loading.value = false
   }
+}
+
+// SPDNet: 搜索走服务端，输入防抖，避免每次按键都打一次全量查询
+const handleSearch = () => {
+  clearTimeout(searchTimer)
+  searchTimer = setTimeout(() => {
+    currentPage.value = 1
+    loadData()
+  }, 300)
+}
+
+const handlePageChange = (page) => {
+  currentPage.value = page
+  loadData()
+}
+
+const handlePageSizeChange = (size) => {
+  pageSize.value = size
+  currentPage.value = 1
+  loadData()
+}
+
+const handleRoleFilterChange = () => {
+  currentPage.value = 1
+  loadData()
 }
 
 const handleBroadcast = async () => {
@@ -412,155 +474,121 @@ const handleBroadcast = async () => {
   }
 }
 
+// SPDNet: 管理操作的统一收口。
+// 原先 6 个分支各自复制约 15 行 confirm + try/catch，且失败时用的是
+// res.data.message（后端未给 message 时弹出空白提示），此处统一兜底。
+const runPlayerAction = async ({ command, player, message, title, type = 'warning', confirmText = '确定', successText, fallbackError, requireText = null }) => {
+  try {
+    await ElMessageBox.confirm(message, title, {
+      confirmButtonText: confirmText,
+      cancelButtonText: '取消',
+      type,
+      // SPDNet: 不可恢复的操作要求输入确认文本
+      ...(requireText
+        ? {
+            inputPlaceholder: requireText,
+            inputValidator: (value) => value === requireText || '输入不一致，操作已取消'
+          }
+        : {})
+    })
+  } catch {
+    // 用户取消
+    return
+  }
+
+  try {
+    const res = await command()
+    if (res.data.success) {
+      ElMessage.success(successText)
+      loadData()
+    } else {
+      ElMessage.error(res.data.message || fallbackError)
+    }
+  } catch (error) {
+    ElMessage.error(error.response?.data?.message || fallbackError)
+  }
+}
+
 const handlePlayerAction = (command, player) => {
   switch (command) {
     case 'view':
       router.push(`/player/${player.name}`)
       break
     case 'setAdmin':
-      ElMessageBox.confirm(
-        `确定要将 "${player.name}" 设为管理员吗？`,
-        '确认操作',
-        {
-          confirmButtonText: '确定',
-          cancelButtonText: '取消',
-          type: 'warning'
-        }
-      ).then(async () => {
-        try {
-          const res = await adminApi.setPlayerRole(player.id, 'ADMIN')
-          if (res.data.success) {
-            ElMessage.success('设置成功')
-            loadData()
-          } else {
-            ElMessage.error(res.data.message)
-          }
-        } catch (error) {
-          ElMessage.error(error.response?.data?.message || '操作失败')
-        }
-      }).catch(() => {})
+      runPlayerAction({
+        player,
+        message: `确定要将 "${player.name}" 设为管理员吗？`,
+        title: '确认操作',
+        successText: '设置成功',
+        fallbackError: '操作失败',
+        command: () => adminApi.setPlayerRole(player.id, 'ADMIN')
+      })
       break
     case 'setPlayer':
-      ElMessageBox.confirm(
-        `确定要将 "${player.name}" 设为普通玩家吗？`,
-        '确认操作',
-        {
-          confirmButtonText: '确定',
-          cancelButtonText: '取消',
-          type: 'warning'
-        }
-      ).then(async () => {
-        try {
-          const res = await adminApi.setPlayerRole(player.id, 'PLAYER')
-          if (res.data.success) {
-            ElMessage.success('设置成功')
-            loadData()
-          } else {
-            ElMessage.error(res.data.message)
-          }
-        } catch (error) {
-          ElMessage.error(error.response?.data?.message || '操作失败')
-        }
-      }).catch(() => {})
+      runPlayerAction({
+        player,
+        message: `确定要将 "${player.name}" 设为普通玩家吗？`,
+        title: '确认操作',
+        successText: '设置成功',
+        fallbackError: '操作失败',
+        command: () => adminApi.setPlayerRole(player.id, 'PLAYER')
+      })
       break
     case 'ban':
-      ElMessageBox.confirm(
-        `确定要封禁玩家 "${player.name}" 吗？`,
-        '确认封禁',
-        {
-          confirmButtonText: '确定封禁',
-          cancelButtonText: '取消',
-          type: 'danger'
-        }
-      ).then(async () => {
-        try {
-          const res = await adminApi.setPlayerRole(player.id, 'BANNED')
-          if (res.data.success) {
-            ElMessage.success('封禁成功')
-            loadData()
-          } else {
-            ElMessage.error(res.data.message)
-          }
-        } catch (error) {
-          ElMessage.error(error.response?.data?.message || '封禁失败')
-        }
-      }).catch(() => {})
+      runPlayerAction({
+        player,
+        message: `确定要封禁玩家 "${player.name}" 吗？`,
+        title: '确认封禁',
+        type: 'danger',
+        confirmText: '确定封禁',
+        successText: '封禁成功',
+        fallbackError: '封禁失败',
+        command: () => adminApi.setPlayerRole(player.id, 'BANNED')
+      })
       break
     case 'unban':
-      ElMessageBox.confirm(
-        `确定要解封玩家 "${player.name}" 吗？`,
-        '确认解封',
-        {
-          confirmButtonText: '确定解封',
-          cancelButtonText: '取消',
-          type: 'warning'
-        }
-      ).then(async () => {
-        try {
-          const res = await adminApi.setPlayerRole(player.id, 'PLAYER')
-          if (res.data.success) {
-            ElMessage.success('解封成功')
-            loadData()
-          } else {
-            ElMessage.error(res.data.message)
-          }
-        } catch (error) {
-          ElMessage.error(error.response?.data?.message || '解封失败')
-        }
-      }).catch(() => {})
+      runPlayerAction({
+        player,
+        message: `确定要解封玩家 "${player.name}" 吗？`,
+        title: '确认解封',
+        confirmText: '确定解封',
+        successText: '解封成功',
+        fallbackError: '解封失败',
+        command: () => adminApi.setPlayerRole(player.id, 'PLAYER')
+      })
       break
     case 'kick':
-      ElMessageBox.confirm(
-        `确定要踢出玩家 "${player.name}" 吗？`,
-        '确认踢出',
-        {
-          confirmButtonText: '确定踢出',
-          cancelButtonText: '取消',
-          type: 'warning'
-        }
-      ).then(async () => {
-        try {
-          const res = await adminApi.kick(player.name)
-          if (res.data.success) {
-            ElMessage.success('踢出成功')
-            loadData()
-          } else {
-            ElMessage.error(res.data.message)
-          }
-        } catch (error) {
-          ElMessage.error(error.response?.data?.message || '踢出失败')
-        }
-      }).catch(() => {})
+      runPlayerAction({
+        player,
+        message: `确定要踢出玩家 "${player.name}" 吗？`,
+        title: '确认踢出',
+        confirmText: '确定踢出',
+        successText: '踢出成功',
+        fallbackError: '踢出失败',
+        command: () => adminApi.kick(player.name)
+      })
       break
     case 'delete':
-      ElMessageBox.confirm(
-        `确定要删除玩家 "${player.name}" 吗？此操作不可恢复！`,
-        '警告',
-        {
-          confirmButtonText: '确定删除',
-          cancelButtonText: '取消',
-          type: 'danger',
-          customClass: 'custom-message-box'
-        }
-      ).then(async () => {
-        try {
-          const res = await adminApi.deletePlayer(player.id)
-          if (res.data.success) {
-            ElMessage.success('删除成功')
-            loadData()
-          } else {
-            ElMessage.error(res.data.message)
-          }
-        } catch (error) {
-          ElMessage.error(error.response?.data?.message || '删除失败')
-        }
-      }).catch(() => {})
+      runPlayerAction({
+        player,
+        // SPDNet: 删除不可恢复，要求输入玩家名确认，避免误点
+        message: `此操作不可恢复！请输入玩家名 "${player.name}" 以确认删除。`,
+        title: '危险操作',
+        type: 'error',
+        confirmText: '确定删除',
+        successText: '删除成功',
+        fallbackError: '删除失败',
+        requireText: player.name,
+        command: () => adminApi.deletePlayer(player.id)
+      })
       break
   }
 }
 
 onMounted(() => {
-  if (authStore.user?.role !== '管理员') {
+  // SPDNet: 与路由守卫共用同一判定（原先只比对中文'管理员'，
+  // 与 router/index.js 兼容 'ADMIN'||'管理员' 的口径不一致）
+  if (!isAdminUser(authStore.user)) {
     ElMessage.error('无权访问')
     router.push('/')
     return
@@ -801,6 +829,14 @@ onMounted(() => {
 
 .search-input {
   width: 240px;
+}
+
+/* SPDNet: 分页条 */
+.pagination-bar {
+  display: flex;
+  justify-content: flex-end;
+  padding: var(--space-4);
+  border-top: 1px solid var(--border-subtle);
 }
 
 .search-input :deep(.el-input__wrapper) {

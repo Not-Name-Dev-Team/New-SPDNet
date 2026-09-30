@@ -107,7 +107,8 @@
               <h3>账号设置</h3>
             </div>
             <div class="settings-list">
-              <div class="setting-item" @click="showChangeName = true">
+              <!-- SPDNet: 渲染为 <button> 而非可点击 div，保证键盘可达 -->
+              <button type="button" class="setting-item" @click="showChangeName = true">
                 <div class="setting-icon" style="background: rgba(139, 92, 246, 0.12); color: #8b5cf6;">
                   <el-icon><Edit /></el-icon>
                 </div>
@@ -116,8 +117,8 @@
                   <span class="setting-desc">更改您的用户名</span>
                 </div>
                 <el-icon class="setting-arrow"><ArrowRight /></el-icon>
-              </div>
-              <div class="setting-item" @click="showChangePassword = true">
+              </button>
+              <button type="button" class="setting-item" @click="showChangePassword = true">
                 <div class="setting-icon" style="background: rgba(6, 182, 212, 0.12); color: var(--accent-cyan);">
                   <el-icon><Lock /></el-icon>
                 </div>
@@ -126,7 +127,7 @@
                   <span class="setting-desc">更新账号密码</span>
                 </div>
                 <el-icon class="setting-arrow"><ArrowRight /></el-icon>
-              </div>
+              </button>
             </div>
           </div>
         </div>
@@ -232,11 +233,10 @@ import { playerApi } from '../api'
 import { authStore } from '../store/auth'
 import MyPrefixSelector from '../components/MyPrefixSelector.vue'
 import PrefixBadge from '../components/PrefixBadge.vue'
-import { getRoleType } from '../utils/format'
+import { getRoleType, formatTimeAgo, formatDateTimeWithAgo } from '../utils/format'
 
 const router = useRouter()
 const userInfo = ref(null)
-const loading = ref(false)
 const showChangePassword = ref(false)
 const showChangeName = ref(false)
 const changingPassword = ref(false)
@@ -291,133 +291,111 @@ const nameRules = {
 const formatDate = (time) => {
   if (!time) return '-'
   const date = new Date(time)
+  if (isNaN(date.getTime())) return '-'
   return date.toLocaleDateString('zh-CN')
 }
 
-const formatDateTime = (time) => {
-  if (!time) return '-'
-  const date = new Date(time)
-  return date.toLocaleString('zh-CN')
-}
-
-// 格式化时间为"多久之前"的形式
-const formatTimeAgo = (time) => {
-  if (!time) return '-'
-  const date = new Date(time)
-  const now = new Date()
-  const diff = now - date
-
-  const seconds = Math.floor(diff / 1000)
-  const minutes = Math.floor(diff / 60000)
-  const hours = Math.floor(diff / 3600000)
-  const days = Math.floor(diff / 86400000)
-  const months = Math.floor(days / 30)
-  const years = Math.floor(days / 365)
-
-  if (seconds < 60) return '刚刚'
-  if (minutes < 60) return `${minutes} 分钟前`
-  if (hours < 24) return `${hours} 小时前`
-  if (days < 30) return `${days} 天前`
-  if (months < 12) return `${months} 个月前`
-  return `${years} 年前`
-}
-
-// 格式化时间，带括号显示多久之前
-const formatDateTimeWithAgo = (time) => {
-  if (!time) return '-'
-  const dateTime = formatDateTime(time)
-  const ago = formatTimeAgo(time)
-  return `${dateTime} (${ago})`
-}
-
 const loadUserInfo = async () => {
-  loading.value = true
   try {
     const user = authStore.user
-    if (user?.name) {
-      // 获取公开信息（包含游戏统计）
-      const publicRes = await playerApi.getPlayerPublicInfo(user.name)
-      // 获取私密信息（包含IP等）
-      const privateRes = await playerApi.getPlayerPrivateInfo(user.name)
+    if (!user?.name) return
 
-      if (publicRes.data.success && privateRes.data.success) {
-        userInfo.value = {
-          ...publicRes.data.data,
-          ...privateRes.data.data
-        }
+    // SPDNet: 两个接口互不依赖，并行请求（原先串行 await，白等一个往返）
+    const [publicRes, privateRes] = await Promise.all([
+      playerApi.getPlayerPublicInfo(user.name),
+      playerApi.getPlayerPrivateInfo(user.name)
+    ])
+
+    // SPDNet: 分别判断，避免任一接口返回 success:false 时 userInfo 永远为 null
+    // 且没有任何错误提示（catch 只在抛异常时触发）
+    const publicOk = publicRes.data.success
+    const privateOk = privateRes.data.success
+
+    if (publicOk || privateOk) {
+      userInfo.value = {
+        ...(publicOk ? publicRes.data.data : {}),
+        ...(privateOk ? privateRes.data.data : {})
       }
+    } else {
+      ElMessage.error(publicRes.data.message || '获取用户信息失败')
     }
   } catch (error) {
     console.error('获取用户信息失败:', error)
     ElMessage.error('获取用户信息失败')
-  } finally {
-    loading.value = false
   }
 }
 
 const handleChangePassword = async () => {
   if (!passwordFormRef.value) return
 
-  await passwordFormRef.value.validate(async (valid) => {
-    if (valid) {
-      changingPassword.value = true
-      try {
-        const res = await playerApi.changePassword({
-          name: authStore.user?.name,
-          oldPassword: passwordForm.value.oldPassword,
-          newPassword: passwordForm.value.newPassword
-        })
-        if (res.data.success) {
-          ElMessage.success('密码修改成功')
-          showChangePassword.value = false
-          passwordForm.value = { oldPassword: '', newPassword: '', confirmPassword: '' }
-        } else {
-          ElMessage.error(res.data.message || '密码修改失败')
-        }
-      } catch (error) {
-        console.error('密码修改失败:', error)
-        ElMessage.error('密码修改失败')
-      } finally {
-        changingPassword.value = false
-      }
+  // SPDNet: 用 validate() 的 Promise 形式。原先的 validate(async cb) 在校验失败时
+  // 会让返回的 Promise reject 而无人 catch，产生 unhandled rejection。
+  try {
+    await passwordFormRef.value.validate()
+  } catch {
+    return
+  }
+
+  changingPassword.value = true
+  try {
+    const res = await playerApi.changePassword({
+      name: authStore.user?.name,
+      oldPassword: passwordForm.value.oldPassword,
+      newPassword: passwordForm.value.newPassword
+    })
+    if (res.data.success) {
+      ElMessage.success('密码修改成功')
+      showChangePassword.value = false
+      passwordForm.value = { oldPassword: '', newPassword: '', confirmPassword: '' }
+    } else {
+      ElMessage.error(res.data.message || '密码修改失败')
     }
-  })
+  } catch (error) {
+    console.error('密码修改失败:', error)
+    ElMessage.error('密码修改失败')
+  } finally {
+    changingPassword.value = false
+  }
 }
 
 const handleChangeName = async () => {
   if (!nameFormRef.value) return
 
-  await nameFormRef.value.validate(async (valid) => {
-    if (valid) {
-      changingName.value = true
-      try {
-        const res = await playerApi.changeName({
-          currentName: authStore.user?.name,
-          password: nameForm.value.password,
-          newName: nameForm.value.newName
-        })
-        if (res.data.success) {
-          ElMessage.success('昵称修改成功，请重新登录')
-          showChangeName.value = false
-          nameForm.value = { password: '', newName: '' }
-          // 更新本地存储的用户名
-          authStore.user.name = res.data.data.name
-          authStore.user.role = res.data.data.role
-          // 刷新页面以更新显示
-          setTimeout(() => {
-            window.location.reload()
-          }, 1000)
-        } else {
-          ElMessage.error(res.data.message || '昵称修改失败')
-        }
-      } catch (error) {
-        console.error('昵称修改失败:', error)
-        ElMessage.error('昵称修改失败')
-      } finally {
-        changingName.value = false
-      }
+  try {
+    await nameFormRef.value.validate()
+  } catch {
+    return
+  }
+
+  changingName.value = true
+  try {
+    const res = await playerApi.changeName({
+      currentName: authStore.user?.name,
+      password: nameForm.value.password,
+      newName: nameForm.value.newName
+    })
+    if (res.data.success) {
+      showChangeName.value = false
+      const payload = nameForm.value
+      nameForm.value = { password: '', newName: '' }
+      // SPDNet: 走 store 的 updateUser（原先直接改 authStore.user.name，
+      // 绕过了 localStorage 持久化，刷新后仍是旧昵称）。
+      authStore.updateUser({
+        name: res.data.data?.name ?? payload.newName,
+        role: res.data.data?.role ?? authStore.user?.role
+      })
+      ElMessage.success('昵称修改成功，即将刷新页面')
+      // 刷新页面以更新显示
+      window.location.reload()
+    } else {
+      ElMessage.error(res.data.message || '昵称修改失败')
     }
-  })
+  } catch (error) {
+    console.error('昵称修改失败:', error)
+    ElMessage.error('昵称修改失败')
+  } finally {
+    changingName.value = false
+  }
 }
 
 onMounted(() => {
@@ -658,10 +636,23 @@ onMounted(() => {
   border-radius: var(--radius-md);
   cursor: pointer;
   transition: all var(--transition-fast);
+  /* SPDNet: 渲染为 <button>，重置 UA 默认外观 */
+  width: 100%;
+  border: none;
+  background: none;
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+  text-align: left;
 }
 
 .setting-item:hover {
   background: var(--surface-2);
+}
+
+.setting-item:focus-visible {
+  outline: 2px solid var(--primary-400);
+  outline-offset: 2px;
 }
 
 .setting-icon {

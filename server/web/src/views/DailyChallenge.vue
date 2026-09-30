@@ -163,7 +163,7 @@
 
             <div
               v-for="(record, index) in records"
-              :key="record.id || index"
+              :key="record.id ?? `${record.playerName}-${index}`"
               class="table-row"
               :class="{ 'highlight': index < 3 }"
               :style="{ animationDelay: `${index * 0.03}s` }"
@@ -231,17 +231,24 @@ import {
 } from '@element-plus/icons-vue'
 import { dailyChallengeApi } from '../api'
 import PrefixBadge from '../components/PrefixBadge.vue'
+import { toLocalDateString } from '../utils/format'
 
 const loading = ref(false)
 const recordsLoading = ref(false)
-const selectedDate = ref(new Date().toISOString().split('T')[0])
+// SPDNet: 必须用本地日期。原先 new Date().toISOString() 取的是 UTC 日期，
+// 在 UTC+8 的 00:00-08:00 会得到"昨天"，导致默认日期、"今日"标记和日期上限全错。
+const selectedDate = ref(toLocalDateString())
 const challengeInfo = ref([])
 const records = ref([])
 const activeGroup = ref(0)
 
 const isToday = computed(() => {
-  return selectedDate.value === new Date().toISOString().split('T')[0]
+  return selectedDate.value === toLocalDateString()
 })
+
+// SPDNet: 请求序号，用于丢弃过期响应
+let infoSeq = 0
+let recordsSeq = 0
 
 const activeGroupName = computed(() => {
   const info = challengeInfo.value.find(i => i.groupIndex === activeGroup.value)
@@ -277,9 +284,10 @@ const formatDuration = (duration) => {
 }
 
 const getProgressColor = (rate) => {
-  if (rate >= 50) return '#10b981'
-  if (rate >= 25) return '#f59e0b'
-  return '#ef4444'
+  // SPDNet: 与设计 token 保持一致（原先硬编码 hex，与同文件其它位置的 var() 混用）
+  if (rate >= 50) return 'var(--accent-emerald)'
+  if (rate >= 25) return 'var(--accent-amber)'
+  return 'var(--accent-rose)'
 }
 
 const rankIcons = [Trophy, Medal, StarFilled]
@@ -294,28 +302,40 @@ const selectGroup = (groupIndex) => {
 }
 
 const loadChallengeInfo = async () => {
+  const seq = ++infoSeq
   try {
     const res = await dailyChallengeApi.getDailyChallengeInfo(selectedDate.value)
+    // SPDNet: 快速切换日期时丢弃过期响应
+    if (seq !== infoSeq) return
     if (res.data.success) {
       challengeInfo.value = res.data.data || []
+    } else {
+      ElMessage.error(res.data.message || '获取每日挑战信息失败')
     }
   } catch (error) {
+    if (seq !== infoSeq) return
     console.error('获取每日挑战信息失败:', error)
+    ElMessage.error('获取每日挑战信息失败')
   }
 }
 
 const loadRecords = async () => {
+  const seq = ++recordsSeq
   recordsLoading.value = true
   try {
     const res = await dailyChallengeApi.getRecords(selectedDate.value, activeGroup.value)
+    // SPDNet: 快速切换组别/日期时丢弃过期响应，
+    // 否则旧的排行榜可能盖在新标题之下，出现数据与标题不匹配。
+    if (seq !== recordsSeq) return
     if (res.data.success) {
       records.value = res.data.data || []
     }
   } catch (error) {
+    if (seq !== recordsSeq) return
     console.error('获取排行榜失败:', error)
     ElMessage.error('获取排行榜失败')
   } finally {
-    recordsLoading.value = false
+    if (seq === recordsSeq) recordsLoading.value = false
   }
 }
 

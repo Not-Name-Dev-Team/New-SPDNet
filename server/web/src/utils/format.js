@@ -9,12 +9,41 @@ export function getRoleType(role) {
     // 中文：玩家侧页面
     '管理员': 'danger',
     '玩家': 'primary',
+    '已封禁': 'info',
     // 英文：Admin 管理端 (玩家角色为 'ADMIN'/'PLAYER'/'BANNED')
     'ADMIN': 'danger',
     'PLAYER': 'primary',
     'BANNED': 'info'
   }
   return types[role] || 'primary'
+}
+
+// SPDNet: 角色英文枚举 -> 中文显示名（Admin 表格复用，避免各处自建映射表）
+// 兼容已经是中文显示名的情况，直接原样返回
+export function getRoleDisplay(role) {
+  const displays = {
+    'ADMIN': '管理员',
+    'PLAYER': '玩家',
+    'BANNED': '已封禁'
+  }
+  return displays[role] || role
+}
+
+// SPDNet: 统一的"是否管理员"判定。
+// 后端登录返回的是 role.getDisplayName()（中文'管理员'），但路由守卫同时兼容英文枚举，
+// 此处收敛为唯一实现，避免各页面各写一套导致守卫放行、页面又拒绝的不一致。
+export function isAdminUser(user) {
+  const role = user?.role
+  return role === 'ADMIN' || role === '管理员'
+}
+
+// SPDNet: 本地时区的 YYYY-MM-DD。
+// 不能用 toISOString()——它按 UTC 取日期，在 UTC+8 的 00:00-08:00 会得到"昨天"。
+export function toLocalDateString(date = new Date()) {
+  const d = date instanceof Date ? date : new Date(date)
+  if (isNaN(d.getTime())) return ''
+  const pad = (n) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
 }
 
 // 游戏模式数字 -> 文本 (0=铁人模式, 1=娱乐模式, 2=每日挑战)
@@ -46,4 +75,57 @@ export function getPrefixStyle(prefix, size = 'md') {
     fontWeight: 'bold',
     display: 'inline-block'
   }
+}
+
+// ============================================
+// 时间格式化（各视图曾各自复制一份，此处收敛为唯一实现）
+// ============================================
+
+// 完整本地时间文本
+export function formatDateTime(time) {
+  if (!time) return '-'
+  const date = new Date(time)
+  if (isNaN(date.getTime())) return '-'
+  return date.toLocaleString('zh-CN')
+}
+
+// 相对时间："3 分钟前"
+export function formatTimeAgo(time) {
+  if (!time) return '-'
+  const date = new Date(time)
+  if (isNaN(date.getTime())) return '-'
+
+  const diff = Date.now() - date.getTime()
+  const seconds = Math.floor(diff / 1000)
+  const minutes = Math.floor(diff / 60000)
+  const hours = Math.floor(diff / 3600000)
+  const days = Math.floor(diff / 86400000)
+  const months = Math.floor(days / 30)
+  const years = Math.floor(days / 365)
+
+  if (seconds < 60) return '刚刚'
+  if (minutes < 60) return `${minutes} 分钟前`
+  if (hours < 24) return `${hours} 小时前`
+  if (days < 30) return `${days} 天前`
+  if (months < 12) return `${months} 个月前`
+  return `${years} 年前`
+}
+
+// 完整时间 + 括号内相对时间
+export function formatDateTimeWithAgo(time) {
+  if (!time) return '-'
+  return `${formatDateTime(time)} (${formatTimeAgo(time)})`
+}
+
+// 仅日期（月/日 + 时分），用于管理端表格
+export function formatShortDateTime(dateStr) {
+  if (!dateStr) return '-'
+  const date = new Date(dateStr)
+  if (isNaN(date.getTime())) return '-'
+  return date.toLocaleString('zh-CN', {
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
 }

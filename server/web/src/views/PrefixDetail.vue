@@ -152,6 +152,7 @@ import {
 } from '@element-plus/icons-vue'
 import { prefixApi } from '../api'
 import PrefixBadge from '../components/PrefixBadge.vue'
+import { formatTimeAgo } from '../utils/format'
 
 const route = useRoute()
 const router = useRouter()
@@ -170,28 +171,6 @@ const formatDateTime = (time) => {
   if (!time) return '-'
   const date = new Date(time)
   return date.toLocaleString('zh-CN')
-}
-
-// 格式化时间为"多久之前"
-const formatTimeAgo = (time) => {
-  if (!time) return '-'
-  const date = new Date(time)
-  const now = new Date()
-  const diff = now - date
-
-  const seconds = Math.floor(diff / 1000)
-  const minutes = Math.floor(diff / 60000)
-  const hours = Math.floor(diff / 3600000)
-  const days = Math.floor(diff / 86400000)
-  const months = Math.floor(days / 30)
-  const years = Math.floor(days / 365)
-
-  if (seconds < 60) return '刚刚'
-  if (minutes < 60) return `${minutes} 分钟前`
-  if (hours < 24) return `${hours} 小时前`
-  if (days < 30) return `${days} 天前`
-  if (months < 12) return `${months} 个月前`
-  return `${years} 年前`
 }
 
 const goBack = () => {
