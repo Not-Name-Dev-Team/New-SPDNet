@@ -6,6 +6,8 @@ plugins {
 }
 
 group = "me.catand"
+// SPDNet: 此版本号仅用于产物标识（决定 jar 名 server-<version>.jar 与 start.sh 的 -cp），固定为 0.0.1 不改。
+// 协议门禁是另一回事，见 application.yml 的 spd.netVersion——客户端握手版本必须与它一致，改门禁请只改那一处。
 version = "0.0.1"
 
 java {

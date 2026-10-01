@@ -46,10 +46,22 @@ public class Group extends Gizmo {
 	public synchronized Gizmo[] toArray() {
 		return members == null ? new Gizmo[0] : members.toArray(new Gizmo[0]);
 	}
+
+	// SPDNet: destroy() 之后 members 为 null。下面的成员操作全部先过这道判定，
+	// 使"已销毁的 Group"成为一个空集合而非地雷——socket 线程经 runOnRenderThread 投递的回调
+	// 有可能在场景 destroy 之后才被渲染线程抽干，那时这些方法仍会被调用（见 NetNoteOverlay 崩溃）。
+	private boolean destroyed() {
+		return members == null;
+	}
 	
 	@Override
 	public synchronized void destroy() {
 		super.destroy();
+		// SPDNet: 幂等——重复 destroy() 时 members 已是 null，不能再按残留的 length 去取。
+		if (destroyed()) {
+			length = 0;
+			return;
+		}
 		for (int i=0; i < length; i++) {
 			Gizmo g = members.get( i );
 			if (g != null) {
@@ -57,10 +69,8 @@ public class Group extends Gizmo {
 			}
 		}
 		
-		if (members != null) {
-			members.clear();
-			members = null;
-		}
+		members.clear();
+		members = null;
 		length = 0;
 	}
 	
@@ -99,10 +109,14 @@ public class Group extends Gizmo {
 	}
 	
 	public synchronized int indexOf( Gizmo g ) {
-		return members.indexOf( g );
+		return destroyed() ? -1 : members.indexOf( g );
 	}
 	
 	public synchronized Gizmo add( Gizmo g ) {
+		
+		if (destroyed()) {
+			return g;
+		}
 		
 		if (g.parent == this) {
 			return g;
@@ -128,6 +142,10 @@ public class Group extends Gizmo {
 	}
 	
 	public synchronized Gizmo addToFront( Gizmo g){
+
+		if (destroyed()) {
+			return g;
+		}
 
 		if (g.parent == this) {
 			return g;
@@ -158,6 +176,10 @@ public class Group extends Gizmo {
 	}
 	
 	public synchronized Gizmo addToBack( Gizmo g ) {
+		
+		if (destroyed()) {
+			return g;
+		}
 		
 		if (g.parent == this) {
 			sendToBack( g );
@@ -205,6 +227,9 @@ public class Group extends Gizmo {
 	
 	// Fast removal - replacing with null
 	public synchronized Gizmo erase( Gizmo g ) {
+		if (destroyed()) {
+			return null;
+		}
 		int index = members.indexOf( g );
 
 		if (index != -1) {
@@ -218,6 +243,9 @@ public class Group extends Gizmo {
 	
 	// Real removal
 	public synchronized Gizmo remove( Gizmo g ) {
+		if (destroyed()) {
+			return null;
+		}
 		if (members.remove( g )) {
 			length--;
 			g.parent = null;
@@ -228,6 +256,9 @@ public class Group extends Gizmo {
 	}
 	
 	public synchronized Gizmo replace( Gizmo oldOne, Gizmo newOne ) {
+		if (destroyed()) {
+			return null;
+		}
 		int index = members.indexOf( oldOne );
 		if (index != -1) {
 			members.set( index, newOne );
@@ -288,6 +319,7 @@ public class Group extends Gizmo {
 	}
 	
 	public synchronized void clear() {
+		if (destroyed()) return;
 		if (length == 0) return;
 		for (int i=0; i < length; i++) {
 			Gizmo g = members.get( i );
@@ -300,6 +332,9 @@ public class Group extends Gizmo {
 	}
 	
 	public synchronized Gizmo bringToFront( Gizmo g ) {
+		if (destroyed()) {
+			return null;
+		}
 		if (members.contains( g )) {
 			members.remove( g );
 			members.add( g );
@@ -310,6 +345,9 @@ public class Group extends Gizmo {
 	}
 	
 	public synchronized Gizmo sendToBack( Gizmo g ) {
+		if (destroyed()) {
+			return null;
+		}
 		if (members.contains( g )) {
 			members.remove( g );
 			members.add( 0, g );
@@ -320,6 +358,9 @@ public class Group extends Gizmo {
 	}
 
 	public synchronized void sort(Comparator c){
+		if (destroyed()) {
+			return;
+		}
 		//only sort if we aren't already sorted
 		for (int i=0; i < length-1; i++) {
 			if (c.compare(members.get(i), members.get(i+1)) > 0) {

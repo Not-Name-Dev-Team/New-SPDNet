@@ -877,6 +877,10 @@ public class GameScene extends PixelScene {
 		Emitter.freezeEmitters = false;
 		
 		scene = null;
+		// SPDNet: 留言渲染层随场景一起销毁，static 引用必须一并清空。
+		// 否则 socket 线程经 runOnRenderThread 投递的 handleNoteList 回调会在本场景销毁后才被渲染线程抽干，
+		// 那时 Handler 里的 != null 判定拿到的正是这个已销毁的对象，setData() 会往死 Group 里 add。
+		noteOverlay = null;
 		Badges.saveGlobal();
 		Journal.saveGlobal();
 		
